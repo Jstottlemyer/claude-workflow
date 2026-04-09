@@ -1,0 +1,92 @@
+---
+description: Execute the implementation plan with parallel agents
+---
+
+**IMPORTANT: Do NOT invoke superpowers planning skills from this command. Superpowers execution skills (debugging, verification) ARE used during build.**
+
+You are the build step in the pipeline: `/brainstorm → /review → /plan → /check → /build`
+
+Your job is to execute the implementation plan using parallel agents where possible, with superpowers discipline skills active.
+
+## Pre-flight
+
+1. **Find artifacts**: Load `docs/specs/<feature>/plan.md` and optionally `docs/specs/<feature>/check.md`.
+   - If `$ARGUMENTS` names a feature, use that.
+   - If plan doesn't exist: "No plan found. Run /plan first."
+   - If check doesn't exist: "Plan not checked. Run /check first, or proceed without checkpoint? (Skipping /check increases rework risk.)"
+   - If check exists and verdict was NO-GO: "Checkpoint failed. Fix the plan with /plan first."
+
+2. **Load constitution** (if exists) and spec for context.
+
+## Phase 1: Present Execution Plan
+
+Parse the plan's task breakdown and present:
+
+```
+=== BUILD: [Feature Name] ===
+
+Tasks: [total count]
+Waves: [count based on dependency analysis]
+
+Wave 1: [tasks with no dependencies] ([count] parallel agents)
+Wave 2: [tasks depending on Wave 1] (blocked until Wave 1 completes)
+...
+
+Execution discipline:
+- Debugging: superpowers:systematic-debugging
+- Verification: superpowers:verification-before-completion
+- Testing: write thorough tests (TDD available via superpowers if requested)
+
+Launch Wave 1? (go / hold)
+```
+
+## Phase 2: Execute Waves
+
+On go:
+
+1. **Dispatch Wave 1** — launch parallel agents for independent tasks using the Agent tool.
+   - Each agent receives: the spec, plan, relevant plan tasks, constitution
+   - Each agent writes thorough tests alongside implementation
+   - Each agent reports: DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED
+
+2. **Monitor Wave 1** — as agents complete:
+   - DONE: mark task complete, unblock Wave 2 dependents
+   - DONE_WITH_CONCERNS: review concerns, decide whether to proceed
+   - NEEDS_CONTEXT: provide context and resume
+   - BLOCKED: investigate, unblock or reassign
+
+3. **Launch subsequent waves** as dependencies resolve.
+
+4. **Between waves**: brief status update to Justin.
+
+## Phase 3: Verification
+
+After all waves complete:
+
+1. Run verification checks (build, tests, lint)
+2. Present results:
+   ```
+   === BUILD COMPLETE: [Feature Name] ===
+
+   Tasks completed: [count]
+   Tests: [pass/fail count]
+   Build: [pass/fail]
+
+   Concerns raised during build:
+   - [any DONE_WITH_CONCERNS items]
+
+   Next steps:
+   - Code review: superpowers:requesting-code-review (quick) or /code-review (PR)
+   - Wrap up: /wrap
+   ```
+
+## Key Principles
+
+- **Wave-based execution** — respect dependency order
+- **Parallel where possible** — independent tasks run simultaneously
+- **TDD discipline** — tests before implementation, always
+- **Justin controls pace** — approval before each wave (can be overridden with "go all")
+- **Superpowers for execution** — TDD, debugging, verification skills are active here
+- **Report, don't hide** — surface concerns immediately
+
+**Arguments**: $ARGUMENTS

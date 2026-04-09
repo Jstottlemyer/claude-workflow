@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(gh repo:*)",
+      "Bash(git:*)",
+      "Bash(sips:*)",
+      "Bash(lsof:*)",
+      "Bash(kill:*)",
+      "Bash(chmod:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(open:*)",
+      "Bash(cd:*)"
+    ],
+    "deny": [
+      "Bash(npm install:*)",
+      "Bash(npm add:*)",
+      "Bash(npm i:*)",
+      "Bash(npx:*)",
+      "Bash(yarn add:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm install:*)"
+    ],
+    "defaultMode": "plan"
+  },
+  "enabledPlugins": {
+    "claude-md-management@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "superpowers@claude-plugins-official": true,
+    "context7@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "claude-code-setup@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "firecrawl@claude-plugins-official": true
+  },
+  "hooks": {},
+  "effortLevel": "high",
+  "skipDangerousModePermissionPrompt": true
+}

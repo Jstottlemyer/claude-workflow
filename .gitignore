@@ -1,0 +1,9 @@
+# Personal configuration (not shared)
+personal/
+*.personal
+
+# Local settings overrides
+settings.local.json
+
+# OS files
+.DS_Store
