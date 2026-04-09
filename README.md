@@ -61,7 +61,7 @@ cd ~/Projects/claude-workflow
 ./install.sh
 ```
 
-The installer asks whether to set up in **shared** mode (pipeline only) or **personal** mode (pipeline + shell config + personal CLAUDE.md).
+The installer symlinks commands, personas, templates, and settings into `~/.claude/`, then offers to install plugins.
 
 ## Plugin Dependencies
 
@@ -91,15 +91,14 @@ docs/specs/<feature>/check.md       # Gap checkpoint (from /check)
 
 1. **Add project-specific agents** — create personas at `/kickoff` via the constitution template
 2. **Add domain extensions** — drop agent `.md` files in `domains/<your-domain>/agents/`
-3. **Personalize** — copy `CLAUDE.md.template` to `personal/CLAUDE.md` and fill in your context
+3. **Personalize** — create a `~/CLAUDE.md` with your own context (role, projects, preferences)
 
 ## Structure
 
 ```
 claude-workflow/
-├── install.sh                  # Interactive installer (shared vs personal)
+├── install.sh                  # Installer — symlinks everything into ~/.claude/
 ├── plugins.md                  # Plugin dependency manifest
-├── CLAUDE.md.template          # Anonymized root config template
 ├── commands/                   # 8 pipeline commands
 ├── personas/                   # 27 universal agent personas
 │   ├── check/       (5)
@@ -110,16 +109,7 @@ claude-workflow/
 │   └── constitution.md         # Project constitution template
 ├── settings/
 │   └── settings.json           # Base settings (permissions, plugins)
-├── shell/                      # Shell configuration
-│   ├── .tmux.conf
-│   ├── .zshrc
-│   └── .zprofile
-├── scripts/                    # Utility scripts
-│   ├── dev-session.sh          # 4-window tmux dev session
-│   └── ssh-setup.sh            # GitHub SSH + gh CLI setup
-├── domains/                    # Domain-specific extensions
-│   ├── mobile/                 # iOS development
-│   └── games/                  # Game development
-├── .gitignore                  # Excludes personal/ directory
-└── personal/                   # Your personal config (gitignored)
+└── domains/                    # Domain-specific extensions
+    ├── mobile/                 # iOS development
+    └── games/                  # Game development
 ```

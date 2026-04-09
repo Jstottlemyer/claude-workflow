@@ -13,18 +13,6 @@ echo "Repo:   $REPO_DIR"
 echo "Target: $CLAUDE_DIR"
 echo ""
 
-# --- Mode selection ---
-echo "Install mode:"
-echo "  1) Pipeline only — commands, personas, templates, settings (recommended)"
-echo "  2) Full setup  — pipeline + shell config + scripts (repo maintainer only)"
-echo ""
-read -rp "Choose [1/2]: " MODE
-
-if [[ "$MODE" != "1" && "$MODE" != "2" ]]; then
-    echo "Invalid choice. Exiting."
-    exit 1
-fi
-
 # --- Helper ---
 link_file() {
     local src="$1"
@@ -37,25 +25,12 @@ link_file() {
     echo "  LINKED: $dst → $src"
 }
 
-link_dir() {
-    local src="$1"
-    local dst="$2"
-    if [ -d "$dst" ] && [ ! -L "$dst" ]; then
-        echo "  BACKUP: $dst → ${dst}.bak"
-        mv "$dst" "${dst}.bak"
-    fi
-    ln -sf "$src" "$dst"
-    echo "  LINKED: $dst → $src"
-}
-
 # --- Ensure directories exist ---
 mkdir -p "$CLAUDE_DIR/commands"
 mkdir -p "$CLAUDE_DIR/personas"
 mkdir -p "$CLAUDE_DIR/templates"
-mkdir -p "$HOME/scripts"
 
 # --- Pipeline commands ---
-echo ""
 echo "Installing pipeline commands..."
 for cmd in "$REPO_DIR"/commands/*.md; do
     link_file "$cmd" "$CLAUDE_DIR/commands/$(basename "$cmd")"
@@ -83,49 +58,7 @@ echo ""
 echo "Installing settings..."
 link_file "$REPO_DIR/settings/settings.json" "$CLAUDE_DIR/settings.json"
 
-# --- Personal mode extras ---
-if [[ "$MODE" == "2" ]]; then
-    echo ""
-    echo "Installing shell config..."
-    link_file "$REPO_DIR/shell/.tmux.conf" "$HOME/.tmux.conf"
-    link_file "$REPO_DIR/shell/.zshrc" "$HOME/.zshrc"
-    if [ -f "$REPO_DIR/shell/.zprofile" ]; then
-        link_file "$REPO_DIR/shell/.zprofile" "$HOME/.zprofile"
-    fi
-
-    echo ""
-    echo "Installing scripts..."
-    for script in "$REPO_DIR"/scripts/*.sh; do
-        link_file "$script" "$HOME/scripts/$(basename "$script")"
-        chmod +x "$script"
-    done
-
-    # Personal CLAUDE.md
-    if [ -f "$REPO_DIR/personal/CLAUDE.md" ]; then
-        echo ""
-        echo "Installing personal CLAUDE.md..."
-        link_file "$REPO_DIR/personal/CLAUDE.md" "$HOME/CLAUDE.md"
-    else
-        echo ""
-        echo "NOTE: No personal/CLAUDE.md found."
-        echo "  Copy CLAUDE.md.template to personal/CLAUDE.md and customize it."
-    fi
-
-    # Personal .gitconfig
-    if [ -f "$REPO_DIR/personal/.gitconfig" ]; then
-        link_file "$REPO_DIR/personal/.gitconfig" "$HOME/.gitconfig"
-    fi
-else
-    echo ""
-    echo "Shared mode — skipping shell config and personal files."
-    echo ""
-    echo "Next steps:"
-    echo "  1. Copy CLAUDE.md.template to ~/CLAUDE.md and customize it"
-    echo "  2. Review settings/settings.json and adjust permissions"
-    echo "  3. Install plugins: see plugins.md"
-fi
-
-# --- Plugin installation prompt ---
+# --- Plugin installation ---
 echo ""
 read -rp "Install required plugins now? [y/N]: " INSTALL_PLUGINS
 if [[ "$INSTALL_PLUGINS" =~ ^[Yy]$ ]]; then
@@ -146,10 +79,10 @@ echo "  - 8 pipeline commands (/kickoff → /brainstorm → /review → /plan �
 echo "  - 27 agent personas (review, plan, check, code-review)"
 echo "  - 1 constitution template"
 echo "  - Settings with pipeline-optimized permissions"
-if [[ "$MODE" == "2" ]]; then
-    echo "  - Shell config (.tmux.conf, .zshrc, .zprofile)"
-    echo "  - Dev scripts (dev-session.sh, ssh-setup.sh)"
-    echo "  - Personal CLAUDE.md"
-fi
+echo ""
+echo "Next steps:"
+echo "  1. Create a ~/CLAUDE.md with your personal context"
+echo "  2. Review ~/.claude/settings.json and adjust permissions"
+echo "  3. See plugins.md for optional plugins"
 echo ""
 echo "Run /flow in Claude Code to see the workflow reference card."
