@@ -15,8 +15,8 @@ echo ""
 
 # --- Mode selection ---
 echo "Install mode:"
-echo "  1) Shared  — pipeline only (commands, personas, templates, settings)"
-echo "  2) Personal — pipeline + shell config + personal CLAUDE.md"
+echo "  1) Pipeline only — commands, personas, templates, settings (recommended)"
+echo "  2) Full setup  — pipeline + shell config + scripts (repo maintainer only)"
 echo ""
 read -rp "Choose [1/2]: " MODE
 
