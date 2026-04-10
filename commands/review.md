@@ -39,15 +39,24 @@ Each agent must return their findings structured as:
 - Critical Gaps (must answer before building)
 - Important Considerations (should address but not blocking)
 - Observations (non-blocking notes)
-- Confidence Assessment (High/Medium/Low)
+- Verdict: PASS / PASS WITH NOTES / FAIL
 
-## Phase 2: Synthesize
+## Phase 2: Judge + Synthesize
 
-After all 6 agents return:
+After all 6 agents return, apply two passes using the personas in `~/.claude/personas/`:
 
-1. **Deduplicate** — identify findings flagged by multiple reviewers (higher confidence)
-2. **Prioritize** — must-answer-before-build vs important-but-not-blocking
-3. **Check for conflicts** — do reviewers disagree on anything?
+**Pass 1 — Judge** (read `personas/judge.md`):
+1. Remove duplicate findings flagged by multiple agents → merge into one with higher confidence
+2. Resolve contradictions between agents → pick one with rationale
+3. Demote vague or speculative findings that aren't actionable
+4. Promote findings with convergent signal (2+ agents flagged independently)
+5. Check proportionality — is the severity appropriate for actual risk?
+
+**Pass 2 — Synthesis** (read `personas/synthesis.md`, use Review output structure):
+1. Organize by topic, not by agent — reader shouldn't need to know which agent said what
+2. Identify themes multiple agents converged on
+3. Identify gaps no agent covered
+4. Write in direct language — no hedging
 
 ## Phase 3: Present & Write
 
@@ -66,15 +75,18 @@ After all 6 agents return:
    ## Observations
    [Non-blocking notes worth considering]
 
-   ## Reviewer Confidence
-   | Dimension | Score | Key Finding |
-   |-----------|-------|-------------|
-   | Requirements | H/M/L | ... |
-   | Gaps | H/M/L | ... |
-   | Ambiguity | H/M/L | ... |
-   | Feasibility | H/M/L | ... |
-   | Scope | H/M/L | ... |
-   | Stakeholders | H/M/L | ... |
+   ## Reviewer Verdicts
+   | Dimension | Verdict | Key Finding |
+   |-----------|---------|-------------|
+   | Requirements | PASS/NOTES/FAIL | ... |
+   | Gaps | PASS/NOTES/FAIL | ... |
+   | Ambiguity | PASS/NOTES/FAIL | ... |
+   | Feasibility | PASS/NOTES/FAIL | ... |
+   | Scope | PASS/NOTES/FAIL | ... |
+   | Stakeholders | PASS/NOTES/FAIL | ... |
+
+   ## Conflicts Resolved
+   [Any agent disagreements and how they were resolved]
 
    Approve to proceed to /plan? (approve / refine <what to change>)
    ```

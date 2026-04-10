@@ -41,13 +41,22 @@ Each agent must return:
 - Open Questions
 - Integration Points with other dimensions
 
-## Phase 2: Synthesize into Implementation Plan
+## Phase 2: Judge + Synthesize into Implementation Plan
 
-After all 6 agents return:
+After all 6 agents return, apply two passes using the personas in `~/.claude/personas/`:
 
-1. **Identify conflicts** between dimensions (e.g., security recommendation conflicts with UX)
-2. **Resolve or flag** conflicts for Justin's input
-3. **Produce implementation plan** with:
+**Pass 1 — Judge** (read `personas/judge.md`):
+1. Remove duplicate recommendations across agents → merge into one
+2. Resolve contradictions (e.g., security vs UX tradeoff) → pick one with rationale, or flag for human input
+3. Demote speculative concerns that don't apply to current scope
+4. Promote recommendations with convergent signal (2+ agents aligned)
+
+**Pass 2 — Synthesis** (read `personas/synthesis.md`, use Plan output structure):
+1. Produce unified architecture summary from all agent recommendations
+2. Compile key design decisions with rationale
+3. Surface open questions requiring human input
+4. Build consolidated risk register
+5. **Produce implementation plan** with:
    - Ordered task breakdown
    - Dependencies between tasks
    - Which tasks can run in parallel

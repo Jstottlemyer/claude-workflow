@@ -36,13 +36,21 @@ Each agent must return:
 - Should Fix (important but not blocking)
 - Observations (non-blocking notes)
 
-## Phase 2: Synthesize
+## Phase 2: Judge + Synthesize
 
-After all 5 agents return:
+After all 5 agents return, apply two passes using the personas in `~/.claude/personas/`:
 
-1. **Aggregate verdicts** — any FAIL means NO-GO
-2. **Consolidate must-fix items** — deduplicate, flag cross-reviewer findings
-3. **Determine overall verdict**: GO / GO WITH FIXES / NO-GO
+**Pass 1 — Judge** (read `personas/judge.md`):
+1. Remove duplicate must-fix items flagged by multiple agents → merge with higher confidence
+2. Resolve contradictions (e.g., scope-discipline says cut it, completeness says it's missing) → assess and pick with rationale
+3. Demote overly cautious findings that don't match actual risk level
+4. Verify severity ratings are proportionate
+
+**Pass 2 — Synthesis** (read `personas/synthesis.md`, use Check output structure):
+1. Aggregate verdicts — any FAIL means NO-GO
+2. Consolidate must-fix items, deduplicated and prioritized
+3. List accepted risks the team is choosing to proceed with
+4. **Determine overall verdict**: GO / GO WITH FIXES / NO-GO
 
 ## Phase 3: Present & Write
 
