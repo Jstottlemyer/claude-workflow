@@ -24,3 +24,17 @@ Identify all affected stakeholders and assess whether their needs conflict.
 - Who is NOT mentioned in this spec who will care about it?
 - Are there conflicting needs between user types that the spec glosses over?
 - What will the support team need to handle issues post-launch?
+
+## Output Structure
+
+### Critical Gaps
+(Things that MUST be answered before implementation can start)
+
+### Important Considerations
+(Things that should be addressed but aren't blockers)
+
+### Observations
+(Non-blocking notes, suggestions, things to watch)
+
+### Verdict
+PASS / PASS WITH NOTES / FAIL — one sentence rationale

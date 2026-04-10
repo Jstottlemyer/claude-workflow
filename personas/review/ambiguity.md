@@ -24,3 +24,17 @@ Find statements in the spec that are ambiguous or open to multiple interpretatio
 - Which sentences could reasonably be interpreted two different ways?
 - What would two engineers disagree on when implementing this?
 - What will cause a PR review debate because the spec doesn't say?
+
+## Output Structure
+
+### Critical Gaps
+(Things that MUST be answered before implementation can start)
+
+### Important Considerations
+(Things that should be addressed but aren't blockers)
+
+### Observations
+(Non-blocking notes, suggestions, things to watch)
+
+### Verdict
+PASS / PASS WITH NOTES / FAIL — one sentence rationale

@@ -28,3 +28,17 @@ Identify requirements that are completely absent from the spec.
 - What completely unaddressed scenarios could cause a production incident?
 - What will the next engineer touching this code wish had been specified?
 - What will ops ask about at launch that nobody thought about?
+
+## Output Structure
+
+### Critical Gaps
+(Things that MUST be answered before implementation can start)
+
+### Important Considerations
+(Things that should be addressed but aren't blockers)
+
+### Observations
+(Non-blocking notes, suggestions, things to watch)
+
+### Verdict
+PASS / PASS WITH NOTES / FAIL — one sentence rationale

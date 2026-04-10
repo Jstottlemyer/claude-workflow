@@ -36,5 +36,5 @@ Analyze whether the requirements are complete enough to build from.
 ### Observations
 (Non-blocking notes, suggestions, things to watch)
 
-### Confidence Assessment
-(How complete does this dimension look? High/Medium/Low + rationale)
+### Verdict
+PASS / PASS WITH NOTES / FAIL — one sentence rationale

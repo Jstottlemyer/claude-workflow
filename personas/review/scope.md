@@ -25,3 +25,17 @@ Analyze scope boundaries and identify scope creep risk.
 - What will stakeholders ask for the day after launch?
 - Where are the natural seams for future phases?
 - Are there requirements that belong in a separate project entirely?
+
+## Output Structure
+
+### Critical Gaps
+(Things that MUST be answered before implementation can start)
+
+### Important Considerations
+(Things that should be addressed but aren't blockers)
+
+### Observations
+(Non-blocking notes, suggestions, things to watch)
+
+### Verdict
+PASS / PASS WITH NOTES / FAIL — one sentence rationale

@@ -49,8 +49,8 @@ Display this workflow reference card to the user:
 ║  /wrap → summary, learning triage, git loose ends            ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
-║  AGENTS: 27 default pipeline + project-specific at /kickoff  ║
-║  PERSONAS: ~/.claude/personas/{review,plan,check,code-review}║
+║  AGENTS: review(6) plan(6) check(5) code-review(9)          ║
+║  + judge · synthesis · domain agents                         ║
 ║                                                              ║
 ║  PLUGINS                                                     ║
 ║  Always-on:  superpowers · context7                          ║

@@ -9,19 +9,25 @@ Analyze the interface design for this feature.
 
 ## Checklist
 
-- Command-line interface: flags, subcommands, ergonomics
-- Programmatic API: function signatures, return types
-- Configuration interface: files, environment variables
-- Error messages and help text
-- Naming conventions and discoverability
-- Consistency with existing interfaces
+- Function/method signatures: parameter types, return types, optionality
+- Naming: does the API name communicate what it does without reading docs?
+- Consistency with existing interfaces in the codebase
+- Error returns: typed errors vs generic, error codes vs messages
+- Versioning strategy: how will this API evolve without breaking callers?
+- Configuration surface: files, env vars, flags — too many knobs?
+- Discoverability: can users find this feature through autocomplete/help?
+- Defaults: are sensible defaults provided? Is zero-config possible?
+- Idempotency: can this be called twice safely?
+- Pagination/streaming: does the API handle large result sets?
+- Deprecation path: how do we retire old versions?
+- Documentation: are examples, not just signatures, planned?
 
 ## Key Questions
 
-- How will users discover and learn this feature?
-- What's the happy path vs edge cases?
-- Does it follow existing patterns?
-- What would make this a joy to use?
+- Can someone use this API correctly on their first try without reading docs?
+- What's the most common use case, and is it the simplest code path?
+- What will callers complain about six months from now?
+- Does it follow existing patterns, or introduce a new one that must be learned?
 
 ## Output Structure
 
