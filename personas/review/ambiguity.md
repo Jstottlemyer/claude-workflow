@@ -9,21 +9,37 @@ Find statements in the spec that are ambiguous or open to multiple interpretatio
 
 ## Checklist
 
-- Vague language: "fast", "simple", "reasonable", "appropriate", "as needed"
-- Undefined terms: domain concepts used without definition
-- Contradictions: two requirements that can't both be true
-- Implicit assumptions: things assumed true that might not be
-- Conditional requirements without defined conditions: "when X, do Y" but X isn't specified
-- Scope boundaries stated unclearly: "similar to X" without defining similarity
-- User/persona confusion: mixing different user types without distinguishing them
-- "Should" vs "must" vs "could": what's actually required vs nice-to-have?
-- Undefined ordering: when multiple things need to happen, what order?
+### Vague Language
+- Weasel words: "fast", "simple", "reasonable", "appropriate", "as needed", "etc."
+- Undefined quantities: "many", "some", "a few", "large", "small"
+- Hedge words: "usually", "generally", "in most cases" — what about the other cases?
+- "Easy" or "intuitive" without defining for whom
+
+### Undefined Terms
+- Domain concepts used without definition (jargon, acronyms)
+- Technical terms used ambiguously (does "cache" mean in-memory, on-disk, CDN?)
+- "User" without distinguishing between user types/personas
+- Borrowed terminology from other features that may mean something different here
+
+### Contradictions
+- Two requirements that can't both be true simultaneously
+- Conflicting priorities without explicit hierarchy
+- "Must" in one place, "should" for the same thing elsewhere
+- Diagrams or examples that don't match the text description
+
+### Underspecification
+- Conditional requirements without defined conditions ("when X" but X isn't defined)
+- Scope boundaries stated as "similar to X" without defining what "similar" means
+- Undefined ordering when multiple things need to happen
+- Missing default behavior: what happens if no choice is made?
+- "Should" vs "must" vs "could" used inconsistently: what's required vs optional?
 
 ## Key Questions
 
-- Which sentences could reasonably be interpreted two different ways?
-- What would two engineers disagree on when implementing this?
+- Which sentence would two engineers implement differently?
 - What will cause a PR review debate because the spec doesn't say?
+- If I highlighted every ambiguous word, how much of the spec is yellow?
+- What question will someone ask 3 days into implementation that should be answered now?
 
 ## Output Structure
 

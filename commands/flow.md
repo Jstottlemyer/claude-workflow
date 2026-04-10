@@ -49,7 +49,7 @@ Display this workflow reference card to the user:
 ║  /wrap → summary, learning triage, git loose ends            ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
-║  AGENTS: review(6) plan(6) check(5) code-review(9)          ║
+║  AGENTS: review(6) plan(6) check(5) code-review(8)          ║
 ║  + judge · synthesis · domain agents                         ║
 ║                                                              ║
 ║  PLUGINS                                                     ║

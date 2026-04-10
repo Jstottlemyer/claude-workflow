@@ -9,21 +9,38 @@ Analyze whether the requirements are complete enough to build from.
 
 ## Checklist
 
-- Missing success criteria: how will we know this is done?
-- Undefined acceptance conditions: what does "working" mean?
-- Unmeasured outcomes: are there metrics or thresholds?
-- Missing non-functional requirements: performance, scale, reliability?
-- No definition of failure modes or error states
+### Success Criteria
+- Missing definition of "done": how will we know this feature is complete?
+- No measurable outcomes: are there metrics, thresholds, or benchmarks?
+- Subjective criteria: "fast", "good UX", "reliable" without concrete targets
+- No A/B or comparison: how do we know the new version is better than the old?
+
+### Failure & Recovery
 - Happy path only: what happens when things go wrong?
-- Missing rollback / undo / recovery requirements
-- No mention of monitoring, alerting, or observability
+- No error states defined: what does the user see on failure?
+- Missing rollback requirements: can we undo if it breaks?
+- No degradation strategy: what works when a dependency is down?
+- Recovery time: how fast must the system recover?
+
+### Non-Functional Requirements
+- Performance: response time, throughput, latency targets
+- Scale: concurrent users, data volume, growth projections
+- Reliability: uptime targets, acceptable error rates
+- Security: auth requirements, data sensitivity classification
+- Accessibility: compliance level (WCAG), assistive technology support
+- Observability: monitoring, alerting, logging requirements
+
+### Testability
+- Can someone write an automated test from this spec alone?
+- Are edge cases defined well enough to write boundary tests?
+- Are acceptance criteria binary (pass/fail) or subjective?
 
 ## Key Questions
 
-- Can someone write a test from this spec? If not, what's missing?
-- Is "done" clearly defined and verifiable?
-- Are there implicit requirements that haven't been stated?
-- What would a QA engineer flag as untestable?
+- If a QA engineer read only this spec, could they write a complete test plan?
+- Is "done" clearly defined and verifiable by a machine?
+- What implicit requirements exist that nobody stated?
+- What would a customer consider a bug that the spec doesn't mention?
 
 ## Output Structure
 
