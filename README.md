@@ -28,7 +28,7 @@ A complete workflow system that scales to the size of the work:
 | `/review` | Parallel PRD review — finds gaps, risks, ambiguity | 6 reviewers |
 | `/plan` | Architecture + implementation design | 6 designers |
 | `/check` | Last gate before code — validates the plan | 5 validators |
-| `/build` | Parallel execution with TDD discipline | Superpowers |
+| `/build` | Parallel execution with verification discipline | Superpowers |
 | `/flow` | Displays workflow reference card | - |
 | `/wrap` | Session wrap-up — summary, learnings, git loose ends | - |
 

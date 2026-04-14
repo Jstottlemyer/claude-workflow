@@ -6,7 +6,7 @@ This pipeline requires plugins from the `claude-plugins-official` marketplace.
 
 | Plugin | Purpose | Install |
 |--------|---------|---------|
-| **superpowers** | Execution discipline: TDD, debugging, verification, code review, worktrees | `claude plugins install superpowers` |
+| **superpowers** | Execution discipline: debugging, verification, code review, worktrees | `claude plugins install superpowers` |
 | **context7** | Library/framework documentation fetching | `claude plugins install context7` |
 
 ## Recommended (Full Pipeline Experience)
@@ -41,4 +41,4 @@ claude plugins install superpowers context7 firecrawl code-review ralph-loop pla
 ## Important
 
 - DO NOT modify files in `~/.claude/plugins/cache/` — they get overwritten on updates
-- Superpowers handles **execution discipline** (TDD, debugging, verification) — NOT planning/review (the pipeline commands handle that)
+- Superpowers handles **execution discipline** (debugging, verification) — NOT planning/review (the pipeline commands handle that)

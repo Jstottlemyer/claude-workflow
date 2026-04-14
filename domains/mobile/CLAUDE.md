@@ -129,7 +129,7 @@ Work scales to size: bug fix (no spec) → small change (brainstorm + build) →
 
 **Two-tier system:**
 - **Pipeline commands**: `/brainstorm` → `/review` → `/plan` → `/check` → `/build` with 27 parallel agent personas
-- **Superpowers**: in-session execution discipline — TDD, debugging, verification, code review
+- **Superpowers**: in-session execution discipline — debugging, verification, code review
 - **Plugins**: specialized capabilities — firecrawl (research), context7 (docs), code-review (PR), playwright (browser)
 
 **Brainstorming:** `/brainstorm` is the canonical entry point. Skip `superpowers:brainstorming`.

@@ -58,6 +58,15 @@ echo ""
 echo "Installing settings..."
 link_file "$REPO_DIR/settings/settings.json" "$CLAUDE_DIR/settings.json"
 
+# --- Scripts ---
+echo ""
+echo "Installing scripts..."
+mkdir -p "$CLAUDE_DIR/scripts"
+for script in "$REPO_DIR"/scripts/*.py "$REPO_DIR"/scripts/*.sh; do
+    [ -e "$script" ] || continue
+    link_file "$script" "$CLAUDE_DIR/scripts/$(basename "$script")"
+done
+
 # --- Plugin installation ---
 echo ""
 read -rp "Install required plugins now? [y/N]: " INSTALL_PLUGINS
@@ -79,6 +88,7 @@ echo "  - 8 pipeline commands (/kickoff → /brainstorm → /review → /plan �
 echo "  - 27 agent personas (review, plan, check, code-review)"
 echo "  - 1 constitution template"
 echo "  - Settings with pipeline-optimized permissions"
+echo "  - Scripts (session-cost.py)"
 echo ""
 echo "Next steps:"
 echo "  1. Create a ~/CLAUDE.md with your personal context"

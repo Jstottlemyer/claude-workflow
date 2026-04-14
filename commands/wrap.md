@@ -20,7 +20,15 @@ Scan the conversation context and produce a concise summary:
 - [2-5 bullets of what was accomplished]
 ```
 
-Display and continue immediately to Phase 2. Do NOT wait for user input.
+Then run the session cost script:
+
+```bash
+python3 ~/.claude/scripts/session-cost.py 2>/dev/null || true
+```
+
+**Paste the script's stdout verbatim into your response** (as a fenced code block, right under the Session Summary) so the user sees the cost in the message — do not rely on the tool-result pane being visible. If the script prints nothing (no session data yet), skip the cost block.
+
+Continue immediately to Phase 2. Do NOT wait for user input.
 
 ---
 
@@ -193,6 +201,51 @@ Ask once:
 > Handle any of these, or done for today?
 
 If the user picks something, help with that one thing (commit, close a beads task, or suggest the appropriate skill). Do NOT chain into multi-step workflows — the user is leaving.
+
+---
+
+## Phase 3b: Dependency Install Audit (conditional, one approval gate)
+
+**Skip this phase if:**
+- Arguments include "quick"
+- No new third-party package installs or `npx` runs happened in this session
+
+Scan the session for commands that pulled in third-party code: `npm install`, `npm i -g`, `npx`, `pnpm add`, `yarn add`, `pip install`, `pipx install`, `brew install`, `cargo install`, `gem install`. For each new package (one not already audited earlier in the session), flag it for audit.
+
+### Present findings:
+
+```
+=== New Packages This Session ===
+
+Package: [name@version]
+  Source: [registry — npm/pip/brew/etc]
+  Age: [days since first publish — run `npm view <pkg> time` if npm]
+  Audited this session: [yes / no]
+```
+
+If all packages are well-known and mature (>1 year on registry, high downloads, reputable maintainer), note and move on:
+```
+No audit needed — all packages are established. ✓
+```
+
+Otherwise, for each unaudited or young package, offer the audit checklist (from `feedback_package_audit.md`):
+
+1. `package.json` install hooks (preinstall/postinstall/install)
+2. Package age via `npm view <pkg> time`
+3. Source grep: `fetch`/`http`/`eval`/`child_process`/base64
+4. URL inventory in source — every outbound URL should be documented
+5. Tarball diff — `npm pack <pkg>` vs git repo
+6. Direct deps sanity check (no typosquats)
+7. Recommend pinned `npx` for first use, not global install
+8. Skip menu-bar/LaunchAgent/$PATH features on first install
+
+### Ask once:
+
+> Audit now, defer, or mark trusted? (audit / defer / trust)
+
+- **audit**: walk the checklist for each flagged package, report findings
+- **defer**: log the package + version in session notes; flag at next `/wrap`
+- **trust**: user has vetted this out-of-band; note the decision
 
 ---
 

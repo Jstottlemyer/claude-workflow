@@ -35,7 +35,7 @@ Wave 2: [tasks depending on Wave 1] (blocked until Wave 1 completes)
 Execution discipline:
 - Debugging: superpowers:systematic-debugging
 - Verification: superpowers:verification-before-completion
-- Testing: write thorough tests (TDD available via superpowers if requested)
+- Testing: write thorough tests
 
 Launch Wave 1? (go / hold)
 ```
@@ -84,9 +84,8 @@ After all waves complete:
 
 - **Wave-based execution** — respect dependency order
 - **Parallel where possible** — independent tasks run simultaneously
-- **TDD discipline** — tests before implementation, always
 - **Justin controls pace** — approval before each wave (can be overridden with "go all")
-- **Superpowers for execution** — TDD, debugging, verification skills are active here
+- **Superpowers for execution** — debugging, verification skills are active here
 - **Report, don't hide** — surface concerns immediately
 
 **Arguments**: $ARGUMENTS
