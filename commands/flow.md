@@ -14,14 +14,14 @@ Display this workflow reference card to the user:
 ║  /kickoff  →  constitution + agent roster                    ║
 ║                                                              ║
 ║  FEATURE (full pipeline)                                     ║
-║  /brainstorm  →  /review  →  /plan  →  /check  →  /build    ║
-║     define       6 PRD       6 design   5 plan     execute   ║
-║     (Q&A)        agents      agents     agents     (parallel)║
+║  /spec  →  /review  →  /plan  →  /check  →  /build          ║
+║   define    6 PRD      6 design   5 plan     execute         ║
+║   (Q&A)     agents     agents     agents     (parallel)      ║
 ║  + firecrawl (research) · context7 (API docs)                ║
 ║                                                              ║
 ║  WORK-SIZE SCALING                                           ║
 ║  Bug fix:      describe it → fix it → verify                 ║
-║  Small change: /brainstorm (quick) → /build                  ║
+║  Small change: /spec (quick) → /build                        ║
 ║  Feature:      full pipeline above                           ║
 ║  V2/Rework:    revise existing spec → full pipeline          ║
 ║                                                              ║
@@ -36,7 +36,7 @@ Display this workflow reference card to the user:
 ║  CODE REVIEW                                                 ║
 ║  Quick:  superpowers requesting-code-review                  ║
 ║  PR:     /code-review plugin                                 ║
-║  Full:   10 parallel code-review personas                    ║
+║  Full:   9 parallel code-review personas                     ║
 ║                                                              ║
 ║  ARTIFACTS                                                   ║
 ║  docs/specs/constitution.md     (project principles)         ║
@@ -49,7 +49,7 @@ Display this workflow reference card to the user:
 ║  /wrap → summary, learning triage, git loose ends            ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
-║  AGENTS: review(6) plan(6) check(5) code-review(8)          ║
+║  AGENTS: review(6) plan(6) check(5) code-review(9)          ║
 ║  + judge · synthesis · domain agents                         ║
 ║                                                              ║
 ║  PLUGINS                                                     ║
