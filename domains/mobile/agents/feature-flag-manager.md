@@ -128,6 +128,21 @@ When a flag is ready to remove:
 2. Show what Swift code to remove (the `if FeatureFlags.isEnabled(...)` branch — keep the new behavior, delete the old branch and the condition)
 3. Confirm: "Delete the old code path too, not just the flag"
 
+## Key Questions
+
+- Is this flag worth the cost? (every flag is a branch point — each one the ViewModel tests must cover)
+- How long will this flag live? (flags with no removal plan become permanent complexity)
+- What's the kill-switch story if this feature misbehaves in production? (a flag that can't be toggled without a rebuild isn't a kill switch)
+- Does this flag gate a feature or a code path? (feature-gating is legitimate; code-path flags usually signal incomplete rollout)
+- When a flag fully ships (`["dev","beta","production"]`), is there a calendar reminder to remove it? (orphaned flags accumulate silently)
+
+## Detection Techniques
+
+- **Orphaned flags:** cross-reference `features.json` keys vs. `grep -rn 'FeatureFlags.isEnabled' Sources/` — keys with no call site are dead; call sites referencing missing keys crash at runtime.
+- **Stuck-in-beta flags:** flag has `environments: ["dev", "beta"]` for >60 days — either ship it or cut it.
+- **Production-only flags without a cleanup date:** these silently become permanent. Search `addedDate` older than 90 days with all three environments.
+- **Dead branches:** `grep -B1 -A10 'FeatureFlags.isEnabled' Sources/` — when a flag is fully on in production, the `else` branch is dead code.
+
 ## Output Format
 Always be explicit:
 - Show exact JSON to add/remove from `features.json`

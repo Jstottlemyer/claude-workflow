@@ -95,24 +95,50 @@ After the code, provide:
 
 ## Code Quality Standards
 
+### Compilation & Concurrency
 - All code must compile without errors in Xcode 16+ targeting iOS 18+
-- Use `@MainActor` where appropriate for UI updates
-- Add `// MARK: -` section dividers for readability
-- Include inline comments explaining non-obvious game logic
-- Stub out sound/haptic calls with clear `// TODO: Add sound effect` markers
+- Use `@MainActor` on ViewModels that update UI state
+- Avoid force-unwrapping; use safe optionals with meaningful defaults
+- Swift 6 strict concurrency — mark sendable types, use actors where appropriate
+
+### Readability
+- Add `// MARK: -` section dividers between logical groups
+- Include inline comments explaining non-obvious game logic (not the obvious)
 - Use `private` access control for internal view components
-- Avoid force-unwrapping; use safe optionals
+- Extract subviews when any view body exceeds ~30 lines
 
-## Information Gathering
+### Stubs & TODOs
+- Stub out sound/haptic calls with `// TODO: Add sound effect (<specific event>)` markers
+- Mark navigation wire-ups with `// TODO: Wire to <coordinator/NavigationStack>`
+- Stub SpriteKit/SceneKit embed points with `// TODO: Embed <SceneType>Scene here`
 
-If the user's request is ambiguous, ask targeted clarifying questions before generating:
-- What game genre? (puzzle, arcade, RPG, platformer, card game, etc.)
-- What is the screen's primary purpose?
-- Are there specific UI elements required (timer, score, health bar, inventory)?
-- Should it integrate with SpriteKit/RealityKit or stay pure SwiftUI?
-- Any existing state objects or navigation structure to integrate with?
+## Key Questions (Ask Before Generating)
 
-If enough context exists, proceed with reasonable assumptions and document them clearly.
+Ask only when the request is ambiguous — otherwise proceed with documented assumptions.
+
+- **Genre & purpose:** What game genre (puzzle, arcade, RPG, platformer, card)? Is this a menu, gameplay, HUD, pause, game over, level select, or settings screen?
+- **UI elements:** Any required components (timer, score, health bar, inventory, currency display, tutorial overlay)?
+- **Integration:** Should this scene embed SpriteKit/SceneKit/RealityKit, or stay pure SwiftUI?
+- **Navigation:** Existing `NavigationStack`, coordinator pattern, or sheet-based flow to integrate with?
+- **State sharing:** Any existing `@Environment` types, shared ViewModels, or app-wide game state to inject?
+- **Age target:** Younger (5-7) vs older (8-12) children? Affects font/tap-target/animation decisions.
+
+If enough context exists, proceed with reasonable assumptions and document them clearly at the top of the output.
+
+## Pre-Generation Checklist
+
+Before emitting code, verify:
+
+- **Touch targets:** every `Button`/`onTapGesture` has a 60pt+ frame (44pt floor only for non-primary UI)
+- **VoiceOver:** every interactive element has `.accessibilityLabel()` — icon-only buttons MUST have a label
+- **Reduce Motion:** every animation (`withAnimation`, `.animation`, `.transition`) is gated on `@Environment(\.accessibilityReduceMotion)`
+- **Dynamic Type:** text sizes use semantic styles (`.title`, `.headline`) or are ≥20pt fixed — never below 15pt
+- **Color independence:** state (enabled/disabled/selected) is conveyed via icon/text/shape, not color alone
+- **State management:** ViewModel uses `@Observable` (not `@ObservableObject`) and is `@MainActor` if it drives UI
+- **Preview:** every view has `#Preview` with representative mock state
+- **Force-unwraps:** zero `!` on optionals in output (fixtures OK inside `#Preview` if mock data is known-present)
+
+Emit a one-line `// ✅ Pre-generation checks passed` header in the output (or note any deviation) so the developer knows these were considered.
 
 ## Example Scaffold Components to Include (as applicable)
 

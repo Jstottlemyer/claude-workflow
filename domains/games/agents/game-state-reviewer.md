@@ -70,6 +70,22 @@ GameName/
 - Are dependencies injectable (not hardcoded singletons)?
 - Is randomness seeded for deterministic tests?
 
+## Key Questions
+
+- Is any invalid state representable in the type system? (enum + associated values make illegal states unrepresentable — flag anywhere a pair of optionals encodes state)
+- What happens if the app is force-quit mid-phase transition? (does save trigger at the right point, or does the save file reflect an inconsistent intermediate state?)
+- Can the state machine be driven from tests without a simulator? (if not, the ViewModel is likely coupled to UIKit/SwiftUI internals that should be extracted)
+- What state survives a profile switch? (global-singleton state that should be per-profile is a recurring bug class)
+- If two `async` paths race (e.g., auto-save + user-initiated navigation), does state corruption occur? (look for `@MainActor` bridges that assume serial execution)
+
+## Detection Techniques
+
+- **Impossible states:** grep for pairs of `Bool` / `Optional` properties that represent mutually exclusive modes (e.g., `isPlaying: Bool` + `isPaused: Bool` + `gameOver: Bool`). An enum with associated values collapses the product-of-flags into sum-type correctness.
+- **Main-thread violations:** grep for `DispatchQueue.main.async` — legacy pre-Swift-6 pattern; `@MainActor` is the modern replacement. Also grep for `Task.detached` without explicit actor hopping.
+- **Silent save failures:** look for `try?` around persistence writes — silent failures mask data loss. Should be `try/catch` with user-visible `saveError`.
+- **Re-entrant transitions:** grep state-transition methods for guards — a method that doesn't check the current phase before transitioning can be called twice from rapid taps and corrupt state.
+- **Lost async state:** grep for `Task { }` blocks inside `@MainActor` classes that reference `self` — confirm they don't read state before `await` and write it after (state may have changed during the await).
+
 ## Output Format
 
 ```

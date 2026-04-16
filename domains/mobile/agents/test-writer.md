@@ -90,28 +90,52 @@ enum GameFixtures {
 
 ## What to Generate
 
-### For a ViewModel:
-1. Happy path tests (normal game flow)
-2. Edge cases (first play, max level, score = 0, empty state)
-3. State machine transition tests (all valid + one invalid transition)
-4. Boundary values (max score, level limits)
-5. Save/load round-trip test
+### ViewModel / Logic Tests (XCTest, Tests/Unit/)
+- **Happy path** — every public method's normal use case
+- **State machine transitions** — all valid transitions + one invalid attempt (confirm guarded)
+- **Boundary values** — min (0, empty), max (level limits, score ceiling), off-by-one (first play, last level)
+- **Nil / empty inputs** — optional params, empty collections, missing saved data
+- **Error paths** — thrown errors, failed persistence, network/IO simulated failures
+- **Determinism** — seed any randomness so tests are reproducible
 
-### For UI Tests (XCUITest):
-Cover these critical flows:
+### Persistence Tests
+- **Save/load round-trip** — state → save → load → state equality
+- **Backward compat** — load a fixture from an older schema version, confirm migration
+- **Corruption recovery** — load a truncated/malformed file, confirm graceful fallback (not crash)
+
+### UI Tests (XCUITest, Tests/UI/)
+Cover these critical flows only — not comprehensive coverage, just the golden paths:
 - App launch → main menu visible
-- Tap Play → game starts
-- Play to game over → game over screen appears
+- Tap Play → game starts → play to game over → game over screen appears
 - Game over → tap Retry → game restarts
 - Tap Settings → settings screen → back works
-- Pause game → resume → game continues from same state
+- Pause → resume → game continues from same state
 
-### Test Priorities
-1. State transitions that could corrupt app/game state (CRITICAL)
-2. Core business logic (HIGH)
-3. Save/load persistence (HIGH)
-4. UI flow correctness (MEDIUM)
-5. Edge cases and boundaries (MEDIUM)
+### Test Priority Ladder
+1. **CRITICAL** — state transitions that could corrupt app/game state or save data
+2. **HIGH** — core business logic (scoring, level progression, unlock gates)
+3. **HIGH** — save/load persistence round-trips
+4. **MEDIUM** — UI flow correctness
+5. **MEDIUM** — edge cases and boundaries
+
+## Test Gap Detection
+
+When reviewing existing tests or determining what's missing:
+
+- **Uncovered public methods:** list ViewModel public methods, grep Tests/Unit/ for each method name. Missing hits = missing tests.
+- **State transition coverage:** diagram the GamePhase enum; check that each valid transition has at least one test. Each invalid transition that *should* be guarded needs a test confirming the guard fires.
+- **Save/load asymmetry:** for every `save*` method, there should be a corresponding `load*` test that round-trips. Grep save methods vs. load tests.
+- **Async test gaps:** grep ViewModel for `async` methods; confirm each has either an async test or is called from within an existing async test.
+- **Error path coverage:** grep ViewModel for `throws` / `Result<>` / `try?`; each needs a test that exercises the failure branch, not just the success.
+- **Fixture drift:** if `Tests/Fixtures/` has mock data, grep that mock's fields against the current model — stale fixtures silently pass while production breaks.
+
+## Key Questions
+
+- Is this test verifying behavior or implementation? (behavior tests survive refactors; implementation tests break on every change)
+- Can this test run deterministically in parallel with others? (shared singletons, file-system writes, random seeds all break determinism)
+- If this test fails 6 months from now, will the failure message tell me *what* is wrong, or just *that* it failed? (assertion messages matter)
+- Does this test exercise a real code path, or a mock that approximates it? (over-mocking = tests that pass while production breaks)
+- For UI tests: is this flow genuinely critical, or is this coverage-theater? (every XCUITest costs minutes of CI — be ruthless)
 
 ## Output Format
 

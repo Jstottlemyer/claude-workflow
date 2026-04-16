@@ -9,22 +9,22 @@ A complete workflow system that scales to the size of the work:
 | Work Size | Pipeline |
 |-----------|----------|
 | Bug fix | Describe it, fix it, verify |
-| Small change | `/brainstorm` (quick) then `/build` |
+| Small change | `/spec` (quick) then `/build` |
 | Feature | Full pipeline: `/kickoff` through `/build` |
 | V2 / Rework | Revise existing spec, then full pipeline |
 
 ## The Pipeline
 
 ```
-/kickoff → /brainstorm → /review → /plan → /check → /build
-              define       6 PRD     6 design  5 plan   execute
-              (Q&A)        agents    agents    agents   (parallel)
+/kickoff → /spec → /review → /plan → /check → /build
+           define    6 PRD     6 design  5 plan   execute
+           (Q&A)     agents    agents    agents   (parallel)
 ```
 
 | Command | What It Does | Agents |
 |---------|-------------|--------|
-| `/kickoff` | One-time project init — creates constitution + selects agent roster | - |
-| `/brainstorm` | Confidence-tracked Q&A — writes `spec.md` | Interactive |
+| `/kickoff` | One-time project init — scans repo, drafts constitution, selects agent roster | - |
+| `/spec` | Confidence-tracked Q&A — writes `spec.md` (falls back to session roster if no constitution) | Interactive |
 | `/review` | Parallel PRD review — finds gaps, risks, ambiguity | 6 reviewers |
 | `/plan` | Architecture + implementation design | 6 designers |
 | `/check` | Last gate before code — validates the plan | 5 validators |
@@ -43,15 +43,17 @@ API, Data Model, UX, Scalability, Security, Integration
 ### Check Stage (5)
 Completeness, Sequencing, Risk, Scope Discipline, Testability
 
-### Code Review (10)
-Correctness, Security, Performance, Resilience, Wiring, Test Quality, Style, Elegance, Smells, Commit Discipline
+### Code Review (9)
+Correctness, Dependency, Design Quality, Documentation, Performance, Resilience, Security, Test Quality, Wiring
 
 ## Domain Extensions
 
-The `domains/` directory contains domain-specific agents and commands:
+The `domains/` directory contains domain-specific agents installed at `/kickoff` based on repo signals:
 
-- **mobile/** — 6 iOS development agents (Swift mentor, beta triage, test writer, feature flags, release notes, performance)
-- **games/** — 6 game dev agents (game state, scene builder, accessibility, Swift mentor, performance, test writer) + 3 custom commands
+- **mobile/** — 6 iOS development agents (swift-mentor, beta-feedback-triage, test-writer, feature-flag-manager, release-notes-writer, performance-advisor)
+- **games/** — 3 game dev agents (game-state-reviewer, swiftui-scene-builder, accessibility-guardian)
+
+Projects can also carry their own agents in `<project>/.claude/agents/` (see AuthTools pattern).
 
 ## Install
 
@@ -106,7 +108,8 @@ claude-workflow/
 │   ├── plan/        (6)
 │   └── review/      (6)
 ├── templates/
-│   └── constitution.md         # Project constitution template
+│   ├── constitution.md         # Project constitution template
+│   └── repo-signals.md         # Domain-detection reference for /kickoff + /spec
 ├── settings/
 │   └── settings.json           # Base settings (permissions, plugins)
 └── domains/                    # Domain-specific extensions

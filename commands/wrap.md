@@ -36,6 +36,17 @@ Continue immediately to Phase 2. Do NOT wait for user input.
 
 Review the session for learnings worth capturing. Most sessions produce nothing — that's fine. Don't manufacture learnings.
 
+### Filter first (hard rule):
+
+Before categorizing, ask: **"Could a future session reconstruct this in 30 seconds with `grep` or by reading one file?"** If yes, skip it — CLAUDE.md is not a code mirror. Specifically reject:
+
+- Implementation details (lighting values, magic numbers, struct layouts) — these belong in code comments
+- Re-statements of types, enum cases, or function signatures
+- "X uses Y" facts derivable from a single grep
+- Architecture decisions whose *rationale* isn't captured (the decision is in the code; the why goes in a commit message or memory)
+
+Capture only what survives the filter: non-obvious gotchas, build/env quirks, cross-cutting workflows, and decisions whose rationale would be lost without a note.
+
 ### Categorize using this decision table:
 
 | Learning Type | Destination | Why |
@@ -326,7 +337,25 @@ Quick drift scan of the project CLAUDE.md — not a full rewrite (that's `claude
 
 ### Run these checks:
 
-1. **Test count drift** — compare documented count vs actual:
+0. **Size budget** — total length and largest section:
+   ```bash
+   wc -l CLAUDE.md
+   # Largest H2 section line count
+   awk '/^## / {if (name) print count, name; name=$0; count=0; next} {count++} END {if (name) print count, name}' CLAUDE.md | sort -rn | head -3
+   ```
+
+   Thresholds:
+   - **≤250 lines**: healthy, no action
+   - **>250 lines**: flag — surface in findings, suggest trimming candidates from this session's review
+   - **>350 lines**: red zone — recommend `claude-md-management:revise-claude-md` for a full audit
+   - **Any single H2 section >50 lines**: suggest splitting or consolidating that section
+
+1. **Stale markers** — temporary notes that outlived their purpose:
+   ```bash
+   grep -nE 'revert before ship|TODO|FIXME|temporary|for testing|HACK|XXX' CLAUDE.md || echo "none"
+   ```
+
+3. **Test count drift** — compare documented count vs actual:
    ```bash
    # What CLAUDE.md claims
    grep -o '[0-9]* tests' CLAUDE.md | head -1
@@ -335,13 +364,13 @@ Quick drift scan of the project CLAUDE.md — not a full rewrite (that's `claude
    grep -rn 'func test' Tests/ --include='*.swift' 2>/dev/null | wc -l
    ```
 
-2. **"Next Up" staleness** — check if items in "Next Up" have been completed:
+4. **"Next Up" staleness** — check if items in "Next Up" have been completed:
    ```bash
    # Show Next Up section
    sed -n '/^## Next Up/,/^## /p' CLAUDE.md | head -20
    ```
 
-3. **Dead file references** — spot-check 5-10 file paths mentioned in CLAUDE.md:
+5. **Dead file references** — spot-check 5-10 file paths mentioned in CLAUDE.md:
    ```bash
    # Extract file paths from CLAUDE.md and check existence
    grep -oE 'Sources/[A-Za-z/]+\.swift' CLAUDE.md | sort -u | while read f; do
@@ -349,7 +378,7 @@ Quick drift scan of the project CLAUDE.md — not a full rewrite (that's `claude
    done
    ```
 
-4. **Status section freshness** — check if new files exist that aren't documented:
+6. **Status section freshness** — check if new files exist that aren't documented:
    ```bash
    # Find Swift files not mentioned in CLAUDE.md
    find Sources -name '*.swift' -newer CLAUDE.md 2>/dev/null | head -10
@@ -360,6 +389,9 @@ Quick drift scan of the project CLAUDE.md — not a full rewrite (that's `claude
 ```
 === CLAUDE.md Health ===
 
+**Size**: [N] lines ([healthy / flag / red zone])
+**Largest section**: [N] lines — [section name] [(>50, suggest split)]
+**Stale markers**: [list with line numbers, or "none"]
 **Test count**: documented [N], actual [M] → [update/matches]
 **Next Up**: [stale items or "current"]
 **Dead refs**: [list or "none"]
@@ -371,9 +403,9 @@ If everything is current:
 CLAUDE.md is current. ✓
 ```
 
-If there's significant drift (>3 issues):
+If size is >350 lines OR significant drift (>3 issues):
 ```
-⚠️  Significant drift detected. Consider running `claude-md-management:revise-claude-md` for a full audit next session.
+⚠️  CLAUDE.md needs a full audit. Run `claude-md-management:revise-claude-md` next session.
 ```
 
 ### Ask once:

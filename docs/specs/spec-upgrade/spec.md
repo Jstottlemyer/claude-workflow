@@ -74,7 +74,7 @@ No external state; the command file is self-contained. Config surface (CLI flag,
 - Auto-run mode auto-invokes `/review` as the next pipeline step.
 
 ### Relationship to `superpowers:brainstorming`
-- **NOT delegated to.** Memory note `feedback_gastown_over_superpowers.md` stands: the superpowers planning skills are redundant with this pipeline.
+- **NOT delegated to.** The superpowers planning skills are redundant with this pipeline.
 - The three ideas we adopted (context-first, approach-proposal, self-review) are adapted into `/spec`'s own flow; they do not invoke the superpowers skill.
 - The new `"Do NOT invoke superpowers skills"` preamble reinforces separation.
 
