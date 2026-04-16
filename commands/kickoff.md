@@ -64,8 +64,8 @@ Based on the project description + Phase 0 signals + any existing CLAUDE.md cont
 
 Use the domain mapping in `~/.claude/templates/repo-signals.md` to propose the roster.
 
-1. **Default pipeline personas** (27) are always included — skip restating.
-2. **Domain add-ons** from `~/Projects/claude-workflow/domains/<domain>/agents/*.md`:
+1. **Default pipeline personas** (28) are always included — skip restating.
+2. **Domain add-ons** from `~/.claude/domain-agents/<domain>/*.md` (installed by `install.sh`, stable path regardless of where the user cloned the workflow repo):
    - `mobile` detected → propose all 6 mobile agents
    - `games` detected → propose mobile 6 + games 3 = 9
    - `mcp` detected → propose `mcp-protocol-expert`, `oauth-flow-auditor` if auth involved
@@ -78,7 +78,7 @@ Present the roster:
 ```
 === Agent Roster ===
 
-Default (27): Always active across /review, /plan, /check, code-review
+Default (28): Always active across /review, /plan, /check, code-review
 
 Proposed additions (from repo signals):
 - [agent-name] ([source path]) — [one-line why] — [stage]
@@ -99,7 +99,7 @@ Record selected agents in the constitution under "Agent Roster" with their sourc
 
 2. Write the finalized constitution to `docs/specs/constitution.md`.
 
-3. **Install selected domain agents** into the project. For each agent in the roster that comes from `~/Projects/claude-workflow/domains/*/agents/`, copy it into `<project>/.claude/agents/` so `/plan` and `/code-review` can invoke it as a subagent. Skip if already present.
+3. **Install selected domain agents** into the project. For each agent in the roster, copy it from `~/.claude/domain-agents/<domain>/<agent>.md` into `<project>/.claude/agents/` so `/plan` and `/code-review` can invoke it as a subagent. Skip if already present.
 
 ## Completion
 

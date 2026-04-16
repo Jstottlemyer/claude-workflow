@@ -32,7 +32,7 @@ A complete workflow system that scales to the size of the work:
 | `/flow` | Displays workflow reference card | - |
 | `/wrap` | Session wrap-up — summary, learnings, git loose ends | - |
 
-## Agent Personas (27 Default)
+## Agent Personas (28 Default)
 
 ### Review Stage (6)
 Requirements, Gaps, Ambiguity, Feasibility, Scope, Stakeholders
@@ -46,14 +46,17 @@ Completeness, Sequencing, Risk, Scope Discipline, Testability
 ### Code Review (9)
 Correctness, Dependency, Design Quality, Documentation, Performance, Resilience, Security, Test Quality, Wiring
 
-## Domain Extensions
+### Synthesis Layer (2)
+Judge (quality assessment), Synthesis (multi-agent output consolidation) — used by /review, /plan, /check
 
-The `domains/` directory contains domain-specific agents installed at `/kickoff` based on repo signals:
+## Domain Extensions (9 agents)
 
-- **mobile/** — 6 iOS development agents (swift-mentor, beta-feedback-triage, test-writer, feature-flag-manager, release-notes-writer, performance-advisor)
+The `domains/` directory contains domain-specific agents. `install.sh` symlinks them into the stable global path `~/.claude/domain-agents/<domain>/`. They are **not** globally active — `/kickoff` inspects the target project and copies only the relevant ones into `<project>/.claude/agents/`.
+
+- **mobile/** — 6 iOS agents (swift-mentor, beta-feedback-triage, test-writer, feature-flag-manager, release-notes-writer, performance-advisor)
 - **games/** — 3 game dev agents (game-state-reviewer, swiftui-scene-builder, accessibility-guardian)
 
-Projects can also carry their own agents in `<project>/.claude/agents/` (see AuthTools pattern).
+Projects can also carry their own agents in `<project>/.claude/agents/` (see AuthTools pattern — 5 more auth-specific agents in a separate private repo).
 
 ## Install
 
@@ -112,6 +115,9 @@ claude-workflow/
 │   └── repo-signals.md         # Domain-detection reference for /kickoff + /spec
 ├── settings/
 │   └── settings.json           # Base settings (permissions, plugins)
+├── scripts/
+│   ├── session-cost.py         # Per-session cost reporter (used by /wrap)
+│   └── doctor.sh               # Diagnostic report → auto-files GitHub Issue
 └── domains/                    # Domain-specific extensions
     ├── mobile/                 # iOS development
     └── games/                  # Game development

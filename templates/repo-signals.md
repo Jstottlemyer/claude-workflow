@@ -52,11 +52,11 @@ git log --oneline -20 2>/dev/null
 
 ## Agent Roster Sources
 
-- **Pipeline defaults (always included — 27):** `~/.claude/personas/{review,plan,check,code-review}/*.md` + `judge.md` + `synthesis.md`
-- **Domain add-ons (~/Projects/claude-workflow/domains/*/agents/):**
+- **Pipeline defaults (always included — 28):** `~/.claude/personas/{review,plan,check,code-review}/*.md` + `~/.claude/personas/{judge,synthesis}.md`
+- **Domain add-ons (installed globally by install.sh at `~/.claude/domain-agents/`):**
   - `mobile/` — 6 agents: beta-feedback-triage, feature-flag-manager, performance-advisor, release-notes-writer, swift-mentor, test-writer
   - `games/` — 3 agents: accessibility-guardian, game-state-reviewer, swiftui-scene-builder
-- **Project-specific (AuthTools pattern):** custom agents live in `<project>/.claude/agents/*.md` — 5 AuthTools agents: cli-wrapper-ergonomics, keychain-safety-reviewer, mcp-protocol-expert, oauth-flow-auditor, skill-plugin-specialist
+- **Project-specific (AuthTools pattern):** custom agents live in `<project>/.claude/agents/*.md` — added per-project, not globally installed. AuthTools ships 5: cli-wrapper-ergonomics, keychain-safety-reviewer, mcp-protocol-expert, oauth-flow-auditor, skill-plugin-specialist
 
 ## Presentation Format
 

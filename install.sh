@@ -59,10 +59,32 @@ done
 # --- Personas ---
 echo ""
 echo "Installing agent personas..."
+# Top-level personas (judge, synthesis — used by /review, /plan, /check)
+for persona in "$REPO_DIR"/personas/*.md; do
+    [ -e "$persona" ] || continue
+    link_file "$persona" "$CLAUDE_DIR/personas/$(basename "$persona")"
+done
+# Stage-specific personas
 for stage in check code-review plan review; do
     mkdir -p "$CLAUDE_DIR/personas/$stage"
     for persona in "$REPO_DIR"/personas/"$stage"/*.md; do
         link_file "$persona" "$CLAUDE_DIR/personas/$stage/$(basename "$persona")"
+    done
+done
+
+# --- Domain agents ---
+# Link into a stable user-agnostic path so /kickoff can always find them
+# regardless of where the user cloned the repo.
+echo ""
+echo "Installing domain agents..."
+mkdir -p "$CLAUDE_DIR/domain-agents"
+for domain_dir in "$REPO_DIR"/domains/*/agents; do
+    [ -d "$domain_dir" ] || continue
+    domain_name=$(basename "$(dirname "$domain_dir")")
+    mkdir -p "$CLAUDE_DIR/domain-agents/$domain_name"
+    for agent in "$domain_dir"/*.md; do
+        [ -e "$agent" ] || continue
+        link_file "$agent" "$CLAUDE_DIR/domain-agents/$domain_name/$(basename "$agent")"
     done
 done
 
@@ -105,15 +127,17 @@ echo "=== Installation complete ==="
 echo ""
 echo "Installed:"
 echo "  - 8 pipeline commands (/kickoff → /spec → /review → /plan → /check → /build + /flow + /wrap)"
-echo "  - 27 agent personas (review, plan, check, code-review)"
+echo "  - 28 pipeline personas (review 6, plan 6, check 5, code-review 9 + judge, synthesis)"
+echo "  - 9 domain agents (mobile 6, games 3) — available to /kickoff for per-project install"
 echo "  - 2 templates (constitution, repo-signals)"
 echo "  - Settings with pipeline-optimized permissions"
-echo "  - Scripts (session-cost.py)"
+echo "  - Scripts (session-cost.py, doctor.sh)"
 echo ""
 echo "Next steps:"
 echo "  1. Create a ~/CLAUDE.md with your personal context"
 echo "  2. Review ~/.claude/settings.json and adjust permissions"
 echo "  3. See plugins.md for optional plugins"
 echo "  4. See QUICKSTART.md if this is your first time"
+echo "  5. If anything looks off, run ./scripts/doctor.sh to file a diagnostic"
 echo ""
 echo "Run /flow in Claude Code to see the workflow reference card."

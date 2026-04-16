@@ -81,6 +81,8 @@ First run: Claude Code walks you through its own browser sign-in (Anthropic acco
 
 You should see the workflow reference card. If the command is unknown, the symlink didn't take — re-run `./install.sh` from the workflow repo.
 
+**If Claude Code was already running when you ran `./install.sh`**, quit and relaunch it. Slash commands are discovered at session start; a stale session will render the old card.
+
 ## 5. Run the pipeline on a real project
 
 Pick a small project you have lying around:
@@ -128,6 +130,17 @@ Work scales — you don't need the full pipeline for a bug fix:
 | Feature | Full pipeline |
 | V2 / rework | Revise existing spec, then full pipeline |
 
+## If something looks wrong
+
+Run the doctor — it captures your install state and auto-files a GitHub Issue for Justin:
+
+```bash
+cd ~/Projects/claude-workflow
+./scripts/doctor.sh
+```
+
+You'll see a URL at the end (the issue it just created). Justin gets the notification.
+
 ## Troubleshooting
 
 **`install.sh` errored on symlinks** — you probably have existing regular files at the target path. The installer backs them up to `.bak` first; check if the `.bak` files are what you expected before re-running.
@@ -148,6 +161,8 @@ If entries are regular files (not symlinks), re-run `./install.sh`.
 - `plugins.md` — plugin dependencies + what each does
 - `domains/mobile/CLAUDE.md` and `domains/games/CLAUDE.md` — example domain configs
 - `docs/specs/example-feature/spec.md` — a real spec artifact showing the output shape
+
+**Domain agents** live at `~/.claude/domain-agents/{mobile,games}/` after install (9 agents total — mobile 6, games 3). They aren't active globally; `/kickoff` copies the relevant ones into each project's `.claude/agents/` based on repo signals.
 
 ## Staying in sync
 
