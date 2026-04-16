@@ -13,6 +13,26 @@ echo "Repo:   $REPO_DIR"
 echo "Target: $CLAUDE_DIR"
 echo ""
 
+# --- Prerequisites (warn only, don't block) ---
+MISSING=()
+command -v claude >/dev/null 2>&1 || MISSING+=("claude (Claude Code CLI) — https://claude.com/claude-code")
+command -v gh >/dev/null 2>&1 || MISSING+=("gh (GitHub CLI) — brew install gh && gh auth login")
+command -v python3 >/dev/null 2>&1 || MISSING+=("python3 — brew install python")
+
+if [ ${#MISSING[@]} -gt 0 ]; then
+    echo "Optional tools not detected (install works without them, but you'll want them):"
+    for tool in "${MISSING[@]}"; do
+        echo "  - $tool"
+    done
+    echo ""
+    read -rp "Continue anyway? [Y/n]: " CONTINUE
+    if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
+        echo "Install a missing tool, then re-run this script."
+        exit 0
+    fi
+    echo ""
+fi
+
 # --- Helper ---
 link_file() {
     local src="$1"
@@ -84,9 +104,9 @@ echo ""
 echo "=== Installation complete ==="
 echo ""
 echo "Installed:"
-echo "  - 8 pipeline commands (/kickoff → /brainstorm → /review → /plan → /check → /build + /flow + /wrap)"
+echo "  - 8 pipeline commands (/kickoff → /spec → /review → /plan → /check → /build + /flow + /wrap)"
 echo "  - 27 agent personas (review, plan, check, code-review)"
-echo "  - 1 constitution template"
+echo "  - 2 templates (constitution, repo-signals)"
 echo "  - Settings with pipeline-optimized permissions"
 echo "  - Scripts (session-cost.py)"
 echo ""
@@ -94,5 +114,6 @@ echo "Next steps:"
 echo "  1. Create a ~/CLAUDE.md with your personal context"
 echo "  2. Review ~/.claude/settings.json and adjust permissions"
 echo "  3. See plugins.md for optional plugins"
+echo "  4. See QUICKSTART.md if this is your first time"
 echo ""
 echo "Run /flow in Claude Code to see the workflow reference card."
