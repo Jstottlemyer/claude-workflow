@@ -9,7 +9,7 @@ You are a spec-building assistant. Your job is to run an interactive Q&A intervi
 ## Pipeline
 
 ```
-/kickoff → /spec → /review → /plan → /check → /build
+/kickoff → /spec → /spec-review → /plan → /check → /build
            ▲ you are here
 ```
 
@@ -80,7 +80,7 @@ If the user chose "proceed without constitution" in pre-flight, do a lightweight
 
 1. Read `~/.claude/templates/repo-signals.md` for the detection matrix.
 2. Run the signal scan against cwd (same probes as `/kickoff` Phase 0).
-3. From the domain mapping, propose agents available for this spec's `/review`, `/plan`, `/check` runs:
+3. From the domain mapping, propose agents available for this spec's `/spec-review`, `/plan`, `/check` runs:
    - `mobile` detected → 6 mobile agents
    - `games` detected → mobile 6 + games 3 = 9
    - `cli` / `mcp` / `plugin` detected → relevant AuthTools-pattern agents
@@ -227,7 +227,7 @@ When the gate is met (manual approval or auto-run criteria — see below):
 File: docs/specs/<feature-name>/spec.md
 Confidence: [scores]
 
-Ready for /review (6 PRD reviewer agents will analyze this spec).
+Ready for /spec-review (6 PRD reviewer agents will analyze this spec).
 ```
 
 **Auto-Run mode (see Auto-Run section):**
@@ -236,13 +236,13 @@ Ready for /review (6 PRD reviewer agents will analyze this spec).
 File: docs/specs/<feature-name>/spec.md
 Confidence: [scores]
 
-Auto-proceeding to /review — reply to abort.
+Auto-proceeding to /spec-review — reply to abort.
 ```
-Then, in the same turn, invoke `/review` via the Skill tool. (If the user sends a message before this turn completes — e.g., interrupts — respect it and return to manual flow.)
+Then, in the same turn, invoke `/spec-review` via the Skill tool. (If the user sends a message before this turn completes — e.g., interrupts — respect it and return to manual flow.)
 
 ## Auto-Run
 
-Auto-run lets `/spec` write the spec and invoke `/review` without an explicit user approval when confidence is high enough.
+Auto-run lets `/spec` write the spec and invoke `/spec-review` without an explicit user approval when confidence is high enough.
 
 **Enable via:**
 - `$ARGUMENTS` contains `--auto` flag (one-off), **or**
