@@ -4,7 +4,7 @@ description: Design and implementation planning — 6 specialist agents explore 
 
 **IMPORTANT: Do NOT invoke superpowers skills from this command. This command IS the planning workflow.**
 
-You are the plan step in the pipeline: `/brainstorm → /review → /plan → /check → /build`
+You are the plan step in the pipeline: `/spec → /spec-review → /plan → /check → /build`
 
 Your job is to dispatch 6 parallel design agents, synthesize their analysis into an implementation plan, and present it for approval.
 
@@ -12,8 +12,8 @@ Your job is to dispatch 6 parallel design agents, synthesize their analysis into
 
 1. **Find artifacts**: Load `docs/specs/<feature>/spec.md` and `docs/specs/<feature>/review.md`.
    - If `$ARGUMENTS` names a feature, use that.
-   - If neither exists: "No spec or review found. Run /brainstorm first."
-   - If spec exists but no review: "Spec found but not reviewed. Run /review first, or proceed without review? (Skipping review increases rework risk.)"
+   - If neither exists: "No spec or review found. Run /spec first."
+   - If spec exists but no review: "Spec found but not reviewed. Run /spec-review first, or proceed without review? (Skipping review increases rework risk.)"
 
 2. **Load constitution** (if exists) for constraint checking.
 

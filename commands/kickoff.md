@@ -78,7 +78,7 @@ Present the roster:
 ```
 === Agent Roster ===
 
-Default (28): Always active across /review, /plan, /check, code-review
+Default (28): Always active across /spec-review, /plan, /check, code-review
 
 Proposed additions (from repo signals):
 - [agent-name] ([source path]) — [one-line why] — [stage]

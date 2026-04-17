@@ -4,7 +4,7 @@ description: Gap checkpoint — 5 specialist agents validate the plan before imp
 
 **IMPORTANT: Do NOT invoke superpowers skills from this command. This command IS the checkpoint workflow.**
 
-You are the check step in the pipeline: `/brainstorm → /review → /plan → /check → /build`
+You are the check step in the pipeline: `/spec → /spec-review → /plan → /check → /build`
 
 Your job is to dispatch 5 parallel plan reviewer agents, synthesize their findings into a go/no-go verdict, and present gaps for resolution before implementation begins.
 

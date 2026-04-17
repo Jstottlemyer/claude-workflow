@@ -16,16 +16,16 @@ A complete workflow system that scales to the size of the work:
 ## The Pipeline
 
 ```
-/kickoff → /spec → /review → /plan → /check → /build
-           define    6 PRD     6 design  5 plan   execute
-           (Q&A)     agents    agents    agents   (parallel)
+/kickoff → /spec → /spec-review → /plan → /check → /build
+           define    6 PRD        6 design  5 plan   execute
+           (Q&A)     agents       agents    agents   (parallel)
 ```
 
 | Command | What It Does | Agents |
 |---------|-------------|--------|
 | `/kickoff` | One-time project init — scans repo, drafts constitution, selects agent roster | - |
 | `/spec` | Confidence-tracked Q&A — writes `spec.md` (falls back to session roster if no constitution) | Interactive |
-| `/review` | Parallel PRD review — finds gaps, risks, ambiguity | 6 reviewers |
+| `/spec-review` | Parallel PRD review — finds gaps, risks, ambiguity | 6 reviewers |
 | `/plan` | Architecture + implementation design | 6 designers |
 | `/check` | Last gate before code — validates the plan | 5 validators |
 | `/build` | Parallel execution with verification discipline | Superpowers |
@@ -47,7 +47,7 @@ Completeness, Sequencing, Risk, Scope Discipline, Testability
 Correctness, Dependency, Design Quality, Documentation, Performance, Resilience, Security, Test Quality, Wiring
 
 ### Synthesis Layer (2)
-Judge (quality assessment), Synthesis (multi-agent output consolidation) — used by /review, /plan, /check
+Judge (quality assessment), Synthesis (multi-agent output consolidation) — used by /spec-review, /plan, /check
 
 ## Domain Extensions (9 agents)
 
@@ -87,7 +87,7 @@ The pipeline writes persistent spec artifacts to each project:
 ```
 docs/specs/constitution.md          # Project principles (from /kickoff)
 docs/specs/<feature>/spec.md        # Living spec (from /brainstorm)
-docs/specs/<feature>/review.md      # PRD review findings (from /review)
+docs/specs/<feature>/review.md      # PRD review findings (from /spec-review)
 docs/specs/<feature>/plan.md        # Implementation plan (from /plan)
 docs/specs/<feature>/check.md       # Gap checkpoint (from /check)
 ```

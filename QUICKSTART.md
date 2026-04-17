@@ -104,7 +104,7 @@ Next, for your first feature or change:
 /spec <one-sentence description>
 ```
 
-This runs a confidence-tracked Q&A, writes `docs/specs/<feature>/spec.md`, and kicks off the rest of the pipeline when you're ready (`/review` → `/plan` → `/check` → `/build`).
+This runs a confidence-tracked Q&A, writes `docs/specs/<feature>/spec.md`, and kicks off the rest of the pipeline when you're ready (`/spec-review` → `/plan` → `/check` → `/build`).
 
 End every session with:
 ```
@@ -116,9 +116,9 @@ Captures session summary, triages learnings, checks git loose ends, and audits p
 ## 6. The pipeline at a glance
 
 ```
-/kickoff → /spec → /review → /plan → /check → /build
-           define    6 PRD     6 design  5 plan   execute
-           (Q&A)     agents    agents    agents   (parallel)
+/kickoff → /spec → /spec-review → /plan → /check → /build
+           define    6 PRD        6 design  5 plan   execute
+           (Q&A)     agents       agents    agents   (parallel)
 ```
 
 Work scales — you don't need the full pipeline for a bug fix:

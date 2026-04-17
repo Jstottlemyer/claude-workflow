@@ -4,7 +4,7 @@ description: Execute the implementation plan with parallel agents
 
 **IMPORTANT: Do NOT invoke superpowers planning skills from this command. Superpowers execution skills (debugging, verification) ARE used during build.**
 
-You are the build step in the pipeline: `/brainstorm → /review → /plan → /check → /build`
+You are the build step in the pipeline: `/spec → /spec-review → /plan → /check → /build`
 
 Your job is to execute the implementation plan using parallel agents where possible, with superpowers discipline skills active.
 

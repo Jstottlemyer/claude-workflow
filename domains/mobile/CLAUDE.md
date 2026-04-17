@@ -118,9 +118,9 @@ The developer is returning to mobile development after a break and relies on Cla
 Canonical session workflow:
 
 ```
-/kickoff → /brainstorm → /review → /plan → /check → /build
-              define       6 PRD     6 design  5 plan   execute
-              (Q&A)        agents    agents    agents   (parallel)
+/kickoff → /spec → /spec-review → /plan → /check → /build
+              define    6 PRD        6 design  5 plan   execute
+              (Q&A)     agents       agents    agents   (parallel)
 ```
 
 Work scales to size: bug fix (no spec) → small change (brainstorm + build) → feature (full pipeline) → V2 (revise spec + full pipeline).
@@ -128,7 +128,7 @@ Work scales to size: bug fix (no spec) → small change (brainstorm + build) →
 **Artifacts:** `docs/specs/constitution.md` + `docs/specs/<feature>/{spec,review,plan,check}.md`
 
 **Two-tier system:**
-- **Pipeline commands**: `/brainstorm` → `/review` → `/plan` → `/check` → `/build` with 27 parallel agent personas
+- **Pipeline commands**: `/spec` → `/spec-review` → `/plan` → `/check` → `/build` with 27 parallel agent personas
 - **Superpowers**: in-session execution discipline — debugging, verification, code review
 - **Plugins**: specialized capabilities — firecrawl (research), context7 (docs), code-review (PR), playwright (browser)
 
