@@ -14,10 +14,19 @@ echo "Target: $CLAUDE_DIR"
 echo ""
 
 # --- Prerequisites (warn only, don't block) ---
+# bash scripts don't inherit zsh's PATH from .zshrc, so brew-installed
+# tools at /opt/homebrew/bin (Apple Silicon) or /usr/local/bin (Intel)
+# may not be found by `command -v`. Check both.
+has_cmd() {
+    command -v "$1" >/dev/null 2>&1 \
+        || [ -x "/opt/homebrew/bin/$1" ] \
+        || [ -x "/usr/local/bin/$1" ]
+}
+
 MISSING=()
-command -v claude >/dev/null 2>&1 || MISSING+=("claude (Claude Code CLI) — https://claude.com/claude-code")
-command -v gh >/dev/null 2>&1 || MISSING+=("gh (GitHub CLI) — brew install gh && gh auth login")
-command -v python3 >/dev/null 2>&1 || MISSING+=("python3 — brew install python")
+has_cmd claude  || MISSING+=("claude (Claude Code CLI) — https://claude.com/claude-code")
+has_cmd gh      || MISSING+=("gh (GitHub CLI) — brew install gh && gh auth login")
+has_cmd python3 || MISSING+=("python3 — brew install python")
 
 if [ ${#MISSING[@]} -gt 0 ]; then
     echo "Optional tools not detected (install works without them, but you'll want them):"
