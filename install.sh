@@ -141,7 +141,7 @@ echo "       9 domain agents (mobile 6, games 3) — available to /kickoff for p
 echo "  - 8 pipeline commands (/kickoff → /spec → /spec-review → /plan → /check → /build + /flow + /wrap)"
 echo "  - 2 templates (constitution, repo-signals)"
 echo "  - Settings with pipeline-optimized permissions"
-echo "  - Scripts (session-cost.py, doctor.sh)"
+echo "  - Scripts (session-cost.py, doctor.sh, statusline-command.sh)"
 echo ""
 echo "Next steps:"
 echo "  1. Create a ~/CLAUDE.md with your personal context"
