@@ -86,7 +86,7 @@ The pipeline writes persistent spec artifacts to each project:
 
 ```
 docs/specs/constitution.md          # Project principles (from /kickoff)
-docs/specs/<feature>/spec.md        # Living spec (from /brainstorm)
+docs/specs/<feature>/spec.md        # Living spec (from /spec)
 docs/specs/<feature>/review.md      # PRD review findings (from /spec-review)
 docs/specs/<feature>/plan.md        # Implementation plan (from /plan)
 docs/specs/<feature>/check.md       # Gap checkpoint (from /check)
@@ -105,9 +105,9 @@ claude-workflow/
 ├── install.sh                  # Installer — symlinks everything into ~/.claude/
 ├── plugins.md                  # Plugin dependency manifest
 ├── commands/                   # 8 pipeline commands
-├── personas/                   # 27 universal agent personas
+├── personas/                   # 28 agent personas (26 stage + judge, synthesis)
 │   ├── check/       (5)
-│   ├── code-review/ (10)
+│   ├── code-review/ (9)
 │   ├── plan/        (6)
 │   └── review/      (6)
 ├── templates/

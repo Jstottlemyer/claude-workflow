@@ -68,7 +68,7 @@ done
 # --- Personas ---
 echo ""
 echo "Installing agent personas..."
-# Top-level personas (judge, synthesis — used by /review, /plan, /check)
+# Top-level personas (judge, synthesis — used by /spec-review, /plan, /check)
 for persona in "$REPO_DIR"/personas/*.md; do
     [ -e "$persona" ] || continue
     link_file "$persona" "$CLAUDE_DIR/personas/$(basename "$persona")"
@@ -138,7 +138,7 @@ echo "Installed:"
 echo "  - 37 agents total:"
 echo "      28 pipeline personas (review 6, plan 6, check 5, code-review 9, judge, synthesis)"
 echo "       9 domain agents (mobile 6, games 3) — available to /kickoff for per-project install"
-echo "  - 8 pipeline commands (/kickoff → /spec → /review → /plan → /check → /build + /flow + /wrap)"
+echo "  - 8 pipeline commands (/kickoff → /spec → /spec-review → /plan → /check → /build + /flow + /wrap)"
 echo "  - 2 templates (constitution, repo-signals)"
 echo "  - Settings with pipeline-optimized permissions"
 echo "  - Scripts (session-cost.py, doctor.sh)"

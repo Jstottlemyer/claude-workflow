@@ -123,7 +123,7 @@ Canonical session workflow:
               (Q&A)     agents       agents    agents   (parallel)
 ```
 
-Work scales to size: bug fix (no spec) → small change (brainstorm + build) → feature (full pipeline) → V2 (revise spec + full pipeline).
+Work scales to size: bug fix (no spec) → small change (spec + build) → feature (full pipeline) → V2 (revise spec + full pipeline).
 
 **Artifacts:** `docs/specs/constitution.md` + `docs/specs/<feature>/{spec,review,plan,check}.md`
 
@@ -132,9 +132,9 @@ Work scales to size: bug fix (no spec) → small change (brainstorm + build) →
 - **Superpowers**: in-session execution discipline — debugging, verification, code review
 - **Plugins**: specialized capabilities — firecrawl (research), context7 (docs), code-review (PR), playwright (browser)
 
-**Brainstorming:** `/brainstorm` is the canonical entry point. Skip `superpowers:brainstorming`.
+**Spec entry:** `/spec` is the canonical entry point. Skip `superpowers:brainstorming`.
 
-**Code review:** `superpowers:requesting-code-review` for in-session review. `/code-review` for GitHub PR review. 10 code-review personas available for comprehensive review.
+**Code review:** `superpowers:requesting-code-review` for in-session review. `/code-review` for GitHub PR review. 9 code-review personas available for comprehensive review.
 
 **Spec artifacts:** `docs/specs/` — living documents, git is the history.
 
