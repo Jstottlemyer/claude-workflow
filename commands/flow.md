@@ -45,8 +45,15 @@ Display this workflow reference card to the user:
 ║  docs/specs/<feature>/plan.md   (implementation plan)        ║
 ║  docs/specs/<feature>/check.md  (gap checkpoint)             ║
 ║                                                              ║
+║  KNOWLEDGE WIKI                           [obsidian-wiki]    ║
+║  Mid-session:  "capture this: X" → wiki-capture → _raw/      ║
+║  End-session:  /wrap Phase 2c → flush _raw/ + distill        ║
+║  Query:        "what do I know about X" → wiki-query         ║
+║  Project sync: "update wiki" → wiki-update                   ║
+║  Compile, don't retrieve. Capture cheap, distill deferred.   ║
+║                                                              ║
 ║  SESSION END                                                 ║
-║  /wrap → summary, learning triage, git loose ends            ║
+║  /wrap → summary, learnings, wiki flush, git loose ends      ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  AGENTS: review(6) plan(6) check(5) code-review(9)          ║

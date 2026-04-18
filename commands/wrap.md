@@ -7,7 +7,7 @@ You are an end-of-session assistant. Justin is wrapping up a Claude Code session
 
 **Arguments**: `$ARGUMENTS`
 
-If arguments include "quick", skip Phases 3 and 5 entirely.
+If arguments include "quick", skip Phases 2c, 3, and 5 entirely.
 
 ---
 
@@ -156,6 +156,98 @@ Present a quick summary of lint results — any new violations introduced this s
 > Promote/refine/delete draft rules? (list actions, or "skip")
 
 Apply changes to `scripts/screenshot-rules.json`.
+
+---
+
+## Phase 2c: Wiki (conditional, opt-in)
+
+**Skip this phase if:**
+- Arguments include "quick"
+- `~/.obsidian-wiki/config` does not exist (obsidian-wiki is opt-in by vault-config presence)
+
+Read `~/.obsidian-wiki/config` to get `OBSIDIAN_VAULT_PATH`. This phase has two independent steps — each runs only if its own trigger is met, and each gets its own approval gate.
+
+### Step 1 — Flush raw captures
+
+**Trigger:** `$OBSIDIAN_VAULT_PATH/_raw/` contains one or more `.md` files.
+
+Raw captures come from `wiki-capture` (the mid-session drop skill). `/wrap` is their natural flush point — promote them into proper wiki pages before the session closes so they don't rot.
+
+```bash
+ls "$OBSIDIAN_VAULT_PATH/_raw/"/*.md 2>/dev/null | wc -l
+```
+
+If the count is zero, skip Step 1 silently. If non-zero, list the captures:
+
+```
+=== Raw captures pending ===
+  _raw/2026-04-17-2245-karpathy-tweet-knowledge-graph.md
+  _raw/2026-04-17-2301-try-graphify-on-authtools.md
+```
+
+### Ask once:
+
+> Promote these N raw captures to the wiki? (y / skip / review-first)
+
+- **y** → invoke the `wiki-ingest` skill in raw mode (promotes everything in `_raw/`, cross-links, updates manifest + index + log, deletes raw files on success).
+- **review-first** → `cat` each raw file inline so the user can eyeball before promoting, then re-ask.
+- **skip** → leave them for a future `/wrap` or manual *"process my drafts"*.
+
+### Step 2 — Distill session into project pages
+
+**Trigger:** the session touched files under `docs/specs/<feature>/` (spec artifacts), or the user explicitly asked for a project sync (`/wrap sync`, *"sync this session to the wiki"*).
+
+This is the write-side of the pipeline-wiki integration. `wiki-update` takes the session context plus any free-text comment and distills the project's accumulated learning into `$VAULT/projects/<project-name>/`.
+
+Identify what was touched:
+
+```bash
+# List session-touched spec files
+git status --porcelain docs/specs/ 2>/dev/null
+git log --since="6 hours ago" --name-only docs/specs/ 2>/dev/null | head -20
+```
+
+If neither condition holds, skip Step 2 silently.
+
+### Ask once:
+
+> Sync this session to the wiki? (y + optional comment / skip)
+>
+> Comment is free-text context for the distillation — e.g., "focus on the steering-via-context risk" or "this session closed the graphify vs obsidian-wiki decision."
+
+On `y`, invoke the `wiki-update` skill with two steering lines prepended to the invocation prompt:
+- `Session context: <one-line session summary from Phase 1>`
+- `User's session comment: <user's comment, or "(none provided)">`
+
+The steering lines bias `wiki-update`'s distillation choices without modifying the skill itself. If dogfood shows steering is too weak, the fallback is to add a formal `--focus` / `--comment` arg to `wiki-update` (tracked as Open Question #2 in the pipeline-wiki-integration spec).
+
+### Order matters
+
+Step 1 runs before Step 2 on purpose. A just-captured raw note (e.g., "graphify vs obsidian-wiki decision locked") may become a concept page that Step 2's project distillation should link to. Flushing first ensures those cross-links land correctly.
+
+### Step 3 — Maintenance (conditional, no approval gate)
+
+**Trigger:** Step 1 or Step 2 wrote content to the vault this session. Skip silently if both were skipped.
+
+When new content lands, three vault-level operations are worth running while you're still at the keyboard — the scheduled crons handle this on nights/weekends, but `/wrap` is the cheapest moment to catch drift introduced by *this* session.
+
+**Run in this order:**
+
+1. **Refresh the graph export** — invoke `wiki-export` (regenerates `graph.json`, `graph.graphml`, `cypher.txt`, `graph.html`). Deterministic; overwrites. Ensures `graph.html` reflects what you just wrote before you close the session.
+
+2. **Quick lint pass** — invoke `wiki-lint` in read-only summary mode. Report only *new* issues (orphans, broken wikilinks, contradictions) introduced this session — don't dump the full historic backlog.
+
+No approval gate. Export is idempotent; lint is read-only. Both are fast (seconds on a small vault).
+
+Fold the lint summary into the wrap output as a single block:
+
+```
+=== Wiki maintenance ===
+Graph exported: N nodes, M edges (delta: +X nodes, +Y edges)
+Lint: no new issues   |   Lint: 2 new orphans, 1 broken wikilink (see wiki-lint output)
+```
+
+If lint surfaces new orphans or broken links, *don't* auto-fix — surface them for the user to decide next session. The goal of Step 3 is visibility, not resolution.
 
 ---
 
