@@ -34,6 +34,35 @@ Proposed domain: [mobile / games / cli / mcp / plugin / unknown]
 
 Then ask Phase 1 as a confirmation, not a cold Q&A.
 
+## Phase 0.5: Artifact Ingestion (optional)
+
+**Skip this phase if** `$ARGUMENTS` is empty, is clearly a prose description (not a path), or the path doesn't resolve to an existing file.
+
+If `$ARGUMENTS` resolves to a file (check with `ls "$ARGUMENTS"` or equivalent), read it as **supplemental domain evidence**. This runs alongside — not instead of — the Phase 0 repo scan.
+
+Supported formats (read with the Read tool; it handles PDF and text natively):
+- `.pdf` — product briefs, specs, design docs
+- `.md` / `.txt` — written descriptions, notes
+- `.json` / `.yaml` — structured intents
+
+From the artifact, extract and fold into the Phase 0 findings:
+- **Purpose**: what is the person trying to build? (one sentence)
+- **Stack hints**: any explicit tech choices, platforms, integrations
+- **Architecture hints**: agents, services, data stores, external APIs
+- **Product count**: does this describe 1 product or N distinct products? (flag for Phase 1.5)
+
+Update the Repo Signals block with an `Artifact:` line:
+
+```
+=== Repo Signals ===
+Stack: [detected stack + artifact hints]
+Evidence: [repo bullets + artifact bullets]
+Artifact: [path] — [one-line purpose summary]
+Proposed domain: [domain or "multi-product — see Phase 1.5"]
+```
+
+If artifact and repo evidence conflict (e.g., artifact says "iOS app" but repo is a Python CLI), surface the conflict explicitly — don't silently pick one. Ask Justin in Phase 1 which is authoritative for this kickoff.
+
 ## Phase 1: Project Description (confirm or correct)
 
 If Phase 0 produced a confident domain + stack read:
@@ -44,9 +73,41 @@ If Phase 0 was inconclusive (domain: unknown), fall back to the original Q&A:
 
 > "Describe the project in 1-2 sentences."
 
-If `$ARGUMENTS` is provided, use that as the description and skip the question.
+If `$ARGUMENTS` is provided, use that as the description and skip the question. If Phase 0.5 ingested an artifact, use the artifact's extracted purpose as the description and confirm with Justin rather than asking cold.
 
 **Arguments**: $ARGUMENTS
+
+## Phase 1.5: Multi-Product Decomposition (conditional)
+
+**Run this phase if** Phase 0.5 flagged `product_count >= 2`, or Justin's Phase 1 description names multiple independent products, or the artifact has repeated "Product Brief" / "Module" / "System N" headers.
+
+A single constitution for N unrelated products produces a bloated roster and fights itself during `/spec-review` and `/plan`. Surface the decomposition before drafting.
+
+Present:
+
+```
+=== Multi-Product Detected ===
+Products found (N):
+  1. [name] — [one-line purpose]
+  2. [name] — [one-line purpose]
+  ...
+
+These products appear [tightly coupled / loosely coupled / independent].
+
+How do you want to structure this?
+  a) One constitution, one spec — only if they're really one product wearing multiple hats
+  b) One constitution, N specs — shared principles, separate feature pipelines (RECOMMENDED for most cases)
+  c) N independent projects — split now; I'll kickoff the first one here and note the rest as future projects
+  d) Different framing — tell me
+```
+
+**My lean: (b)** when products share a domain, stakeholders, or stack but have separate scopes/lifecycles. **Lean (c)** when products have different stacks, different audiences, or will ship on different timelines. **Lean (a)** rarely — only if the "products" are really interchangeable framings of one system.
+
+Decision outcomes:
+- **(a)** — proceed to Phase 2 with a single constitution covering all products. Note each as a sub-system in the scope section.
+- **(b)** — proceed to Phase 2 with a single constitution. After Phase 4, display: "Ready for /spec. Run /spec N times — once per product: [list]." Record the product list in the constitution under `## Planned Specs` so later `/spec` runs can cross-reference.
+- **(c)** — ask which product to kickoff first. Proceed with Phase 2 for that one only. At Completion, list the remaining products as "Deferred kickoffs: [list]" and recommend a parent directory layout if they'll live as sibling repos.
+- **(d)** — capture the framing and adapt.
 
 ## Phase 2: Constitution Draft
 
@@ -61,6 +122,8 @@ Based on the project description + Phase 0 signals + any existing CLAUDE.md cont
 2. Present the draft for review. One section at a time if Justin prefers.
 
 ## Phase 3: Agent Roster Selection
+
+**Baseline only.** Kickoff sets the *repo-wide* roster — agents that apply to every feature (e.g., mobile-accessibility-reviewer for a games project). Feature-specific specialists are added later via `/spec` when a spec's needs exceed the baseline. Don't try to predict every specialist a future feature might need; pick what applies broadly.
 
 Use the domain mapping in `~/.claude/templates/repo-signals.md` to propose the roster.
 

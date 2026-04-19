@@ -4,6 +4,8 @@ description: Build or revise a spec artifact through confidence-tracked Q&A (ext
 
 **IMPORTANT: Do NOT invoke superpowers skills (brainstorming, writing-plans, executing-plans, etc.) from this command. This command IS the spec workflow.**
 
+**Host-agent note:** this command assumes Claude Code skill invocation (via the Skill tool). On other agents (Cursor, Codex, Hermes, OpenClaw), invoke `wiki-update` / `wiki-query` directly via the agent's native skill mechanism — Phase 0.2 below relies on it.
+
 You are a spec-building assistant. Your job is to run an interactive Q&A interview that captures intent with high confidence, then write a persistent spec artifact. This command is the entry point for spec work and is designed to be extended with additional spec-related flows over time.
 
 ## Pipeline
@@ -71,6 +73,38 @@ Context: [stack/project type]. Constitution [version] emphasizes [1-2 principles
 ```
 
 If any source is missing, note it in the summary and continue.
+
+### Phase 0.2: Adaptive Wiki-Query Callout (obsidian-wiki integration — read side)
+
+**Skip this phase if** `~/.obsidian-wiki/config` does not exist. Phase 0.2 is a silent no-op when obsidian-wiki isn't installed — no prompt, no hint, no error.
+
+If the config exists, invoke the `wiki-query` skill to surface prior compiled knowledge on the spec topic:
+
+1. **Query.** Pass `$ARGUMENTS` (post `--auto` strip) **verbatim** to `wiki-query` as the question string. Do not pre-extract keywords — `wiki-query`'s own Step 2 (index/frontmatter pass) handles extraction internally. Pre-extracting would discard context.
+
+2. **Self-enforced 10s soft timeout.** Claude Code's Skill tool has no runtime timeout primitive, so *you, the host agent*, enforce it. If `wiki-query` has not returned within ~10 seconds of wall-clock elapsed, abandon the step and silently skip the callout. Before moving on, append one line to `$OBSIDIAN_VAULT_PATH/log.md`:
+   ```
+   - [ISO-8601 TIMESTAMP] QUERY_TIMEOUT query="<topic>" skipped=true
+   ```
+
+3. **Relevance gate — suppress-wins precedence.** After `wiki-query` returns:
+   - If the answer contains any of these phrases (a compensatory "doesn't-cover-but-see" tangent): `"doesn't cover"`, `"not covered"`, `"the wiki doesn't"` — **suppress the callout** regardless of whether wikilinks are cited. Treat as empty.
+   - Otherwise, count `[[wikilink]]` citations in the returned answer. If ≥1, render the callout (step 4). If 0, skip silently — no "no prior wiki" noise.
+
+4. **Render the callout** between the context summary and Phase 0.25 / Phase 0.5:
+   ```markdown
+   ### Prior wiki knowledge
+   - [[page-title-1]] — <summary: field from page-title-1's frontmatter>
+   - [[page-title-2]] — <summary: field from page-title-2's frontmatter>
+   <1-2 sentence stitched synthesis — ONLY when ≥3 citations are rendered>
+   ```
+   - **Max 5 citations** using `wiki-query`'s own ranking. If more are returned, show the top 5 and append: *"(N additional pages omitted — run `wiki-query` directly for full results)"*.
+   - **Per-page one-liner source.** Read each cited page's `summary:` frontmatter field (capped at 200 chars per obsidian-wiki's own contract). If a page has no `summary:` field, fall back to the first non-empty prose line after its frontmatter, with any leading heading markers (`#`, `##`, etc.) stripped, truncated to 200 chars. **Do NOT re-prompt the agent to generate per-page synthesis** — the `summary:` field was designed for exactly this retrieval path.
+   - **Synthesis-line threshold.** Generate the optional 1-2 sentence stitched synthesis across cited pages **only when the callout renders ≥3 citations**. With 1-2 citations, the `summary:` lines stand alone — agent-generated synthesis over that few pages tends to echo summaries without adding cross-page signal.
+
+5. **On error.** If `wiki-query` errors out, silently skip the callout. No inline error message — unlike `/wrap`'s write path, the read-side user didn't explicitly opt into this; it's background enrichment.
+
+6. Phase 1 Q1 begins with both the context summary AND the prior-wiki callout (if rendered) in scope.
 
 ### Phase 0.25: Session Roster (no-constitution fallback)
 
@@ -167,6 +201,32 @@ Ask in roughly this order, adapting based on answers:
 4. Record the chosen approach in the draft spec.
 5. Continue Q&A rounds; remaining questions can be grounded in the chosen approach.
 
+## Phase 2.5: Specialist Gap Check (feature-sized work only)
+
+**Skip entirely for bug-fix and small-change work.** For feature-sized work, after the approach is chosen and before writing the spec:
+
+1. Compare the feature's needs against the **current roster** (constitution's agent list, or Phase 0.25 session roster if no constitution).
+2. If the feature introduces a concern the roster can't cover (e.g., spec is about OAuth but roster has no `oauth-flow-auditor`; spec is about data ingestion but roster has no pipeline reviewer), propose **1-3 new specialists** from `~/.claude/domain-agents/` or by name.
+3. Present:
+
+```
+=== Specialist Gap ===
+Feature needs coverage for: [concern]
+Roster covers this via: [existing agent, or "nothing"]
+Proposed additions:
+- [agent-name] ([source]) — [one-line why]
+
+Add to roster? (yes / pick subset / skip)
+```
+
+4. If approved:
+   - Install each accepted agent to `<project>/.claude/agents/` (copy from source).
+   - Append to the constitution's Agent Roster section (or the spec's `session_roster` frontmatter if no constitution).
+   - Record the addition in the spec under `## Roster Changes`.
+5. If skipped or no gap exists, write "No roster changes." under `## Roster Changes` and continue.
+
+The roster grows organically: additions made for one feature are available for future `/spec-review`, `/plan`, `/check` runs without re-proposing.
+
 ## Phase 3: Write + Self-Review
 
 When the gate is met (manual approval or auto-run criteria — see below):
@@ -191,6 +251,9 @@ When the gate is met (manual approval or auto-run criteria — see below):
 
    ## Approach
    [Chosen approach from Phase 2, with brief rationale. For non-feature work, omit or state "N/A — small change."]
+
+   ## Roster Changes
+   [Any specialists added from Phase 2.5, with install paths. "No roster changes." if none. Omit for bug-fix / small-change work.]
 
    ## UX / User Flow
    [Step-by-step interaction]
