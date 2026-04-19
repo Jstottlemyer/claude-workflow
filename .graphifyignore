@@ -1,0 +1,8 @@
+# Standard
+graphify-out/
+.venv/
+__pycache__/
+*.pyc
+
+# Personal config (already gitignored per the repo's own rules)
+personal/

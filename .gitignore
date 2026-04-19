@@ -3,3 +3,7 @@ settings.local.json
 
 # OS files
 .DS_Store
+
+# graphify generated output
+graphify-out/
+
