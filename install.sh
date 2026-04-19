@@ -64,6 +64,11 @@ echo "Installing pipeline commands..."
 for cmd in "$REPO_DIR"/commands/*.md; do
     link_file "$cmd" "$CLAUDE_DIR/commands/$(basename "$cmd")"
 done
+# Static command assets (e.g., pre-rendered reference cards) — served via cat to skip LLM generation
+for asset in "$REPO_DIR"/commands/*.txt; do
+    [ -e "$asset" ] || continue
+    link_file "$asset" "$CLAUDE_DIR/commands/$(basename "$asset")"
+done
 
 # --- Personas ---
 echo ""

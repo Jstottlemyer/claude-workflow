@@ -1,75 +1,12 @@
 ---
 description: Show the session workflow reference card
-allowed-tools: ""
+allowed-tools: "Bash(cat:*)"
 ---
 
-Display this workflow reference card to the user:
+Run exactly this command and output nothing else — no preamble, no commentary, no closing remarks:
 
 ```
-╔══════════════════════════════════════════════════════════════╗
-║                    SESSION WORKFLOW                         ║
-╠══════════════════════════════════════════════════════════════╣
-║                                                              ║
-║  PROJECT SETUP (once per project)                            ║
-║  /kickoff  →  constitution + agent roster                    ║
-║                                                              ║
-║  FEATURE (full pipeline)                                     ║
-║  /spec  →  /spec-review  →  /plan  →  /check  →  /build     ║
-║   define    6 PRD          6 design   5 plan     execute     ║
-║   (Q&A)     agents         agents     agents     (parallel)  ║
-║  + firecrawl (research) · context7 (API docs)                ║
-║                                                              ║
-║  WORK-SIZE SCALING                                           ║
-║  Bug fix:      describe it → fix it → verify                 ║
-║  Small change: /spec (quick) → /build                        ║
-║  Feature:      full pipeline above                           ║
-║  V2/Rework:    revise existing spec → full pipeline          ║
-║                                                              ║
-║  PARALLEL WORK                                               ║
-║  "work on X, Y, and Z in parallel"                           ║
-║    → Each dispatched to a subagent                           ║
-║                                                              ║
-║  IN-SESSION DISCIPLINE                      [Superpowers]    ║
-║  → systematic-debugging · verification-before-done           ║
-║  → requesting-code-review · ralph-loop (micro-iteration)     ║
-║                                                              ║
-║  CODE REVIEW                                                 ║
-║  Quick:  superpowers requesting-code-review                  ║
-║  PR:     /code-review plugin                                 ║
-║  Full:   9 parallel code-review personas                     ║
-║                                                              ║
-║  ARTIFACTS                                                   ║
-║  docs/specs/constitution.md     (project principles)         ║
-║  docs/specs/<feature>/spec.md   (living spec)                ║
-║  docs/specs/<feature>/review.md (PRD review findings)        ║
-║  docs/specs/<feature>/plan.md   (implementation plan)        ║
-║  docs/specs/<feature>/check.md  (gap checkpoint)             ║
-║                                                              ║
-║  KNOWLEDGE WIKI                           [obsidian-wiki]    ║
-║  Mid-session:  "capture this: X" → wiki-capture → _raw/      ║
-║  End-session:  /wrap Phase 2c → flush _raw/ + distill        ║
-║  Query:        "what do I know about X" → wiki-query         ║
-║  Project sync: "update wiki" → wiki-update                   ║
-║  Compile, don't retrieve. Capture cheap, distill deferred.   ║
-║                                                              ║
-║  SESSION END                                                 ║
-║  /wrap → summary, learnings, wiki flush, git loose ends      ║
-║                                                              ║
-╠══════════════════════════════════════════════════════════════╣
-║  AGENTS: review(6) plan(6) check(5) code-review(9)          ║
-║  + judge · synthesis · domain agents                         ║
-║                                                              ║
-║  PLUGINS                                                     ║
-║  Always-on:  superpowers · context7                          ║
-║  On-demand:  firecrawl · code-review · ralph-loop            ║
-║              playwright                                      ║
-║  Periodic:   claude-md-management · skill-creator            ║
-║              claude-code-setup                               ║
-║                                                              ║
-║  Superpowers: in-session execution discipline                ║
-║  Plugins: specialized capabilities                           ║
-║  You say WHAT. Claude handles HOW.                           ║
-╚══════════════════════════════════════════════════════════════╝
+cat ~/.claude/commands/flow-card.txt
 ```
 
-Do NOT add any commentary. Just display the card.
+The tool output is the user-visible response. Do not restate, summarize, or add any text after.
