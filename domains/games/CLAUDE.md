@@ -64,7 +64,7 @@ All rules below are **required** — fix directly or ask before shipping. No war
 - Every `withAnimation`, `.animation`, `.transition`, or custom animation modifier must be gated on `@Environment(\.accessibilityReduceMotion)` — use `animation(reduceMotion ? nil : ...)` or `if !reduceMotion { }`. No exceptions. If it moves, it gets the guard
 
 ### Icons
-- NEVER use `Image(systemName:)` for icons. Use the project's icon enum (e.g. `CartoonIcon`). If no case exists, add one, generate the asset, and inform Justin. SF Symbols only acceptable as fallbacks inside the icon enum itself
+- NEVER use `Image(systemName:)` for icons. Use the project's icon enum (e.g. `CartoonIcon`). If no case exists, add one, generate the asset, and inform the developer. SF Symbols only acceptable as fallbacks inside the icon enum itself
 
 ### Theme Colors
 - Backgrounds, borders, accents: use theme properties (`theme.primaryAccent`, `theme.secondaryAccent`)
