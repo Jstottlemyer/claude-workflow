@@ -377,3 +377,100 @@ For the next few graphify-related sessions, I'll default to **teaching mode**: e
 
 This section prunes itself when fluency arrives.
 
+
+---
+
+## §12 — Wiki bridge (graphify ↔ obsidian-wiki)
+
+The two indexers are complementary, not competitive:
+- **graphify** extracts *code* structure per-project. God nodes, communities, EXTRACTED/INFERRED edges. One `graphify-out/` per project.
+- **obsidian-wiki** holds durable *understanding* across projects. Concept pages, `[[wikilinks]]`, curated frontmatter.
+
+### Direction 1 — graphify → wiki (automatic, every `/wrap`)
+
+`/wrap` Phase 2c Step 4 reads `graphify-out/GRAPH_REPORT.md` and drops a digest note into `$OBSIDIAN_VAULT_PATH/_raw/` with:
+
+- top-10 god nodes (by degree),
+- surprising connections section,
+- community summary table,
+- delta vs last digest.
+
+`wiki-ingest` promotes the raw note on its next run (also triggered by `/wrap` Step 1). `career/` digests get `visibility: internal` in the frontmatter.
+
+**Skip rules:** Step 4 silently no-ops when `graphify-out/` is missing or `$OBSIDIAN_VAULT_PATH` isn't set. No prompt, no error.
+
+### Direction 2 — wiki → graphify (weekly, launchd)
+
+`scripts/wiki-graph.sh` symlinks `$OBSIDIAN_VAULT_PATH` into `~/Projects/wiki-graph/source/` and runs `graphify` over it. Output: a separate graph over the vault's concept pages — useful for spotting orphan concepts and cross-project themes that live *only* in the wiki.
+
+**Cadence:** Sunday 03:30 via `com.jstottlemyer.wiki-graph.weekly.plist`. Manual: `bash scripts/wiki-graph.sh`.
+
+### Read-side: `/spec` Phase 0.2a
+
+`/spec` prefers graphify's `query` output over `wiki-query` when both exist. Code-graph context is more precise for architecture questions; wiki-query fills the cross-project concept gap. Fallback chain: graphify → wiki → silent skip.
+
+---
+
+## §13 — Benefit-over-time dashboard
+
+Local-first, single `dashboard/index.html`, Chart.js from CDN. Reads append-only JSONL under `dashboard/data/<slug>.jsonl`. View: `open ~/Projects/claude-workflow/dashboard/index.html`.
+
+### Event types
+
+| event | writer | cadence |
+|-------|--------|---------|
+| `bootstrap` | `bootstrap-graphify.sh --apply` | one-time |
+| `wrap` | `/wrap` Phase 1 tail | every session |
+| `benchmark-weekly` | `benchmarks-all.sh` via launchd | Sun 03:00 |
+| `wiki-graph-weekly` | `wiki-graph.sh` via launchd | Sun 03:30 |
+
+### Record schema
+
+Each JSONL line: `{ts, event, project, graph{nodes,edges,communities,god_nodes_top3}, benchmark{corpus_tokens,avg_query_tokens,reduction_ratio,stale_days}, wiki{pages_total,pages_ingested_this_session,raw_pending}, session{duration_min,commits,spec_created,plan_executed}}`. Full sample in `dashboard/README.md`.
+
+Benchmark numbers are **stale-aware** — the `stale_days` field counts days since last `last-benchmark.json` refresh. Sessions in between weekly runs inherit the prior value. No per-session benchmark cost.
+
+### GitHub Pages (deferred)
+
+The dashboard is static HTML + JSONL — zero-build. Push to `gh-pages` when you want a phone/shared view. Never push `data/career.jsonl`; everything else is safe (node labels, counts, ratios).
+
+---
+
+## §14 — Bootstrap and launchd agents
+
+One-shot initialization across `~/Projects/`:
+
+```bash
+# Preview (safe)
+bash ~/Projects/claude-workflow/scripts/bootstrap-graphify.sh --dry-run
+
+# Apply after reviewing the cost estimate
+bash ~/Projects/claude-workflow/scripts/bootstrap-graphify.sh --apply
+```
+
+The script:
+1. Enumerates `~/Projects/*`, classifies each as `default | career | ios-swift | upstream-readonly`.
+2. Writes the matching `.graphifyignore` template.
+3. Runs `graphify .` (skips if `graphify-out/graph.json` already exists).
+4. Installs `graphify hook install` on owned repos.
+5. Seeds the dashboard JSONL with a `bootstrap` record.
+6. Installs the two launchd plists into `~/Library/LaunchAgents/` and `launchctl load`s them.
+
+### Launchd agents
+
+| plist | schedule | runs |
+|-------|----------|------|
+| `com.jstottlemyer.graphify-benchmarks.weekly.plist` | Sun 03:00 | `scripts/benchmarks-all.sh` — refreshes `last-benchmark.json` per project |
+| `com.jstottlemyer.wiki-graph.weekly.plist` | Sun 03:30 | `scripts/wiki-graph.sh` — re-indexes the vault |
+
+Manual triggers:
+```bash
+launchctl start com.jstottlemyer.graphify-benchmarks.weekly
+launchctl start com.jstottlemyer.wiki-graph.weekly
+```
+
+Log tails: `/tmp/graphify-benchmarks.{out,err}`, `/tmp/wiki-graph.{out,err}`, plus `dashboard/data/.benchmarks.log` and `.wiki-graph.log`.
+
+### `/graph` slash command
+
+Manual inspection. Opens `graphify-out/graph.html` in the browser, prints god-node snapshot + delta since last `/graph`, nudges for a weekly review if >7 days. Use `/graph --benchmark` to force-refresh benchmark numbers outside the Sunday slot.

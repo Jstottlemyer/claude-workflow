@@ -74,9 +74,36 @@ Context: [stack/project type]. Constitution [version] emphasizes [1-2 principles
 
 If any source is missing, note it in the summary and continue.
 
-### Phase 0.2: Adaptive Wiki-Query Callout (obsidian-wiki integration — read side)
+### Phase 0.2: Adaptive prior-knowledge callout (graphify + obsidian-wiki, read side)
 
-**Skip this phase if** `~/.obsidian-wiki/config` does not exist. Phase 0.2 is a silent no-op when obsidian-wiki isn't installed — no prompt, no hint, no error.
+**Source preference:** graphify's code graph first (project-local, precise about architecture), wiki-query second (cross-project concepts). Skip silently if neither is available.
+
+#### 0.2a — Graphify code-graph callout
+
+**Skip this sub-phase if** `graphify-out/graph.json` does not exist in cwd. Silent no-op — no prompt.
+
+If the graph exists, query it before the wiki:
+
+1. **Query.** Run `~/.local/bin/graphify query "<$ARGUMENTS post --auto strip>" --budget 1500` from cwd. Feed the feature intent verbatim; `graphify query` does its own keyword scoring and BFS traversal.
+
+2. **Self-enforced 10s soft timeout.** Same contract as 0.2b below — if graphify hasn't returned in ~10s wall-clock, abandon and skip.
+
+3. **Relevance gate.** If the output is empty, or consists only of the "no matching nodes" banner that graphify prints on miss, skip silently. Otherwise render the callout (step 4).
+
+4. **Render the callout** between the context summary and Phase 0.25 / 0.5:
+   ```markdown
+   ### Prior context from code graph
+   <graphify's output verbatim, or trimmed to top 5 nodes + edges if >30 lines>
+
+   Source: `graphify-out/graph.json` (<N> nodes, <M> edges)
+   ```
+   The user reads graph output as-is. Don't editorialize. If graphify returned >30 lines, show the first 30 and append `(run graphify query "<topic>" --budget 3000 for full traversal)`.
+
+5. **On error.** Silent skip. This is background enrichment, same precedent as 0.2b.
+
+#### 0.2b — Wiki-query callout (existing, unchanged below)
+
+**Skip this sub-phase if** `~/.obsidian-wiki/config` does not exist. Phase 0.2b is a silent no-op when obsidian-wiki isn't installed — no prompt, no hint, no error.
 
 If the config exists, invoke the `wiki-query` skill to surface prior compiled knowledge on the spec topic:
 

@@ -1,5 +1,4 @@
-# Default graphify ignore patterns (all owned projects inherit these)
-# Syntax: same as .gitignore
+# iOS / Swift project (Mobile/) — default + Xcode artifacts
 
 # Build artifacts
 dist/
@@ -30,8 +29,6 @@ __pycache__/
 *.min.css
 *.map
 *.generated.*
-*.pb.go
-*.pb.py
 
 # Logs & temp
 *.log
@@ -46,3 +43,18 @@ graphify-out/
 .idea/
 .vscode/
 *.iml
+
+# ---- Xcode/iOS specific ----
+*.xcodeproj/
+*.xcworkspace/
+DerivedData/
+Pods/
+Carthage/Build/
+*.xcuserstate
+xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/test_output

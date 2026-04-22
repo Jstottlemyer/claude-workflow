@@ -46,3 +46,17 @@ graphify-out/
 .idea/
 .vscode/
 *.iml
+
+# ---- career-specific additions ----
+# Sensitive: external exposure protection layered on top of
+# frontmatter-level `visibility: internal` handling in obsidian-wiki.
+# These patterns block content from ever entering the graph so it
+# can't reach the wiki digest step either.
+
+outreach/
+resume/versions/
+*-internal*
+*-confidential*
+*confidential*
+*.private.*
+PROJECT_CONTEXT.md

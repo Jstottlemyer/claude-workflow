@@ -1,0 +1,30 @@
+# Upstream-readonly: for repos we don't own (graphify, obsidian-wiki).
+# Index only the high-signal docs; skip bulk source since we don't
+# maintain it. We read structure from READMEs/docs, not implementation.
+
+# Ignore everything by default
+*
+
+# Then allow only the useful surfaces
+!README.md
+!README.*.md
+!ARCHITECTURE.md
+!AGENTS.md
+!CLAUDE.md
+!GEMINI.md
+!CHANGELOG.md
+!SECURITY.md
+!LICENSE
+!docs/
+!docs/**
+!*.md
+
+# Never allow these back
+node_modules/
+__pycache__/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+graphify-out/

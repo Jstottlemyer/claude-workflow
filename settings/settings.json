@@ -23,7 +23,12 @@
       "Bash(pnpm add:*)",
       "Bash(pnpm install:*)"
     ],
-    "defaultMode": "plan"
+    "defaultMode": "auto"
+  },
+  "hooks": {},
+  "statusLine": {
+    "type": "command",
+    "command": "bash ~/.claude/scripts/statusline-command.sh"
   },
   "enabledPlugins": {
     "claude-md-management@claude-plugins-official": true,
@@ -36,11 +41,7 @@
     "playwright@claude-plugins-official": true,
     "firecrawl@claude-plugins-official": true
   },
-  "hooks": {},
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
-  "statusLine": {
-    "type": "command",
-    "command": "bash ~/.claude/scripts/statusline-command.sh"
-  }
+  "skipAutoPermissionPrompt": true
 }
