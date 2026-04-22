@@ -28,6 +28,31 @@ python3 ~/.claude/scripts/session-cost.py 2>/dev/null || true
 
 **Paste the script's stdout verbatim into your response** (as a fenced code block, right under the Session Summary) so the user sees the cost in the message — do not rely on the tool-result pane being visible. If the script prints nothing (no session data yet), skip the cost block.
 
+### Phase 1 tail: Dashboard append (silent)
+
+If `graphify-out/graph.json` exists in cwd, append one record to the workspace dashboard. Never block, never prompt.
+
+```bash
+if [ -f graphify-out/graph.json ] && [ -x ~/Projects/claude-workflow/scripts/dashboard-append.sh ]; then
+  # commits in this session (last 6h is close enough for /wrap)
+  commits=$(git log --since="6 hours ago" --oneline 2>/dev/null | wc -l | tr -d ' ')
+  # spec/plan flags — best-effort from git state
+  spec_created=0
+  plan_executed=0
+  git log --since="6 hours ago" --name-only docs/specs/ 2>/dev/null | grep -q "spec\.md$" && spec_created=1
+  git log --since="6 hours ago" --name-only docs/specs/ 2>/dev/null | grep -q "plan\.md$" && plan_executed=1
+  ~/Projects/claude-workflow/scripts/dashboard-append.sh \
+    --event wrap \
+    --project "$(basename "$PWD")" \
+    --cwd "$PWD" \
+    --commits "$commits" \
+    --spec-created "$spec_created" \
+    --plan-executed "$plan_executed" >/dev/null 2>&1 || true
+fi
+```
+
+Skip silently if `graphify-out/` is missing (covers projects not yet bootstrapped) or if the helper script isn't present (older workflow install).
+
 Continue immediately to Phase 2. Do NOT wait for user input.
 
 ---
@@ -96,7 +121,7 @@ No learnings to capture this session. ✓
 > Apply these updates? (all / skip / pick individually)
 
 - **For CLAUDE.md**: Use Edit tool to apply approved diffs
-- **For Memory**: Write files to `/Users/jstottlemyer/.claude/projects/-Users-jstottlemyer/memory/` using this format:
+- **For Memory**: Write files to `~/.claude/projects/<cwd-slug>/memory/` (where `<cwd-slug>` is the current working directory with `/` replaced by `-`) using this format:
 
 ```markdown
 ---
@@ -248,6 +273,73 @@ Lint: no new issues   |   Lint: 2 new orphans, 1 broken wikilink (see wiki-lint 
 ```
 
 If lint surfaces new orphans or broken links, *don't* auto-fix — surface them for the user to decide next session. The goal of Step 3 is visibility, not resolution.
+
+### Step 4 — Graphify digest (conditional, no approval gate)
+
+**Trigger:** `graphify-out/GRAPH_REPORT.md` exists in cwd. Skip silently otherwise — covers projects not yet bootstrapped or explicitly excluded.
+
+This is the graphify → wiki bridge. Rather than let the code-graph structure live only inside `graphify-out/`, distill the top-level findings into a raw note that `wiki-ingest` will promote into the vault on the next run.
+
+**Do not prompt the user.** Step 4 runs silently after Step 3.
+
+1. **Compute digest inputs** — read `graphify-out/GRAPH_REPORT.md` and the top of `graphify-out/graph.json`:
+   - Top 10 god nodes (by degree; already surfaced in the report).
+   - Surprising connections section from the report, if present.
+   - Community summary: id, size, theme label (if the report names communities).
+   - Delta vs last digest: compare current node/edge counts to the value in `.graphify-last-seen.json` if it exists (set by `/graph`). If no prior state, "initial digest."
+
+2. **Determine project slug and visibility:**
+   ```bash
+   proj="$(basename "$PWD")"
+   visibility=""
+   [ "$proj" = "career" ] && visibility="visibility: internal"
+   ```
+   `career` gets `visibility: internal` so `wiki-ingest` keeps it out of any shared export.
+
+3. **Write the raw note:**
+   ```
+   $OBSIDIAN_VAULT_PATH/_raw/YYYY-MM-DD-HHMM-<proj-slug>-architecture.md
+   ```
+   Frontmatter:
+   ```yaml
+   ---
+   status: raw
+   captured_at: 2026-04-21T15:30:00-07:00
+   source_cwd: /path/to/project
+   source_git: <branch>@<short-sha>
+   tags: [graphify, <proj-slug>, architecture]
+   visibility: internal   # only for career/
+   ---
+   ```
+   Body:
+   ```markdown
+   # <proj> architecture digest
+
+   ## God nodes (top 10 by degree)
+   - `label` — N neighbors
+   - ...
+
+   ## Surprising connections
+   <copy the relevant section from GRAPH_REPORT.md, or: _none flagged._>
+
+   ## Communities
+   | id | size | theme |
+   |----|------|-------|
+   | 0  | 42   | auth/session handling |
+   | ...|      |                        |
+
+   ## Delta since last digest
+   - Nodes: +X / -Y
+   - Edges: +X / -Y
+   - New community ids: [...]
+   ```
+
+4. **After writing, print a single line to the wrap output:**
+   ```
+   Graphify digest → _raw/YYYY-MM-DD-HHMM-<proj>-architecture.md (wiki-ingest will promote next run)
+   ```
+
+5. **On error** (missing `$OBSIDIAN_VAULT_PATH`, vault not writable, etc.): skip silently — Step 4 is background enrichment, don't block the session wrap.
 
 ---
 

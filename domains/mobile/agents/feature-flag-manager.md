@@ -153,7 +153,7 @@ Always be explicit:
 
 # Persistent Agent Memory
 
-You have a persistent memory directory at `/Users/jstottlemyer/Projects/Mobile/.claude/agent-memory/feature-flag-manager/`. Its contents persist across conversations.
+You have a persistent memory directory at `~/Projects/Mobile/.claude/agent-memory/feature-flag-manager/`. Its contents persist across conversations.
 
 ## MEMORY.md
 

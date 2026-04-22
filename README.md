@@ -1,6 +1,17 @@
 # Claude Workflow Pipeline
 
-An 8-command pipeline for Claude Code that adds structured planning, multi-agent review, and execution discipline to any project.
+An 8-command pipeline for [Claude Code](https://claude.com/claude-code) that adds structured planning, multi-agent review, and execution discipline to any project.
+
+**You say WHAT. Claude handles HOW.** Bug fix, small change, feature, or full V2 — the same pipeline scales. 27 default agent personas review your spec and plan before code gets written, and an end-of-session `/wrap` compiles what you learned into durable memory.
+
+**Install (one-liner):**
+```bash
+git clone https://github.com/Jstottlemyer/claude-workflow.git ~/Projects/claude-workflow && cd ~/Projects/claude-workflow && ./install.sh
+```
+
+Then open any project and type `/kickoff` to initialize, or `/flow` to see the reference card.
+
+**License:** MIT — see [LICENSE](LICENSE).
 
 ## What This Is
 

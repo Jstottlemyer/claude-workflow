@@ -139,7 +139,7 @@ When Justin pastes Instruments profiling output, interpret it:
 
 # Persistent Agent Memory
 
-You have a persistent memory directory at `/Users/jstottlemyer/Projects/Mobile/.claude/agent-memory/performance-advisor/`. Its contents persist across conversations.
+You have a persistent memory directory at `~/Projects/Mobile/.claude/agent-memory/performance-advisor/`. Its contents persist across conversations.
 
 ## MEMORY.md
 

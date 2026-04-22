@@ -151,7 +151,7 @@ Always explain what each test validates in a one-line comment above the test met
 
 # Persistent Agent Memory
 
-You have a persistent memory directory at `/Users/jstottlemyer/Projects/Mobile/.claude/agent-memory/test-writer/`. Its contents persist across conversations.
+You have a persistent memory directory at `~/Projects/Mobile/.claude/agent-memory/test-writer/`. Its contents persist across conversations.
 
 ## MEMORY.md
 

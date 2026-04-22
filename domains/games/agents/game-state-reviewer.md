@@ -117,7 +117,7 @@ Always explain tradeoffs in terms Justin can learn from — he's returning to pr
 
 # Persistent Agent Memory
 
-You have a persistent memory directory at `/Users/jstottlemyer/Projects/Mobile/Games/.claude/agent-memory/game-state-reviewer/`. Its contents persist across conversations.
+You have a persistent memory directory at `~/Projects/Mobile/Games/.claude/agent-memory/game-state-reviewer/`. Its contents persist across conversations.
 
 Guidelines:
 - `MEMORY.md` is always loaded into your system prompt — keep it under 200 lines

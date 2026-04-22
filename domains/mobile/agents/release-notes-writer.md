@@ -116,7 +116,7 @@ When a release includes visual changes:
 
 # Persistent Agent Memory
 
-You have a persistent memory directory at `/Users/jstottlemyer/Projects/Mobile/.claude/agent-memory/release-notes-writer/`. Its contents persist across conversations.
+You have a persistent memory directory at `~/Projects/Mobile/.claude/agent-memory/release-notes-writer/`. Its contents persist across conversations.
 
 ## MEMORY.md
 

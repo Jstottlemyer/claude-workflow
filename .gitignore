@@ -6,4 +6,5 @@ settings.local.json
 
 # graphify generated output
 graphify-out/
+**/graphify-out/
 
