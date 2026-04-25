@@ -58,9 +58,18 @@ total_out = cost.get("total_output_tokens", 0)
 runs = cost.get("runs", [])
 total_files = sum(r.get("files", 0) for r in runs)
 
-# Already has real measurements — skip
-if total_in > 0 and total_out > 0 and cost.get("source") != "estimated":
-    print(f"[{proj}] already measured (in={total_in}, out={total_out}); skip")
+# Only backfill when BOTH totals are zero and there are files to estimate from.
+# If either field has a real nonzero measurement, preserve it — partial data is
+# still more accurate than a full estimate and should never be silently replaced.
+already_measured_in  = total_in  > 0 and cost.get("source") != "estimated"
+already_measured_out = total_out > 0 and cost.get("source") != "estimated"
+if already_measured_in or already_measured_out:
+    print(f"[{proj}] partial/full real measurements present (in={total_in}, out={total_out}); skip")
+    raise SystemExit(0)
+
+# Nothing to estimate from — no files processed
+if total_files == 0:
+    print(f"[{proj}] no files recorded in cost.json runs; skip")
     raise SystemExit(0)
 
 # Skip if bench failed or is empty
@@ -74,7 +83,7 @@ edges = len(graph.get("links", graph.get("edges", [])))
 # hyperedges aren't stored in the final graph.json separately — use 0
 hyperedges = 0
 
-num_batches = max(1, (total_files + files_per_batch - 1) // files_per_batch) if total_files else 1
+num_batches = max(1, (total_files + files_per_batch - 1) // files_per_batch)
 est_input = corpus_tokens + num_batches * 600
 est_output = nodes * 30 + edges * 20 + hyperedges * 50
 
@@ -84,7 +93,8 @@ if avg_q > 0 and avg_q < corpus_tokens:
 else:
     break_even = None
 
-# Preserve original runs, update totals, add estimation metadata
+# Write via temp file + atomic rename so a crash mid-write can't corrupt the original
+import tempfile
 cost["total_input_tokens"] = est_input
 cost["total_output_tokens"] = est_output
 cost["source"] = "estimated"
@@ -99,16 +109,19 @@ cost["estimation"] = {
     "computed_at": datetime.now(timezone.utc).isoformat(),
 }
 
-# Backfill each run proportionally if multiple
+# Backfill each run proportionally if multiple; only touch runs that also have zero totals
 if runs:
     weight_total = sum(r.get("files", 1) for r in runs) or 1
     for r in runs:
-        w = (r.get("files", 1) or 1) / weight_total
-        r["input_tokens"] = int(round(est_input * w))
-        r["output_tokens"] = int(round(est_output * w))
-        r["source"] = "estimated"
+        if r.get("input_tokens", 0) == 0 and r.get("output_tokens", 0) == 0:
+            w = (r.get("files", 1) or 1) / weight_total
+            r["input_tokens"] = int(round(est_input * w))
+            r["output_tokens"] = int(round(est_output * w))
+            r["source"] = "estimated"
 
-Path(cost_path).write_text(json.dumps(cost, indent=2))
+tmp = Path(cost_path).with_suffix(".tmp")
+tmp.write_text(json.dumps(cost, indent=2))
+tmp.replace(Path(cost_path))
 be_str = f"break_even_queries={break_even}" if break_even is not None else "break_even=n/a"
 print(f"[{proj}] backfilled: input={est_input:,} output={est_output:,} {be_str}")
 PY
