@@ -63,6 +63,8 @@
 ║              playwright                                      ║
 ║  Periodic:   claude-md-management · skill-creator            ║
 ║              claude-code-setup                               ║
+║  Optional:   codex — adversarial review at spec-review,      ║
+║              /check, /build (silent skip if not set up)      ║
 ║                                                              ║
 ║  Superpowers: in-session execution discipline                ║
 ║  Plugins: specialized capabilities                           ║

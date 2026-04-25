@@ -97,10 +97,10 @@ flowchart LR
 |---------|-------------|--------|
 | `/kickoff` | One-time project init — scans repo, drafts constitution, selects agent roster | - |
 | `/spec` | Confidence-tracked Q&A — writes `spec.md` (falls back to session roster if no constitution) | Interactive |
-| `/spec-review` | Parallel PRD review — finds gaps, risks, ambiguity | 6 reviewers |
+| `/spec-review` | Parallel PRD review — gaps, risks, ambiguity; + Codex adversarial pass (optional) | 6 reviewers |
 | `/plan` | Architecture + implementation design | 6 designers |
-| `/check` | Last gate before code — validates the plan | 5 validators |
-| `/build` | Parallel execution with verification discipline | Superpowers |
+| `/check` | Last gate before code — validates the plan; + Codex adversarial pass (optional) | 5 validators |
+| `/build` | Parallel execution with verification discipline; + Codex implementation review (optional) | Superpowers |
 | `/flow` | Displays workflow reference card | - |
 | `/wrap` | Session wrap-up — summary, learnings, git loose ends | - |
 
@@ -173,6 +173,8 @@ flowchart LR
 ║              playwright                                      ║
 ║  Periodic:   claude-md-management · skill-creator            ║
 ║              claude-code-setup                               ║
+║  Optional:   codex — adversarial review at spec-review,      ║
+║              /check, /build (silent skip if not set up)      ║
 ║                                                              ║
 ║  Superpowers: in-session execution discipline                ║
 ║  Plugins: specialized capabilities                           ║
@@ -227,6 +229,8 @@ claude plugins install superpowers context7
 # Recommended
 claude plugins install firecrawl code-review ralph-loop playwright
 ```
+
+**Optional — Codex multi-model review:** `/spec-review`, `/check`, and `/build` can call Codex as an adversarial reviewer. It silently skips if Codex isn't configured. See [plugins.md](plugins.md) for setup.
 
 ## Artifacts
 
