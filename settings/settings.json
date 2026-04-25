@@ -25,6 +25,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "sonnet",
   "hooks": {
     "PreToolUse": [
       {
@@ -33,6 +34,16 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/block-pem-in-env.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v codex >/dev/null 2>&1 && ! codex login status >/dev/null 2>&1; then echo '{\"systemMessage\": \"Codex is installed but not authenticated. Run !codex login to enable multi-model pipeline reviews.\"}'; fi"
           }
         ]
       }
@@ -52,12 +63,20 @@
     "claude-code-setup@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
     "firecrawl@claude-plugins-official": true,
-    "vercel@claude-plugins-official": true
+    "vercel@claude-plugins-official": true,
+    "codex@openai-codex": true
+  },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "source": "github",
+        "repo": "openai/codex-plugin-cc"
+      }
+    }
   },
   "effortLevel": "high",
   "skipDangerousModePermissionPrompt": true,
   "remoteControlAtStartup": false,
   "agentPushNotifEnabled": true,
-  "skipAutoPermissionPrompt": true,
-  "model": "sonnet"
+  "skipAutoPermissionPrompt": true
 }
