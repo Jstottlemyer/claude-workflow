@@ -52,6 +52,24 @@ After all 5 agents return, apply two passes using the personas in `~/.claude/per
 3. List accepted risks the team is choosing to proceed with
 4. **Determine overall verdict**: GO / GO WITH FIXES / NO-GO
 
+## Phase 2b: Codex Adversarial Check (if available)
+
+Silent skip if Codex is not installed or not authenticated — no error, no prompt.
+
+```bash
+if command -v codex >/dev/null 2>&1 && codex login status >/dev/null 2>&1; then
+  codex exec --full-auto --ephemeral \
+    --output-last-message /tmp/codex-check-review.txt \
+    "Adversarial plan review: challenge whether this is the right implementation approach. Look for: incorrect sequencing assumptions, missing dependencies, tasks that will take longer than expected, better approaches that weren't considered, and risks the plan doesn't account for." \
+    < <plan-path>
+fi
+```
+
+Replace `<plan-path>` with the resolved path to `docs/specs/<feature>/plan.md`. If `/tmp/codex-check-review.txt` exists after the run:
+- If Codex surfaces must-fix or should-fix items not already in the Claude synthesis, add a **Codex Adversarial View** subsection to the checkpoint output.
+- If Codex finds nothing new, note "Codex: no additional findings."
+- If Codex was skipped (not available), omit the section entirely — no mention of it.
+
 ## Phase 3: Present & Write
 
 1. **Present the checkpoint**:

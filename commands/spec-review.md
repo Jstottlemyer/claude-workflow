@@ -66,6 +66,24 @@ After all 6 agents return, apply two passes:
 3. Identify gaps no agent covered
 4. Write in direct language — no hedging
 
+## Phase 2b: Codex Adversarial Check (if available)
+
+Silent skip if Codex is not installed or not authenticated — no error, no prompt.
+
+```bash
+if command -v codex >/dev/null 2>&1 && codex login status >/dev/null 2>&1; then
+  codex exec --full-auto --ephemeral \
+    --output-last-message /tmp/codex-spec-review.txt \
+    "Adversarial spec review: challenge the assumptions, tradeoffs, and design decisions in this spec. Look for missing failure modes, incorrect assumptions, better alternatives that weren't considered, and scope that will cause problems later." \
+    < <spec-path>
+fi
+```
+
+Replace `<spec-path>` with the resolved path to the spec file. If the file exists at `/tmp/codex-spec-review.txt` after the run:
+- If Codex surfaces findings not already in the Claude synthesis, add a **Codex Adversarial View** subsection to the consolidated review with those findings.
+- If Codex finds nothing new, note "Codex: no additional findings."
+- If Codex was skipped (not available), omit the section entirely — no mention of it.
+
 ## Phase 3: Present & Write
 
 1. **Present consolidated review**:

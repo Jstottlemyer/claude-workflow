@@ -64,7 +64,20 @@ On go:
 After all waves complete:
 
 1. Run verification checks (build, tests, lint)
-2. Present results:
+
+2. **Codex implementation review (if available)** — silent skip if not installed/authenticated:
+
+   ```bash
+   if command -v codex >/dev/null 2>&1 && codex login status >/dev/null 2>&1; then
+     codex exec review --uncommitted --full-auto --ephemeral \
+       --output-last-message /tmp/codex-build-review.txt \
+       "Challenge the implementation. Look for: security issues, deviations from the plan, better approaches that weren't taken, and correctness problems the tests might not catch."
+   fi
+   ```
+
+   If `/tmp/codex-build-review.txt` exists and contains findings, include a **Codex Review** section in the build complete summary. If skipped or no findings, omit.
+
+3. Present results:
    ```
    === BUILD COMPLETE: [Feature Name] ===
 
@@ -74,6 +87,8 @@ After all waves complete:
 
    Concerns raised during build:
    - [any DONE_WITH_CONCERNS items]
+
+   Codex review: [findings summary, or "skipped / no additional findings"]
 
    Next steps:
    - Code review: superpowers:requesting-code-review (quick) or /code-review (PR)
