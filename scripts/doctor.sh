@@ -10,6 +10,8 @@
 set -uo pipefail  # intentionally NOT -e — we want all diagnostics to run even if some probes fail
 
 REPO="Jstottlemyer/claude-workflow"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WORKFLOW_VERSION="$(cat "$SCRIPT_DIR/../VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
 DIAG_FILE=$(mktemp -t doctor-diagnostic.XXXXXX.md)
 trap 'rm -f "$DIAG_FILE"' EXIT
 
@@ -19,6 +21,7 @@ trap 'rm -f "$DIAG_FILE"' EXIT
     echo "# Install Diagnostic"
     echo ""
     echo "**Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    echo "**Pipeline version:** v${WORKFLOW_VERSION}"
     echo "**Host:** \`$(hostname)\`"
     echo "**User:** \`$(whoami)\`"
     echo ""

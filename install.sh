@@ -6,8 +6,9 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 CLAUDE_DIR="$HOME/.claude"
+VERSION="$(cat "$REPO_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
 
-echo "=== Claude Workflow Pipeline Installer ==="
+echo "=== Claude Workflow Pipeline Installer — v${VERSION} ==="
 echo ""
 echo "Repo:   $REPO_DIR"
 echo "Target: $CLAUDE_DIR"
