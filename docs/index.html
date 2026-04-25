@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude Workflow Pipeline</title>
+<meta name="description" content="An 8-command pipeline for Claude Code that adds structured planning, multi-agent review, and execution discipline to any project.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg-2: #11121a;
+    --bg-3: #1a1c26;
+    --fg: #e7e9ee;
+    --muted: #9aa0ad;
+    --line: #232532;
+    --accent: #7c9cff;
+    --accent-2: #5eead4;
+    --warn: #fdba74;
+    --pink: #f472b6;
+    --green: #86efac;
+    --purple: #c4b5fd;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(124,156,255,0.12), transparent 40%),
+      radial-gradient(circle at 80% 30%, rgba(94,234,212,0.08), transparent 45%),
+      radial-gradient(circle at 50% 100%, rgba(244,114,182,0.06), transparent 50%);
+  }
+  code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero {
+    padding: 80px 24px 48px;
+    text-align: center;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent-2);
+    background: rgba(94,234,212,0.08);
+    border: 1px solid rgba(94,234,212,0.25);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    margin: 0 0 20px;
+    background: linear-gradient(135deg, #fff 0%, #c4b5fd 60%, #5eead4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .tagline {
+    font-size: 20px;
+    color: var(--muted);
+    max-width: 720px;
+    margin: 0 auto 32px;
+  }
+  .tagline strong { color: var(--fg); font-weight: 600; }
+
+  .cta {
+    display: inline-flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    border: 1px solid var(--line);
+    background: var(--bg-2);
+    color: var(--fg);
+    transition: all 0.15s ease;
+  }
+  .btn:hover { text-decoration: none; transform: translateY(-1px); border-color: var(--accent); }
+  .btn.primary {
+    background: linear-gradient(135deg, #7c9cff, #5eead4);
+    color: #0a0a0f;
+    border-color: transparent;
+  }
+  .btn.primary:hover { box-shadow: 0 8px 24px rgba(124,156,255,0.35); }
+
+  section { padding: 64px 0; border-bottom: 1px solid var(--line); }
+  section h2 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    margin: 0 0 8px;
+  }
+  section .lede {
+    color: var(--muted);
+    margin: 0 0 32px;
+    font-size: 16px;
+  }
+
+  pre.install {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-size: 14px;
+    color: var(--accent-2);
+    margin: 0;
+  }
+  pre.install .prompt { color: var(--muted); user-select: none; }
+
+  .mermaid-frame {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 32px 16px;
+    overflow-x: auto;
+  }
+  .mermaid { display: flex; justify-content: center; min-width: 700px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  th, td {
+    text-align: left;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14px;
+  }
+  th { background: var(--bg-3); font-weight: 600; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+  tr:last-child td { border-bottom: none; }
+  td code { background: var(--bg-3); padding: 2px 8px; border-radius: 6px; font-size: 13px; color: var(--accent-2); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  .card .count {
+    display: inline-block;
+    background: var(--bg-3);
+    color: var(--purple);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+  }
+
+  pre.flow {
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    overflow-x: auto;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--fg);
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 24px 60px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  footer a { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">8-command pipeline · Claude Code</span>
+    <h1>You say WHAT.<br>Claude handles HOW.</h1>
+    <p class="tagline">
+      A structured planning, multi-agent review, and execution-discipline pipeline for
+      <a href="https://claude.com/claude-code">Claude Code</a>.
+      Ships <strong>37 agent personas</strong> — 28 always-available pipeline agents plus 9 domain agents.
+      Each phase calls only the slice it needs. One <code>/wrap</code> at the end compiles what you learned into durable memory.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/Jstottlemyer/claude-workflow">View on GitHub</a>
+      <a class="btn" href="#install">Install</a>
+      <a class="btn" href="#pipeline">See the pipeline</a>
+    </div>
+  </div>
+</header>
+
+<section id="pipeline">
+  <div class="wrap">
+    <h2>The pipeline</h2>
+    <p class="lede">Bug fix, small change, feature, or full V2 — the same flow scales.</p>
+    <div class="mermaid-frame">
+      <pre class="mermaid">
+flowchart LR
+    K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
+    S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap<br/><sub>summary · learnings ·<br/>knowledge flush</sub>"]:::wrap
+
+    K --> S --> SR --> P --> C --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
+    KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
+    SP -.in-session.-> B
+    W -.compiles.-> KL
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+      </pre>
+    </div>
+  </div>
+</section>
+
+<section id="knowledge-loop">
+  <div class="wrap">
+    <h2>The knowledge loop</h2>
+    <p class="lede"><code>/wrap</code> doesn't just end a session — it compiles what you learned into stores that the next session reads from. Every <code>/spec</code> and <code>/kickoff</code> starts smarter than the last.</p>
+    <div class="mermaid-frame">
+      <pre class="mermaid">
+flowchart LR
+    subgraph SN["Session N"]
+      direction TB
+      W["/wrap<br/><sub>distill · capture · index</sub>"]:::wrap
+    end
+
+    W --> G[("graphify graph<br/><sub>code structure ·<br/>god nodes</sub>")]:::store
+    W --> WIKI[("Obsidian wiki<br/><sub>distilled<br/>knowledge pages</sub>")]:::store
+    W --> MEM[("CLAUDE.md<br/>+ auto-memory<br/><sub>preferences ·<br/>decisions</sub>")]:::store
+    W --> RAW[("_raw/<br/><sub>cheap<br/>captures</sub>")]:::store
+
+    RAW -. wiki-ingest at next /wrap .-> WIKI
+
+    subgraph SN1["Session N+1, N+2, ..."]
+      direction TB
+      S["/spec  ·  /kickoff<br/><sub>starts with full prior context</sub>"]:::define
+    end
+
+    G -. /graphify query .-> S
+    WIKI -. wiki-query .-> S
+    MEM -. auto-loaded at session start .-> S
+
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef store fill:#1e293b,stroke:#7c9cff,color:#e7e9ee
+      </pre>
+    </div>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--accent-2)">Compile, don't retrieve.</strong> Capture is cheap during the session (<code>"capture this: X"</code> → <code>_raw/</code>). Distillation happens once at <code>/wrap</code>. Reads at the start of the next session are free — the wiki is already structured, the graph is already built, memory is already loaded.</p>
+  </div>
+</section>
+
+<section id="commands">
+  <div class="wrap">
+    <h2>Commands</h2>
+    <p class="lede">Each command writes a persistent artifact under <code>docs/specs/&lt;feature&gt;/</code>.</p>
+    <table>
+      <thead><tr><th>Command</th><th>What it does</th><th>Agents</th></tr></thead>
+      <tbody>
+        <tr><td><code>/kickoff</code></td><td>One-time project init — scans repo, drafts constitution, picks agent roster</td><td>—</td></tr>
+        <tr><td><code>/spec</code></td><td>Confidence-tracked Q&amp;A — writes <code>spec.md</code></td><td>Interactive</td></tr>
+        <tr><td><code>/spec-review</code></td><td>Parallel PRD review — gaps, risks, ambiguity</td><td>6 reviewers</td></tr>
+        <tr><td><code>/plan</code></td><td>Architecture + implementation design</td><td>6 designers</td></tr>
+        <tr><td><code>/check</code></td><td>Last gate before code — validates the plan</td><td>5 validators</td></tr>
+        <tr><td><code>/build</code></td><td>Parallel execution with verification discipline</td><td>Superpowers</td></tr>
+        <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
+        <tr><td><code>/wrap</code></td><td>Session wrap-up — summary, learnings, git loose ends</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="lede">Clone, run the installer, then open any project and type <code>/kickoff</code>.</p>
+    <pre class="install"><span class="prompt">$ </span>git clone https://github.com/Jstottlemyer/claude-workflow.git ~/Projects/claude-workflow
+<span class="prompt">$ </span>cd ~/Projects/claude-workflow &amp;&amp; ./install.sh</pre>
+    <p class="lede" style="margin-top:24px">The installer symlinks commands, personas, templates, and settings into <code>~/.claude/</code>, then offers to install plugins.</p>
+  </div>
+</section>
+
+<section id="agents">
+  <div class="wrap">
+    <h2>Agent roster <span style="color:var(--muted);font-weight:400">— 37 personas</span></h2>
+    <p class="lede">28 always-available pipeline agents + 9 domain agents. A session calls only the slice for the current phase — never all 37 at once.</p>
+    <div class="grid">
+      <div class="card">
+        <h3>Review · <code>/spec-review</code> <span class="count">6</span></h3>
+        <p>Requirements · Gaps · Ambiguity · Feasibility · Scope · Stakeholders</p>
+      </div>
+      <div class="card">
+        <h3>Plan · <code>/plan</code> <span class="count">6</span></h3>
+        <p>API · Data Model · UX · Scalability · Security · Integration</p>
+      </div>
+      <div class="card">
+        <h3>Check · <code>/check</code> <span class="count">5</span></h3>
+        <p>Completeness · Sequencing · Risk · Scope Discipline · Testability</p>
+      </div>
+      <div class="card">
+        <h3>Code review · full mode <span class="count">9</span></h3>
+        <p>Correctness · Dependency · Design Quality · Documentation · Performance · Resilience · Security · Test Quality · Wiring</p>
+      </div>
+      <div class="card">
+        <h3>Synthesis layer <span class="count">2</span></h3>
+        <p>Judge (quality scoring) · Synthesis (multi-agent consolidation) — used by <code>/spec-review</code>, <code>/plan</code>, <code>/check</code></p>
+      </div>
+      <div class="card">
+        <h3>Domain agents <span class="count">9</span></h3>
+        <p><code>mobile/</code> 6 iOS · <code>games/</code> 3 game-dev. Loaded only when <code>/kickoff</code> matches the project — never globally active. Projects can add their own (e.g. AuthTools adds 5).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="flow-card">
+  <div class="wrap">
+    <h2>The <code>/flow</code> reference card</h2>
+    <p class="lede">What you see in-session when you type <code>/flow</code>.</p>
+<pre class="flow">╔══════════════════════════════════════════════════════════════╗
+║                    SESSION WORKFLOW                          ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                              ║
+║  PROJECT SETUP (once per project)                            ║
+║  /kickoff  →  constitution + agent roster                    ║
+║                                                              ║
+║  FEATURE (full pipeline)                                     ║
+║  /spec  →  /spec-review  →  /plan  →  /check  →  /build      ║
+║   define    6 PRD          6 design   5 plan     execute     ║
+║   (Q&amp;A)     agents         agents     agents     (parallel)  ║
+║  + firecrawl (research) · context7 (API docs)                ║
+║                                                              ║
+║  WORK-SIZE SCALING                                           ║
+║  Bug fix:      describe it → fix it → verify                 ║
+║  Small change: /spec (quick) → /build                        ║
+║  Feature:      full pipeline above                           ║
+║  V2/Rework:    revise existing spec → full pipeline          ║
+║                                                              ║
+║  PARALLEL WORK                                               ║
+║  "work on X, Y, and Z in parallel"                           ║
+║    → Each dispatched to a subagent                           ║
+║                                                              ║
+║  IN-SESSION DISCIPLINE                      [Superpowers]    ║
+║  → systematic-debugging · verification-before-done           ║
+║  → requesting-code-review · ralph-loop (micro-iteration)     ║
+║                                                              ║
+║  CODE REVIEW                                                 ║
+║  Quick:  superpowers requesting-code-review                  ║
+║  PR:     /code-review plugin                                 ║
+║  Full:   9 parallel code-review personas                     ║
+║                                                              ║
+║  ARTIFACTS                                                   ║
+║  docs/specs/constitution.md     (project principles)         ║
+║  docs/specs/&lt;feature&gt;/spec.md   (living spec)                ║
+║  docs/specs/&lt;feature&gt;/review.md (PRD review findings)        ║
+║  docs/specs/&lt;feature&gt;/plan.md   (implementation plan)        ║
+║  docs/specs/&lt;feature&gt;/check.md  (gap checkpoint)             ║
+║                                                              ║
+║  KNOWLEDGE LAYER                   [graphify + obsidian]     ║
+║  Fires automagically at /wrap — no typing, no friction:      ║
+║    _raw/ → wiki pages           (wiki-ingest)                ║
+║    session → projects/&lt;name&gt;/   (wiki-update)                ║
+║    graph export + lint          (wiki-export · wiki-lint)    ║
+║    graphify digest → _raw/      (silent arch snapshot)       ║
+║  Manual (rare):                                              ║
+║    /graphify [path]    build code knowledge graph            ║
+║    /graphify query "Q" graph traversal answer                ║
+║    "what do I know about X"  wiki-query                      ║
+║    "capture this: X"         wiki-capture → _raw/            ║
+║  Compile, don't retrieve. Capture cheap, distill at /wrap.   ║
+║                                                              ║
+║  SESSION END                                                 ║
+║  /wrap → summary · learnings · knowledge flush · git ends    ║
+║                                                              ║
+╠══════════════════════════════════════════════════════════════╣
+║  AGENTS: review(6) plan(6) check(5) code-review(9)           ║
+║  + judge · synthesis · domain agents                         ║
+║                                                              ║
+║  PLUGINS                                                     ║
+║  Always-on:  superpowers · context7                          ║
+║  On-demand:  firecrawl · code-review · ralph-loop            ║
+║              playwright                                      ║
+║  Periodic:   claude-md-management · skill-creator            ║
+║              claude-code-setup                               ║
+║                                                              ║
+║  Superpowers: in-session execution discipline                ║
+║  Plugins: specialized capabilities                           ║
+║  You say WHAT. Claude handles HOW.                           ║
+╚══════════════════════════════════════════════════════════════╝</pre>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      MIT-licensed · built for <a href="https://claude.com/claude-code">Claude Code</a> ·
+      <a href="https://github.com/Jstottlemyer/claude-workflow">source on GitHub</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      darkMode: true,
+      background: '#11121a',
+      primaryColor: '#1a1c26',
+      primaryTextColor: '#e7e9ee',
+      primaryBorderColor: '#7c9cff',
+      lineColor: '#5eead4',
+      secondaryColor: '#1a1c26',
+      tertiaryColor: '#11121a',
+      fontFamily: 'Inter, sans-serif'
+    },
+    flowchart: { curve: 'basis', padding: 20 }
+  });
+</script>
+</body>
+</html>
