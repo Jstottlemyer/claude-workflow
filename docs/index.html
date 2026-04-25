@@ -246,8 +246,12 @@ flowchart LR
     K --> S --> SR --> P --> C --> B --> W
 
     SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review<br/>(optional)</sub>"]:::codex
     KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
     SP -.in-session.-> B
+    CX -."challenges".-> SR
+    CX -."challenges".-> C
+    CX -."challenges".-> B
     W -.compiles.-> KL
 
     classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
@@ -258,6 +262,7 @@ flowchart LR
     classDef execute fill:#166534,stroke:#86efac,color:#fff
     classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
     classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
       </pre>
     </div>
   </div>
@@ -379,6 +384,8 @@ flowchart LR
 ║   define    6 PRD          6 design   5 plan     execute     ║
 ║   (Q&amp;A)     agents         agents     agents     (parallel)  ║
 ║  + firecrawl (research) · context7 (API docs)                ║
+║  + codex adversarial review at spec-review, check, build     ║
+║    (optional — silent skip if not set up)                    ║
 ║                                                              ║
 ║  WORK-SIZE SCALING                                           ║
 ║  Bug fix:      describe it → fix it → verify                 ║

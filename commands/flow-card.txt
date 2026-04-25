@@ -10,6 +10,8 @@
 ║   define    6 PRD          6 design   5 plan     execute     ║
 ║   (Q&A)     agents         agents     agents     (parallel)  ║
 ║  + firecrawl (research) · context7 (API docs)                ║
+║  + codex adversarial review at spec-review, check, build     ║
+║    (optional — silent skip if not set up)                    ║
 ║                                                              ║
 ║  WORK-SIZE SCALING                                           ║
 ║  Bug fix:      describe it → fix it → verify                 ║
