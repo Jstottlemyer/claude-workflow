@@ -52,4 +52,10 @@ PY
   fi
 done
 
+echo "[cost-backfill] estimating build tokens where missing"
+"$WORKFLOW_ROOT/scripts/graphify-cost-backfill.sh" || true
+
+echo "[wiki-benchmark] measuring wiki-query efficiency"
+"$WORKFLOW_ROOT/scripts/wiki-benchmark.sh" || true
+
 echo "--- done ---"

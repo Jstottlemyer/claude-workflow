@@ -37,15 +37,21 @@
 ║  docs/specs/<feature>/plan.md   (implementation plan)        ║
 ║  docs/specs/<feature>/check.md  (gap checkpoint)             ║
 ║                                                              ║
-║  KNOWLEDGE WIKI                           [obsidian-wiki]    ║
-║  Mid-session:  "capture this: X" → wiki-capture → _raw/      ║
-║  End-session:  /wrap Phase 2c → flush _raw/ + distill        ║
-║  Query:        "what do I know about X" → wiki-query         ║
-║  Project sync: "update wiki" → wiki-update                   ║
-║  Compile, don't retrieve. Capture cheap, distill deferred.   ║
+║  KNOWLEDGE LAYER                   [graphify + obsidian]     ║
+║  Fires automagically at /wrap — no typing, no friction:      ║
+║    _raw/ → wiki pages           (wiki-ingest)                ║
+║    session → projects/<name>/   (wiki-update)                ║
+║    graph export + lint          (wiki-export · wiki-lint)    ║
+║    graphify digest → _raw/      (silent arch snapshot)       ║
+║  Manual (rare):                                              ║
+║    /graphify [path]    build code knowledge graph            ║
+║    /graphify query "Q" graph traversal answer                ║
+║    "what do I know about X"  wiki-query                      ║
+║    "capture this: X"         wiki-capture → _raw/            ║
+║  Compile, don't retrieve. Capture cheap, distill at /wrap.   ║
 ║                                                              ║
 ║  SESSION END                                                 ║
-║  /wrap → summary, learnings, wiki flush, git loose ends      ║
+║  /wrap → summary · learnings · knowledge flush · git ends    ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  AGENTS: review(6) plan(6) check(5) code-review(9)          ║
