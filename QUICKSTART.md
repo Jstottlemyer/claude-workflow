@@ -7,25 +7,11 @@ A hands-on 10-minute setup for the Claude workflow pipeline. Assumes you're on m
 - **Claude Code CLI** — https://claude.com/claude-code (install it; first `claude` run walks you through its own sign-in)
 - **git** — for cloning
 - **bash** — macOS ships 3.2; the installer works with it
-- **gh** (GitHub CLI) — `brew install gh` then `gh auth login`. Needed to clone this private repo and to open PRs later.
 - **python3** — `brew install python`. Used by the session-cost script.
 
 The `install.sh` will warn if any of these are missing but won't block — install them when prompted or beforehand.
 
-## 1. Before you clone
-
-This repo is private, and Justin added you as a collaborator. Two things before the clone will work:
-
-**a) Accept the GitHub invitation.**  Check your email for a GitHub invite from `Jstottlemyer`, or visit https://github.com/Jstottlemyer/claude-workflow/invitations and click Accept.
-
-**b) Authenticate the GitHub CLI.**  Once-per-machine setup:
-```bash
-brew install gh       # skip if you already have it
-gh auth login         # choose: GitHub.com → HTTPS → Login with a web browser
-```
-This makes `git clone` and `git pull` "just work" for private repos.
-
-## 2. Clone + install
+## 1. Clone + install
 
 ```bash
 git clone https://github.com/Jstottlemyer/claude-workflow.git ~/Projects/claude-workflow
@@ -46,6 +32,27 @@ The installer symlinks everything from this repo into `~/.claude/`. It backs up 
 | `~/.claude/scripts/*.{py,sh}` (session helpers) | `scripts/` |
 
 The installer will also offer to install required plugins (`superpowers`, `context7`) and recommended ones (`firecrawl`, `code-review`, `ralph-loop`, `playwright`). Say yes unless you have a reason not to.
+
+## 2b. Enable Codex multi-model reviews (optional)
+
+The pipeline can call Codex as an adversarial reviewer at `/spec-review`, `/check`, and `/build`. It silently skips if Codex isn't set up — nothing breaks.
+
+To enable, inside Claude Code:
+
+```
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/reload-plugins
+/codex:setup
+```
+
+`/codex:setup` will offer to install the Codex CLI via npm. Once installed, authenticate:
+
+```
+!codex login
+```
+
+This opens a browser — sign in with a ChatGPT account (free tier works). Run `/codex:setup` again to confirm `ready: true`. See `plugins.md` for more detail.
 
 ## 3. Add your personal layer
 

@@ -38,6 +38,28 @@ claude plugins install superpowers context7 firecrawl code-review ralph-loop pla
 - **On-demand:** firecrawl, code-review, ralph-loop, playwright — invoke when needed
 - **Periodic:** claude-md-management, skill-creator, claude-code-setup — run occasionally for maintenance
 
+## Multi-model Review (Optional)
+
+The pipeline supports Codex as an adversarial reviewer at `/spec-review`, `/check`, and `/build`. It runs silently — if Codex is not installed or not authenticated, those phases skip it without error.
+
+To enable:
+
+```bash
+# 1. Add the Codex plugin from the OpenAI marketplace
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/reload-plugins
+
+# 2. Install the Codex CLI and authenticate (browser OAuth — ChatGPT account or API key)
+/codex:setup          # offers to run npm install -g @openai/codex if missing
+!codex login          # opens browser → sign in with ChatGPT account
+/codex:setup          # confirm ready: true
+```
+
+Once authenticated, Codex activates automatically in the pipeline. No further configuration needed. Authentication persists across sessions via your local ChatGPT credential store.
+
+**Note:** Codex uses your ChatGPT usage limits. The pipeline calls it as a read-only reviewer — it never edits files.
+
 ## Important
 
 - DO NOT modify files in `~/.claude/plugins/cache/` — they get overwritten on updates
