@@ -7,7 +7,12 @@ You are an end-of-session assistant. Justin is wrapping up a Claude Code session
 
 **Arguments**: `$ARGUMENTS`
 
-If arguments include "quick", skip Phases 2c, 3, and 5 entirely.
+Recognized arguments (bare words, space-separated, any order):
+
+- `quick` — skip Phases 1b, 2c, 3, 3b, and 5. Use when you just want summary + Phase 2 learning triage and nothing else.
+- `insights` — run Phase 1b (`/insights` cross-session report). Off by default — opt in when you want the built-in pattern report folded into Phase 2 triage. Logs cost to `~/.claude/session-logs/insights-cost.log` so we can decide whether to make it default.
+
+If arguments include "quick", skip Phases 1b, 2c, 3, 3b, and 5 entirely.
 
 ---
 
@@ -53,7 +58,47 @@ fi
 
 Skip silently if `graphify-out/` is missing (covers projects not yet bootstrapped) or if the helper script isn't present (older workflow install).
 
-Continue immediately to Phase 2. Do NOT wait for user input.
+Continue immediately to Phase 1b. Do NOT wait for user input.
+
+---
+
+## Phase 1b: Insights (opt-in, conditional)
+
+**Skip this phase if:**
+- Arguments include "quick"
+- Arguments do NOT include "insights"
+
+This phase is in measurement mode. The built-in `/insights` command produces a cross-session report (project areas, interaction patterns, friction points). Its cost profile is undocumented — we capture it once per opt-in run so we can decide later whether to promote to default.
+
+### Run /insights and capture cost
+
+```bash
+mkdir -p ~/.claude/session-logs
+log=~/.claude/session-logs/insights-cost.log
+start=$(date +%s)
+# Surface the built-in report by issuing the slash command in this session.
+# (The model will execute /insights and the user will see the output inline.)
+```
+
+Then explicitly invoke `/insights` so its output is rendered into the session, and immediately after it returns:
+
+```bash
+end=$(date +%s)
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) cwd=$PWD elapsed_s=$((end-start))" >> ~/.claude/session-logs/insights-cost.log
+```
+
+### Fold into Phase 2
+
+Read the `/insights` output. If it surfaces friction patterns or recurring issues that would be useful as CLAUDE.md or memory entries, add them to the Phase 2 triage list as candidates — same filter rules apply (must survive the "could a future session reconstruct this in 30 seconds?" test).
+
+If `/insights` output is empty, irrelevant, or repeats what Phase 1's context scan already covered, note that briefly:
+
+```
+=== Insights ===
+No new patterns beyond Phase 1 summary.
+```
+
+After ~3 opt-in runs, review `~/.claude/session-logs/insights-cost.log` and decide whether to promote `/insights` to default, schedule weekly, or keep manual.
 
 ---
 
@@ -345,6 +390,8 @@ This is the graphify → wiki bridge. Rather than let the code-graph structure l
 
 ## Phase 3: Loose Ends (conditional, one approval gate)
 
+**Consolidation rule:** Phase 3 (git loose ends) and Phase 3b (dependency audit) share a single approval gate when both apply. Run all checks first, present findings together under `=== Loose Ends ===`, then ask once. If only one of the two fires, present and ask normally as a single gate.
+
 **Skip this phase if:**
 - Arguments include "quick"
 - cwd is NOT inside a git repo (check with `git rev-parse --is-inside-work-tree 2>/dev/null`)
@@ -397,13 +444,17 @@ Ask once:
 
 If the user picks something, help with that one thing (commit, close a beads task, or suggest the appropriate skill). Do NOT chain into multi-step workflows — the user is leaving.
 
+If Phase 3b also has findings, append them under the same `=== Loose Ends ===` block (subsection `**Packages**`) and ask once for both at the end. Do not double-prompt.
+
 ---
 
-## Phase 3b: Dependency Install Audit (conditional, one approval gate)
+## Phase 3b: Dependency Install Audit (conditional, folded into Phase 3 gate when applicable)
 
 **Skip this phase if:**
 - Arguments include "quick"
 - No new third-party package installs or `npx` runs happened in this session
+
+If Phase 3 ran (git repo, not quick), append findings to the Phase 3 `=== Loose Ends ===` block under a `**Packages**` subsection and use the single shared gate. If Phase 3 was skipped (e.g., not in a git repo), present Phase 3b standalone with its own gate.
 
 Scan the session for commands that pulled in third-party code: `npm install`, `npm i -g`, `npx`, `pnpm add`, `yarn add`, `pip install`, `pipx install`, `brew install`, `cargo install`, `gem install`. For each new package (one not already audited earlier in the session), flag it for audit.
 

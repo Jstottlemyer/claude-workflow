@@ -55,6 +55,12 @@
 ║  SESSION END                                                 ║
 ║  /wrap → summary · learnings · knowledge flush · git ends    ║
 ║                                                              ║
+║  BUILT-IN CC COMMANDS                                        ║
+║  /plan       canonical planner - stays in terminal           ║
+║  /ultraplan  cloud planner - AVOID (browser handoff)         ║
+║  /insights   cross-session report - opt-in /wrap insights    ║
+║  /powerup    interactive feature lessons - ad-hoc            ║
+║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  AGENTS: review(6) plan(6) check(5) code-review(9)          ║
 ║  + judge · synthesis · domain agents                         ║
