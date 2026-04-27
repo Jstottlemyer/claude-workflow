@@ -7,12 +7,20 @@ You are an end-of-session assistant. Justin is wrapping up a Claude Code session
 
 **Arguments**: `$ARGUMENTS`
 
-Recognized arguments (bare words, space-separated, any order):
+Discoverable entry points (subcommands — preferred, tab-completable):
 
-- `quick` — skip Phases 1b, 2c, 3, 3b, and 5. Use when you just want summary + Phase 2 learning triage and nothing else.
-- `insights` — run Phase 1b (`/insights` cross-session report). Off by default — opt in when you want the built-in pattern report folded into Phase 2 triage. Logs cost to `~/.claude/session-logs/insights-cost.log` so we can decide whether to make it default.
+- `/wrap` — default behavior (no flags). Phase 1, 2, 2b, 2c, 3, 3b, 4, 5 fire per their own triggers.
+- `/wrap-quick` — fast path. Skips 1b, 2c, 3, 3b, 5.
+- `/wrap-insights` — adds Phase 1b (opt-in `/insights` measurement). Same as `insights` arg.
+- `/wrap-full` — thorough mode. `insights` + force-run Phase 2b and 5 even when their skip-rules would fire.
 
-If arguments include "quick", skip Phases 1b, 2c, 3, 3b, and 5 entirely.
+Recognized arguments (still supported for direct invocation, bare words, any order):
+
+- `quick` — skip Phases 1b, 2c, 3, 3b, 5.
+- `insights` — run Phase 1b.
+- `full` — override the soft skip-rules in Phase 2b and Phase 5 (hard prerequisites still apply).
+
+If arguments include "quick", skip Phases 1b, 2c, 3, 3b, and 5 entirely. If arguments include "full", treat it as if "insights" were also set, and ignore the soft skip-rules in Phase 2b ("if no screenshot reviews") and Phase 5 ("if session was trivial").
 
 ---
 
@@ -186,7 +194,7 @@ Then update `MEMORY.md` index with a pointer to the new file.
 
 ## Phase 2b: Style Rules Triage (if screenshot reviews happened)
 
-**Skip this phase if** no screenshot reviews or visual audits occurred in this session.
+**Skip this phase if** no screenshot reviews or visual audits occurred in this session — UNLESS arguments include `full`, in which case run the lint script regardless and report any draft rules even if no screenshots were reviewed.
 
 ### Check for draft rules:
 
@@ -566,7 +574,7 @@ Permission lists are clean. ✓
 
 **Skip this phase if:**
 - Arguments include "quick"
-- Session was trivial (no code changes, just a question)
+- Session was trivial (no code changes, just a question) — UNLESS arguments include "full", in which case run the health check regardless
 
 Quick drift scan of the project CLAUDE.md — not a full rewrite (that's `claude-md-management:revise-claude-md`), just catching obvious staleness.
 

@@ -53,12 +53,15 @@
 ║  Compile, don't retrieve. Capture cheap, distill at /wrap.   ║
 ║                                                              ║
 ║  SESSION END                                                 ║
-║  /wrap → summary · learnings · knowledge flush · git ends    ║
+║  /wrap          summary, triage, conditional phases          ║
+║  /wrap-quick    summary + triage only                        ║
+║  /wrap-insights /insights opt-in (measurement mode)          ║
+║  /wrap-full     insights + force conditional phases          ║
 ║                                                              ║
 ║  BUILT-IN CC COMMANDS                                        ║
 ║  /plan       canonical planner - stays in terminal           ║
 ║  /ultraplan  cloud planner - AVOID (browser handoff)         ║
-║  /insights   cross-session report - opt-in /wrap insights    ║
+║  /insights   cross-session report - opt-in /wrap-insights    ║
 ║  /powerup    interactive feature lessons - ad-hoc            ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
