@@ -127,6 +127,108 @@ trap 'rm -f "$DIAG_FILE"' EXIT
     echo '```'
     echo ""
 
+    echo "## Persona Metrics"
+    echo '```'
+    REPO="$SCRIPT_DIR/.."
+    PM_FAILS=0
+
+    # 1. Prompt symlinks
+    echo "--- prompt symlinks ---"
+    for p in snapshot findings-emit survival-classifier; do
+        target="$HOME/.claude/commands/_prompts/${p}.md"
+        if [ -L "$target" ]; then
+            echo "ok   $target"
+        else
+            echo "MISS $target"
+            PM_FAILS=$((PM_FAILS+1))
+        fi
+    done
+    echo ""
+
+    # 2. Schema files parse as valid JSON
+    echo "--- schemas ---"
+    for s in findings participation survival run; do
+        schema_file="$REPO/schemas/${s}.schema.json"
+        if [ -f "$schema_file" ]; then
+            if python3 -c "import json,sys; json.load(open('$schema_file'))" 2>/dev/null; then
+                echo "ok   $schema_file (valid JSON)"
+            else
+                echo "FAIL $schema_file (invalid JSON)"
+                PM_FAILS=$((PM_FAILS+1))
+            fi
+        else
+            echo "MISS $schema_file"
+            PM_FAILS=$((PM_FAILS+1))
+        fi
+    done
+    echo ""
+
+    # 3. Prompt-version drift grep (compare prompt header version to schema example)
+    echo "--- prompt_version drift ---"
+    for prompt in snapshot findings-emit survival-classifier; do
+        prompt_file="$REPO/commands/_prompts/${prompt}.md"
+        if [ -f "$prompt_file" ]; then
+            ver=$(grep -oE "${prompt}@[0-9]+\.[0-9]+" "$prompt_file" | head -1)
+            if [ -n "$ver" ]; then
+                count=$(grep -c "$ver" "$prompt_file")
+                echo "ok   ${prompt}.md → $ver (mentioned $count× in file)"
+            else
+                echo "WARN ${prompt}.md → no prompt_version string found"
+                PM_FAILS=$((PM_FAILS+1))
+            fi
+        fi
+    done
+    echo ""
+
+    # 4. Fixture-based canonicalization check
+    echo "--- canonicalization fixture ---"
+    fixture_input="$REPO/tests/fixtures/normalized_signature/input.txt"
+    fixture_expected="$REPO/tests/fixtures/normalized_signature/expected.hex"
+    if [ -f "$fixture_input" ] && [ -f "$fixture_expected" ]; then
+        actual=$(python3 -c "
+import unicodedata, hashlib, re
+with open('$fixture_input') as f:
+    lines = [l for l in f.read().split('\n') if l.strip()]
+canon = sorted(re.sub(r'\s+', ' ', unicodedata.normalize('NFC', l).lower()).strip() for l in lines)
+print(hashlib.sha256('\n'.join(canon).encode('utf-8')).hexdigest())
+" 2>/dev/null)
+        expected=$(tr -d '[:space:]' < "$fixture_expected")
+        if [ "$actual" = "$expected" ]; then
+            echo "ok   canonicalization output matches expected.hex"
+            echo "     ($actual)"
+        else
+            echo "FAIL canonicalization drift"
+            echo "     expected: $expected"
+            echo "     actual:   $actual"
+            PM_FAILS=$((PM_FAILS+1))
+        fi
+    else
+        echo "MISS fixture files (run install.sh from a checkout that includes tests/fixtures/)"
+        PM_FAILS=$((PM_FAILS+1))
+    fi
+    echo ""
+
+    # 5. Atomic-write fixture (informational — full sandbox check happens in T23)
+    echo "--- atomic-write directive ---"
+    for prompt in snapshot findings-emit survival-classifier; do
+        prompt_file="$REPO/commands/_prompts/${prompt}.md"
+        if [ -f "$prompt_file" ] && grep -q "os.replace" "$prompt_file"; then
+            echo "ok   ${prompt}.md mentions os.replace (atomic write)"
+        else
+            echo "WARN ${prompt}.md missing os.replace mention"
+            PM_FAILS=$((PM_FAILS+1))
+        fi
+    done
+    echo ""
+
+    if [ "$PM_FAILS" -eq 0 ]; then
+        echo "Persona Metrics: all checks passed ✓"
+    else
+        echo "Persona Metrics: $PM_FAILS check(s) failed — see above"
+    fi
+    echo '```'
+    echo ""
+
     echo "## Workflow Clone State"
     echo '```'
     CLONE="$HOME/Projects/claude-workflow"

@@ -71,6 +71,17 @@ for asset in "$REPO_DIR"/commands/*.txt; do
     link_file "$asset" "$CLAUDE_DIR/commands/$(basename "$asset")"
 done
 
+# --- Persona Metrics prompts (commands/_prompts/) ---
+if [ -d "$REPO_DIR/commands/_prompts" ]; then
+    echo ""
+    echo "Installing persona-metrics prompts..."
+    mkdir -p "$CLAUDE_DIR/commands/_prompts"
+    for prompt in "$REPO_DIR"/commands/_prompts/*.md; do
+        [ -e "$prompt" ] || continue
+        link_file "$prompt" "$CLAUDE_DIR/commands/_prompts/$(basename "$prompt")"
+    done
+fi
+
 # --- Personas ---
 echo ""
 echo "Installing agent personas..."
@@ -123,6 +134,60 @@ for script in "$REPO_DIR"/scripts/*.py "$REPO_DIR"/scripts/*.sh; do
     [ -e "$script" ] || continue
     link_file "$script" "$CLAUDE_DIR/scripts/$(basename "$script")"
 done
+
+# --- Persona Metrics: gitignore default-flip for adopters ---
+# Adopter installs (any project NOT named 'claude-workflow') default to opt-in-to-commit
+# for persona-metrics artifacts. claude-workflow's own repo overrides via name detection.
+# Set PERSONA_METRICS_GITIGNORE=0 to override the adopter default and commit metrics.
+PERSONA_METRICS_GITIGNORE_DEFAULT=1
+if [[ "$(basename "$REPO_DIR")" == "claude-workflow" ]]; then
+    PERSONA_METRICS_GITIGNORE_DEFAULT=0  # this repo's own dogfood pattern: commit metrics
+fi
+PERSONA_METRICS_GITIGNORE="${PERSONA_METRICS_GITIGNORE:-$PERSONA_METRICS_GITIGNORE_DEFAULT}"
+
+# Find an adopter project root: cwd if it has a .git dir AND isn't this repo
+ADOPTER_ROOT=""
+if [[ "$PWD" != "$REPO_DIR" && -d "$PWD/.git" ]]; then
+    ADOPTER_ROOT="$PWD"
+fi
+
+if [[ "$PERSONA_METRICS_GITIGNORE" == "1" && -n "$ADOPTER_ROOT" ]]; then
+    GITIGNORE="$ADOPTER_ROOT/.gitignore"
+    BLOCK_BEGIN="# BEGIN persona-metrics (claude-workflow)"
+    BLOCK_END="# END persona-metrics"
+
+    # Idempotent: check for sentinel before appending
+    if [ ! -f "$GITIGNORE" ] || ! grep -qF "$BLOCK_BEGIN" "$GITIGNORE"; then
+        echo ""
+        echo "Persona Metrics: appending gitignore block to $GITIGNORE (PERSONA_METRICS_GITIGNORE=1)"
+        touch "$GITIGNORE"
+        {
+            echo ""
+            echo "$BLOCK_BEGIN"
+            echo "# Auto-added by install.sh — measurement artifacts may contain sensitive review prose."
+            echo "# Set PERSONA_METRICS_GITIGNORE=0 and re-run install.sh to commit metrics intentionally."
+            echo "docs/specs/*/spec-review/findings*.jsonl"
+            echo "docs/specs/*/spec-review/participation.jsonl"
+            echo "docs/specs/*/spec-review/survival.jsonl"
+            echo "docs/specs/*/spec-review/run.json"
+            echo "docs/specs/*/spec-review/raw/"
+            echo "docs/specs/*/spec-review/source.spec.md"
+            echo "docs/specs/*/plan/findings*.jsonl"
+            echo "docs/specs/*/plan/participation.jsonl"
+            echo "docs/specs/*/plan/survival.jsonl"
+            echo "docs/specs/*/plan/run.json"
+            echo "docs/specs/*/plan/raw/"
+            echo "docs/specs/*/check/findings*.jsonl"
+            echo "docs/specs/*/check/participation.jsonl"
+            echo "docs/specs/*/check/survival.jsonl"
+            echo "docs/specs/*/check/run.json"
+            echo "docs/specs/*/check/raw/"
+            echo "docs/specs/*/check/source.plan.md"
+            echo "docs/specs/*/.persona-metrics-warned"
+            echo "$BLOCK_END"
+        } >> "$GITIGNORE"
+    fi
+fi
 
 # --- Plugin installation ---
 echo ""
