@@ -303,10 +303,10 @@ flowchart LR
     H -. roster edit .-> R
 
     classDef roster fill:#1e293b,stroke:#7c9cff,color:#e7e9ee,stroke-width:2px
-    classDef gate fill:#fda4af,stroke:#9f1239,color:#881337,stroke-width:2px
-    classDef data fill:#7dd3fc,stroke:#075985,color:#0c4a6e,stroke-width:2px
-    classDef metrics fill:#a78bfa,stroke:#5b21b6,color:#2e1065,stroke-width:3px
-    classDef human fill:#86efac,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef gate fill:#881337,stroke:#fda4af,color:#ffe4e6,stroke-width:2px
+    classDef data fill:#0c3a5f,stroke:#7dd3fc,color:#bae6fd,stroke-width:2px
+    classDef metrics fill:#2d1b69,stroke:#a78bfa,color:#e9d5ff,stroke-width:3px
+    classDef human fill:#14532d,stroke:#86efac,color:#bbf7d0,stroke-width:2px
       </pre>
     </div>
     <p class="lede" style="margin-top:24px">Each Judge writes <code>findings.jsonl</code> (what each persona raised) and <code>participation.jsonl</code> (who ran). When you revise the spec or plan, a survival classifier compares pre- and post-artifacts and labels each finding <code>addressed</code> / <code>not_addressed</code> / <code>rejected</code>. <code>/wrap-insights</code> rolls a 10-feature window into per-persona stats — load-bearing rate, silent rate, survival — and renders drift (e.g. <code>↑ a11y 4% → 18%</code>, <code>↓ test-quality 22% → 9%</code>). Today the loop closes through human judgment on the roster; <strong style="color:var(--fg)">automatic tiering is a deferred follow-up</strong>.</p>
