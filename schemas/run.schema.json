@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jstottlemyer/claude-workflow/schemas/run.schema.json",
+  "title": "Persona Metrics — run.json manifest",
+  "description": "One file per stage write. Captures audit + reproducibility metadata: run id, prompt versions, model versions, source artifact hash, output paths, status, runtime warnings.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "run_id",
+    "command",
+    "prompt_version",
+    "model_versions",
+    "artifact_hash",
+    "created_at",
+    "output_paths",
+    "status",
+    "warnings"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "uuid4. New run_id generated at every stage invocation."
+    },
+    "command": {
+      "type": "string",
+      "enum": ["/spec-review", "/plan", "/check", "/build"]
+    },
+    "prompt_version": {
+      "type": "string",
+      "description": "Either findings-emit@N.N (at /spec-review, /plan, /check synthesis) or survival-classifier@N.N (at /plan, /check, /build Phase 0)."
+    },
+    "model_versions": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Map of role → model id used in this run. E.g. {'reviewer-default': 'claude-opus-4-7', 'codex-adversary': 'codex'}."
+    },
+    "artifact_hash": {
+      "type": "string",
+      "pattern": "^(sha256:[0-9a-f]{64}|sha256:fixture-.*)$",
+      "description": "sha256 of the source artifact at run time. At /spec-review and /check, this is the source snapshot (source.spec.md / source.plan.md). At /plan, this is the freshly-synthesized plan.md (no source snapshot since plan.md is created, not revised)."
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of run start."
+    },
+    "output_paths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Repo-relative paths of files written by this run (e.g. ['spec-review/findings.jsonl', 'spec-review/participation.jsonl'])."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "partial", "failed"],
+      "description": "ok = all output files written successfully. partial = some files written, some skipped (e.g., classifier_error rows in survival.jsonl but findings.jsonl/participation.jsonl ok). failed = write aborted (e.g., snapshot precondition failed: source artifact not git-tracked)."
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Runtime warnings (e.g. ['uncommitted-and-not-gitignored', 'context-overflow', 'codex-output-missing', 'invalid-slug', 'evidence-validator-demotion-rate-high']). Empty array if none."
+    }
+  },
+  "additionalProperties": false
+}

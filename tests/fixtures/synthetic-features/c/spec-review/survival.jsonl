@@ -1,0 +1,3 @@
+{"schema_version":1,"prompt_version":"survival-classifier@1.0","finding_id":"sr-c-0001","outcome":"addressed","evidence":"Added §7: 'Support runbook + 30-min training session for the new error class before launch.'","confidence":"high","artifact_hash":"sha256:fixture-c-revised-spec"}
+{"schema_version":1,"prompt_version":"survival-classifier@1.0","finding_id":"sr-c-0002","outcome":"addressed","evidence":"Queue-layer reorg moved to follow-up spec; V1 stays on existing queue path.","confidence":"high","artifact_hash":"sha256:fixture-c-revised-spec"}
+{"schema_version":1,"prompt_version":"survival-classifier@1.0","finding_id":"sr-c-0003","outcome":"not_addressed","evidence":"no change","confidence":"medium","artifact_hash":"sha256:fixture-c-revised-spec"}

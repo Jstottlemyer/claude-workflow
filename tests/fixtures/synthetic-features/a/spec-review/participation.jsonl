@@ -1,0 +1,6 @@
+{"schema_version":1,"stage":"spec-review","persona":"requirements","model":"claude-opus-4-7","findings_emitted":0,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"gaps","model":"claude-opus-4-7","findings_emitted":1,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"ambiguity","model":"claude-opus-4-7","findings_emitted":1,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"feasibility","model":"claude-opus-4-7","findings_emitted":0,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"scope","model":"claude-opus-4-7","findings_emitted":0,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"stakeholders","model":"claude-opus-4-7","findings_emitted":2,"status":"ok"}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jstottlemyer/claude-workflow/schemas/survival.schema.json",
+  "title": "Persona Metrics — survival.jsonl row",
+  "description": "One row per finding from the prior stage, judged by the survival classifier at the start of /plan, /check, or /build (Phase 0). The classifier runs in one of two modes selected by the calling command: addressed-by-revision (compares pre-snapshot vs revised artifact) or synthesis-inclusion (judges findings against a freshly synthesized artifact, no source snapshot).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "prompt_version",
+    "finding_id",
+    "outcome",
+    "evidence",
+    "confidence",
+    "artifact_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "prompt_version": {
+      "type": "string",
+      "pattern": "^survival-classifier@[0-9]+\\.[0-9]+$",
+      "description": "Identifier of the survival-classifier.md prompt revision that produced this row."
+    },
+    "finding_id": {
+      "type": "string",
+      "pattern": "^(sr|pl|ck)-[0-9a-f]{10,}$",
+      "description": "Joins back to the prior stage's findings.jsonl row by finding_id."
+    },
+    "outcome": {
+      "type": "string",
+      "enum": ["addressed", "not_addressed", "rejected_intentionally", "classifier_error"],
+      "description": "addressed: revision changed the artifact in a way that addresses the finding (addressed-by-revision mode), or design recommendation visibly shaped the synthesized artifact (synthesis-inclusion mode). not_addressed: no visible change / Judge dropped the recommendation. rejected_intentionally: revised artifact's Open Questions / Out of Scope / Backlog Routing / Deferred section explicitly names this finding (case-insensitive header match). classifier_error: classifier failed (LLM error, malformed output, context overflow); evidence carries the error reason, confidence is 'low'."
+    },
+    "evidence": {
+      "type": "string",
+      "maxLength": 240,
+      "description": "Verbatim quote from the (revised) artifact, ≤120 Unicode codepoints. Literal 'no change' when outcome == 'not_addressed'. Validator: each non-'no change' quote must appear as a substring of the artifact (after NFC normalization on both sides), else outcome demoted to 'not_addressed' and confidence demoted to 'low'. Note: maxLength is in chars (codepoints), not bytes; 240 is a generous byte-level upper bound."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"],
+      "description": "Classifier certainty. 'low' is preferred over guessing when the artifact is ambiguous about a finding."
+    },
+    "artifact_hash": {
+      "type": "string",
+      "pattern": "^(sha256:[0-9a-f]{64}|sha256:fixture-.*)$",
+      "description": "sha256 of the (revised) artifact at classification time. Used for idempotency: on re-run, if current sha256 matches recorded hash, skip; if differs, re-classify and overwrite. Fixture format 'sha256:fixture-*' is allowed for test artifacts."
+    }
+  },
+  "additionalProperties": false
+}

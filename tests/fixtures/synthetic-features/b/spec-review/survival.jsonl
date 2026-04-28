@@ -1,0 +1,2 @@
+{"schema_version":1,"prompt_version":"survival-classifier@1.0","finding_id":"sr-b-0001","outcome":"addressed","evidence":"Defaults table added: page_size=20, sort=recency, retention=30d.","confidence":"high","artifact_hash":"sha256:fixture-b-revised-spec"}
+{"schema_version":1,"prompt_version":"survival-classifier@1.0","finding_id":"sr-b-0002","outcome":"not_addressed","evidence":"no change","confidence":"medium","artifact_hash":"sha256:fixture-b-revised-spec"}

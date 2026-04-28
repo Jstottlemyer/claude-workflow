@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jstottlemyer/claude-workflow/schemas/participation.schema.json",
+  "title": "Persona Metrics — participation.jsonl row",
+  "description": "One row per persona that ran at this stage, regardless of whether the persona raised any findings. Distinguishes silent personas (ran but raised nothing) from failed personas (didn't run / errored).",
+  "type": "object",
+  "required": ["schema_version", "stage", "persona", "model", "findings_emitted", "status"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "stage": {
+      "type": "string",
+      "enum": ["spec-review", "plan", "check"]
+    },
+    "persona": {
+      "type": "string",
+      "description": "Persona name as referenced in personas/<stage>/<persona>.md (or 'codex-adversary' for Codex)."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model id used for this persona's run (e.g. 'claude-opus-4-7', 'codex')."
+    },
+    "findings_emitted": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of findings.jsonl rows where this persona appears in personas[]. Computed at emit time."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "failed", "timeout"],
+      "description": "ok = persona ran successfully (with or without findings). failed = persona dispatch errored. timeout = persona didn't return within budget. Only 'ok' rows count toward silent_rate denominator."
+    }
+  },
+  "additionalProperties": false
+}

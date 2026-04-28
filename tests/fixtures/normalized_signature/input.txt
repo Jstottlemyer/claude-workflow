@@ -1,0 +1,3 @@
+  Auth flow doesn't specify token  revocation timing
+Error states for failed login attempts not defined
+Missing rate limit on token issuance endpoint
