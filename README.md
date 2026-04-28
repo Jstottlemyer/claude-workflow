@@ -30,32 +30,43 @@ A complete workflow system that scales to the size of the work:
 flowchart LR
     K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
     S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
-    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
-    P["/plan<br/><sub>6 design agents</sub>"]:::plan
-    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    SR["/spec-review<br/><sub>requirements · gaps · ambiguity<br/>feasibility · scope · stakeholders</sub>"]:::review
+    JS1["Judge · Dedupe · Synth<br/><sub>cluster · attribute · compose<br/>→ review.md</sub>"]:::synth
+    P["/plan<br/><sub>api · data-model · ux<br/>scalability · security · integration</sub>"]:::plan
+    JS2["Judge · Dedupe · Synth<br/><sub>→ plan.md</sub>"]:::synth
+    C["/check<br/><sub>completeness · sequencing · risk<br/>scope-discipline · testability</sub>"]:::gate
+    JS3["Judge · Dedupe · Synth<br/><sub>→ check.md</sub>"]:::synth
     B["/build<br/><sub>parallel execute</sub>"]:::execute
-    W["/wrap<br/><sub>summary · learnings ·<br/>knowledge flush</sub>"]:::wrap
+    W["/wrap"]:::wrap
 
-    K --> S --> SR --> P --> C --> B --> W
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
 
-    SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
-    CX["Codex<br/><sub>adversarial review<br/>(optional)</sub>"]:::codex
-    KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
-    SP -.in-session.-> B
-    CX -."challenges".-> SR
-    CX -."challenges".-> C
-    CX -."challenges".-> B
-    W -.compiles.-> KL
+    SP["Superpowers<br/><sub>TDD · verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review</sub>"]:::accent
+    KL["Knowledge layer<br/><sub>graphify · wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
 
-    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
-    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
-    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
-    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
-    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
-    classDef execute fill:#166534,stroke:#86efac,color:#fff
-    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
-    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
-    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    SP -.-> B
+    CX -.-> SR
+    CX -.-> C
+    CX -.-> B
+    W -.-> KL
+    JS1 ==records==> PM
+    JS2 ==> PM
+    JS3 ==> PM
+    W ==surfaces drift==> PM
+
+    classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
+    classDef define fill:#5eead4,stroke:#0f766e,color:#134e4a,stroke-width:2px
+    classDef review fill:#fdba74,stroke:#9a3412,color:#7c2d12,stroke-width:2px
+    classDef plan fill:#c4b5fd,stroke:#5b21b6,color:#4c1d95,stroke-width:2px
+    classDef gate fill:#fda4af,stroke:#9f1239,color:#881337,stroke-width:2px
+    classDef execute fill:#86efac,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef wrap fill:#d4d4d8,stroke:#3f3f46,color:#27272a,stroke-width:2px
+    classDef synth fill:#7dd3fc,stroke:#075985,color:#0c4a6e,stroke-width:2px
+    classDef side fill:#e2e8f0,stroke:#475569,color:#1e293b,stroke-width:2px,stroke-dasharray: 4 3
+    classDef accent fill:#fde68a,stroke:#92400e,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
+    classDef metrics fill:#a78bfa,stroke:#5b21b6,color:#2e1065,stroke-width:3px
 ```
 
 ```
@@ -250,6 +261,24 @@ docs/specs/<feature>/review.md      # PRD review findings (from /spec-review)
 docs/specs/<feature>/plan.md        # Implementation plan (from /plan)
 docs/specs/<feature>/check.md       # Gap checkpoint (from /check)
 ```
+
+### Persona Metrics (v0.2.0+)
+
+Every multi-agent gate (`/spec-review`, `/plan`, `/check`) emits structured measurement artifacts under `docs/specs/<feature>/<stage>/`:
+
+```
+spec-review/
+  source.spec.md          # snapshot of spec.md at /spec-review start
+  raw/<persona>.md        # one file per reviewer (incl. codex-adversary if applicable)
+  findings.jsonl          # clustered findings, persona-attributed
+  participation.jsonl     # every persona that ran (with status: ok/failed/timeout)
+  run.json                # run_id, prompt_version, hashes, status
+  survival.jsonl          # written at next stage's Phase 0 — judges what survived revision
+```
+
+`/wrap-insights` reads these to render per-persona `load_bearing_rate`, `survival_rate`, and `silent_rate` across a rolling 10-feature window. The pipeline becomes a measurement loop — over time, drift signals which personas are earning their slot.
+
+**Privacy for adopters:** these artifacts contain verbatim review prose (`body` field) that may be sensitive. Adopter installs default to **opt-in-to-commit** (`PERSONA_METRICS_GITIGNORE=1` is set automatically; metrics paths are appended to your `.gitignore`). To commit metrics intentionally, set `PERSONA_METRICS_GITIGNORE=0` before running `install.sh`. `claude-workflow`'s own repo overrides this default via name-detection in the installer.
 
 ## Customization
 

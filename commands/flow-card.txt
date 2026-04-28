@@ -12,6 +12,9 @@
 ║  + firecrawl (research) · context7 (API docs)                ║
 ║  + codex adversarial review at spec-review, check, build     ║
 ║    (optional — silent skip if not set up)                    ║
+║  + persona metrics: every Judge step records to              ║
+║    findings.jsonl + survival.jsonl; surfaces in              ║
+║    /wrap-insights as drift across personas                   ║
 ║                                                              ║
 ║  WORK-SIZE SCALING                                           ║
 ║  Bug fix:      describe it → fix it → verify                 ║
