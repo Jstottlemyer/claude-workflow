@@ -136,10 +136,11 @@
     background: var(--bg-2);
     border: 1px solid var(--line);
     border-radius: 16px;
-    padding: 32px 16px;
+    padding: 48px 16px;
     overflow-x: auto;
   }
   .mermaid { display: flex; justify-content: center; min-width: 700px; }
+  .mermaid svg { min-height: 480px; height: auto !important; }
 
   table {
     width: 100%;
@@ -571,9 +572,10 @@ flowchart LR
       lineColor: '#5eead4',
       secondaryColor: '#1a1c26',
       tertiaryColor: '#11121a',
-      fontFamily: 'Inter, sans-serif'
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '16px'
     },
-    flowchart: { curve: 'basis', padding: 20 }
+    flowchart: { curve: 'basis', padding: 28, nodeSpacing: 70, rankSpacing: 95 }
   });
 </script>
 </body>
