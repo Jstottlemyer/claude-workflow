@@ -2,6 +2,20 @@
 
 All notable changes to `claude-workflow` are documented here.
 
+## [0.2.0] — Persona Metrics measurement layer
+
+### Added
+
+- **Persona Metrics measurement layer** — every multi-agent gate (`/spec-review`, `/plan`, `/check`) now emits structured artifacts that record which personas raised which findings, whether those findings were unique or shared, and whether they survived revision (or made it through synthesis at `/plan`). Surfaced in `/wrap-insights` as a Persona Drift section showing per-persona `load_bearing_rate`, `survival_rate`, and `silent_rate` across a rolling 10-feature window. The pipeline becomes a measurement loop — *the optimization loop (tiering rules, probe sampling, conditional invocation) lands in the follow-up `persona-tiering` spec.*
+  - **Six new artifact types per feature per stage:** `source.<artifact>.md` (pre-review snapshot), `raw/<persona>.md` (per-persona raw output, persisted to disk to retire harness-context-access risk), `findings.jsonl` (clustered, attributed), `participation.jsonl` (every persona that ran, with status), `run.json` (manifest with `run_id`, `prompt_version`, hashes), `survival.jsonl` (next-stage classification).
+  - **Three new prompt files** under `commands/_prompts/`: `snapshot.md`, `findings-emit.md`, `survival-classifier.md` (the classifier supports two outcome-semantics modes — addressed-by-revision at `/plan` and `/build`, synthesis-inclusion at `/check`).
+  - **Four JSON Schema files** under `schemas/` (draft 2020-12) — machine-checkable contracts referenced by the prompt files.
+  - **`/wrap-insights` Phase 1c (Persona Drift)** — diff render against the prior 10-feature window with `↑/↓/→` arrows (5pp deadband). Bare-arg `/wrap-insights personas` renders the full table with `load_bearing_rate` and `survival_rate` side-by-side.
+  - **`PERSONA_METRICS_GITIGNORE=1` env var** — adopter-install default flips to opt-in-to-commit (gitignored by default in adopter projects; `claude-workflow`'s own repo overrides via name-detection in `install.sh`). Protects against accidental commits of verbatim review prose to public repos.
+  - **`finding_id` derived from `normalized_signature`** — sha256 of NFC-normalized, lowercased, whitespace-collapsed, sorted source persona-output substrings. Best-effort stable across LLM re-syntheses given identical raw inputs; canonicalization function is deterministic and fixture-tested by `scripts/doctor.sh`.
+  - **README and `docs/index.html` mermaid diagrams** updated with the new `Judge · Dedupe · Synth` interstitials between gates and the `Persona Metrics` side observer; all three Judges feed the metrics layer (Tight-C visual recipe).
+  - **Spec artifacts:** `docs/specs/persona-metrics/{spec,review,plan,check,diagrams}.md` document the full pipeline cycle. Scope (b) was adopted post-checkpoint via diagram review feedback — `/plan`'s synthesis-inclusion semantics is the new structural piece.
+
 ## [Unreleased]
 
 ### Added
