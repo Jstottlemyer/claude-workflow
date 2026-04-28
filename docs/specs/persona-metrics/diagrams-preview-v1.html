@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Persona Metrics — Diagrams Preview</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 1600px; margin: 2em auto; padding: 0 1.5em; color: #222; line-height: 1.5; }
+  h1 { border-bottom: 2px solid #333; padding-bottom: 0.3em; }
+  h2 { margin-top: 2em; color: #1a1a1a; }
+  h3 { color: #444; margin-top: 1.5em; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; margin-bottom: 2em; }
+  .panel { border: 1px solid #ccc; border-radius: 6px; padding: 1em; background: #fafafa; }
+  .panel h3 { margin-top: 0; }
+  .single { border: 1px solid #ccc; border-radius: 6px; padding: 1em; background: #fafafa; margin-bottom: 2em; }
+  .pro-con { font-size: 0.9em; color: #555; margin-top: 0.8em; }
+  .pro-con b { color: #2a6f2a; }
+  .pro-con b.con { color: #8a3a3a; }
+  .mermaid { background: white; border-radius: 4px; padding: 0.5em; }
+</style>
+</head>
+<body>
+
+<h1>Persona Metrics — Diagrams Preview</h1>
+<p>Side-by-side comparison for the Diagram 2 and Diagram 3 A/B variants. Diagram 1 is locked.</p>
+
+<h2>Diagram 1 — Pipeline flow (production style)</h2>
+<p>Three variants below. The original (Version A) was rejected: <code>drift surfaces</code> label unclear, Codex missing. Versions C1, C2, C3 match the production dark-theme style, restore Codex, and add a <code>Judge · Dedupe · Synth</code> side node + <code>Persona Metrics</code> side node. Pick a winner among C1/C2/C3 (or a hybrid).</p>
+
+<h3>Diagram 1 — Version A (REJECTED — for reference only)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
+    S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap<br/><sub>summary · learnings ·<br/>knowledge flush</sub>"]:::wrap
+
+    K --> S --> SR --> P --> C --> B --> W
+
+    W -. "drift surfaces" .-> SR
+    W -. "drift surfaces" .-> C
+
+    classDef setup fill:#e8eaf6,stroke:#3f51b5
+    classDef define fill:#e3f2fd,stroke:#1976d2
+    classDef review fill:#fff3e0,stroke:#f57c00
+    classDef plan fill:#f3e5f5,stroke:#7b1fa2
+    classDef gate fill:#fce4ec,stroke:#c2185b
+    classDef execute fill:#e8f5e9,stroke:#388e3c
+    classDef wrap fill:#fffde7,stroke:#f9a825
+</pre>
+<div class="pro-con"><b class="con">Rejected:</b> <code>drift surfaces</code> label is vague; doesn't show Codex (regression vs production); no Judge/Dedupe/Synth visible.</div>
+</div>
+
+<h3>Diagram 1 — Version C1 (production base + Judge/Synth + Persona Metrics; back-edge labeled "tune roster")</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
+    S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap<br/><sub>summary · learnings ·<br/>knowledge flush</sub>"]:::wrap
+
+    K --> S --> SR --> P --> C --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review<br/>(optional)</sub>"]:::codex
+    KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
+    JS["Judge · Dedupe · Synth<br/><sub>cluster findings ·<br/>attribute personas</sub>"]:::synth
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -."challenges".-> SR
+    CX -."challenges".-> C
+    CX -."challenges".-> B
+    W -.compiles.-> KL
+
+    SR -.feeds.-> JS
+    P -.feeds.-> JS
+    C -.feeds.-> JS
+    JS -.records.-> PM
+    W -.surfaces drift.-> PM
+    PM -."tune roster".-> S
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    classDef synth fill:#0c4a6e,stroke:#38bdf8,color:#bae6fd,stroke-dasharray: 4 3
+    classDef metrics fill:#3b0764,stroke:#a855f7,color:#e9d5ff,stroke-dasharray: 4 3
+</pre>
+<div class="pro-con"><b>Reading:</b> JS sits as a side observer that <code>SR</code> and <code>C</code> feed into; PM hangs off JS as the rate calculator; W reads PM at <code>/wrap-insights</code> time; PM informs the next <code>/spec</code>'s roster decision via the human (dotted = manual today, automated in <code>persona-tiering</code> follow-up). <b>Pro:</b> matches production style; restores Codex; one clean back-edge to where it actually matters (next <code>/spec</code>). <b class="con">Con:</b> "tune roster" implies action; reality is "review which personas earn their slot."</div>
+</div>
+
+<h3>Diagram 1 — Version C2 (same shape; back-edge labeled "earning their slot?")</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
+    S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap<br/><sub>summary · learnings ·<br/>knowledge flush</sub>"]:::wrap
+
+    K --> S --> SR --> P --> C --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review<br/>(optional)</sub>"]:::codex
+    KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
+    JS["Judge · Dedupe · Synth<br/><sub>cluster findings ·<br/>attribute personas</sub>"]:::synth
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -."challenges".-> SR
+    CX -."challenges".-> C
+    CX -."challenges".-> B
+    W -.compiles.-> KL
+
+    SR -.feeds.-> JS
+    P -.feeds.-> JS
+    C -.feeds.-> JS
+    JS -.records.-> PM
+    W -.surfaces drift.-> PM
+    PM -."earning their slot?".-> SR
+    PM -."earning their slot?".-> P
+    PM -."earning their slot?".-> C
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    classDef synth fill:#0c4a6e,stroke:#38bdf8,color:#bae6fd,stroke-dasharray: 4 3
+    classDef metrics fill:#3b0764,stroke:#a855f7,color:#e9d5ff,stroke-dasharray: 4 3
+</pre>
+<div class="pro-con"><b>Reading:</b> Same as C1 except feedback edges go directly back to <code>SR</code>, <code>P</code>, and <code>C</code> (the gates being measured), labeled with a question that prompts a judgment. <b>Pro:</b> question-as-label maps directly to the user's mental model when they read the drift table. <b class="con">Con:</b> two back-edges add visual noise; "earning their slot?" is about the persona, not the gate, but the edge points to the gate.</div>
+</div>
+
+<h3>Diagram 1 — Version C4 (Judge inline between gates; PM observes SR + C emits only — RECOMMENDED)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::setup
+    S["/spec"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    JS1["Judge · Dedupe · Synth<br/><sub>cluster · attribute personas ·<br/>compose review.md</sub>"]:::synth
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    JS2["Judge · Dedupe · Synth<br/><sub>cluster · attribute personas ·<br/>compose plan.md</sub>"]:::synth
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    JS3["Judge · Dedupe · Synth<br/><sub>cluster · attribute personas ·<br/>compose check.md</sub>"]:::synth
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap"]:::wrap
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review<br/>(optional)</sub>"]:::codex
+    KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates ·<br/>read in /wrap-insights</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -."challenges".-> SR
+    CX -."challenges".-> C
+    CX -."challenges".-> B
+    W -.compiles.-> KL
+
+    JS1 -.records.-> PM
+    JS3 -.records.-> PM
+    W -.surfaces drift.-> PM
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    classDef synth fill:#0c4a6e,stroke:#38bdf8,color:#bae6fd
+    classDef metrics fill:#3b0764,stroke:#a855f7,color:#e9d5ff,stroke-dasharray: 4 3
+</pre>
+<div class="pro-con"><b>Reading:</b> Judge runs <i>at every gate</i> (SR, P, C) and is what produces the artifact that feeds the next stage. Persona Metrics taps only the SR and C Judge steps because that's where findings have a "did they survive revision?" lifecycle (per spec scope; <code>/plan</code>'s recommendation-survival is a follow-up). PM is solid (not dashed) — it's a real concrete observer, not optional like Codex/Superpowers. The "back-edge" to the pipeline is implicit through the human reading drift in <code>/wrap-insights</code>. <b>Pro:</b> factually correct (Judge inline, feeds forward); honest about the scope-(a) decision (only 2 of 3 Judge steps emit metrics); clean visual rhythm. <b class="con">Con:</b> three Judge nodes share the same label — could be read as three different things; could collapse to one node with three edges but that tangles.</div>
+</div>
+
+<h3>Diagram 1 — Version C5 (single Judge node with three feed-edges; tighter but busier around JS)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::setup
+    S["/spec"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap"]:::wrap
+    JS["Judge · Dedupe · Synth<br/><sub>runs at end of each gate ·<br/>cluster · attribute personas ·<br/>compose review.md / plan.md / check.md</sub>"]:::synth
+
+    K --> S --> SR
+    SR --> JS --> P
+    P --> JS --> C
+    C --> JS --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review<br/>(optional)</sub>"]:::codex
+    KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates ·<br/>read in /wrap-insights</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -."challenges".-> SR
+    CX -."challenges".-> C
+    CX -."challenges".-> B
+    W -.compiles.-> KL
+
+    JS -."records (SR, C only)".-> PM
+    W -.surfaces drift.-> PM
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    classDef synth fill:#0c4a6e,stroke:#38bdf8,color:#bae6fd
+    classDef metrics fill:#3b0764,stroke:#a855f7,color:#e9d5ff,stroke-dasharray: 4 3
+</pre>
+<div class="pro-con"><b>Reading:</b> Single Judge node with six edges (three in, three out — once per gate). The PM edge label "records (SR, C only)" makes the scope (a) decision explicit. <b>Pro:</b> one canonical Judge concept, no apparent duplication. <b class="con">Con:</b> JS becomes a hub with 6+ edges — visually busy; mermaid layout may route the SR↔JS↔P↔JS↔C↔JS↔B sequence in a way that looks like a loop. Single-label scope clarifier is forensic.</div>
+</div>
+
+<h3>Diagram 1 — Version C3 (no back-edge; PM is a passive observer; SUPERSEDED by C4 — for reference)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
+    S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap<br/><sub>summary · learnings ·<br/>knowledge flush</sub>"]:::wrap
+
+    K --> S --> SR --> P --> C --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · debugging ·<br/>verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review<br/>(optional)</sub>"]:::codex
+    KL["Knowledge layer<br/><sub>graphify · obsidian wiki</sub>"]:::side
+    JS["Judge · Dedupe · Synth<br/><sub>cluster findings ·<br/>attribute personas</sub>"]:::synth
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates ·<br/>read in /wrap-insights</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -."challenges".-> SR
+    CX -."challenges".-> C
+    CX -."challenges".-> B
+    W -.compiles.-> KL
+
+    SR -.feeds.-> JS
+    P -.feeds.-> JS
+    C -.feeds.-> JS
+    JS -.records.-> PM
+    W -.surfaces drift.-> PM
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    classDef synth fill:#0c4a6e,stroke:#38bdf8,color:#bae6fd,stroke-dasharray: 4 3
+    classDef metrics fill:#3b0764,stroke:#a855f7,color:#e9d5ff,stroke-dasharray: 4 3
+</pre>
+<div class="pro-con"><b>Reading:</b> No back-edge; PM is a side observer like <code>Knowledge layer</code>. The feedback to the pipeline is *implicit* — the user reads <code>/wrap-insights</code> drift, decides outside the diagram. The <code>read in /wrap-insights</code> sub-text on the PM box explains how it's surfaced. <b>Pro:</b> cleanest; no question of what label to use on the back-edge. Honest about the manual nature of today's loop. <b class="con">Con:</b> doesn't visually communicate that the metric eventually <i>changes</i> the roster — reads as observer-only, which is true today but reductive for the long-term direction.</div>
+</div>
+
+<h2>Diagram 1 — C4 design variations (front-end designer pass)</h2>
+<p>C4's structure is locked. These four are visual-design variations only — same nodes, same edges, different design philosophies. Pick a winner, then I'll lock the visual style alongside the C4 structure.</p>
+
+<h3>Variation D-A — Pipeline Spine (gates dominate, sides recede)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::setup
+    S["/spec"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::gate
+    JS1["Judge · Dedupe · Synth<br/><sub>compose review.md</sub>"]:::synth
+    P["/plan<br/><sub>6 design agents</sub>"]:::define
+    JS2["Judge · Dedupe · Synth<br/><sub>compose plan.md</sub>"]:::synth
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    JS3["Judge · Dedupe · Synth<br/><sub>compose check.md</sub>"]:::synth
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap"]:::wrap
+
+    K ==> S ==> SR ==> JS1 ==> P ==> JS2 ==> C ==> JS3 ==> B ==> W
+
+    SP["Superpowers"]:::ambient
+    CX["Codex"]:::ambient
+    KL["Knowledge layer"]:::ambient
+    PM["Persona Metrics"]:::ambient
+
+    SP -.->|in-session| B
+    CX -.->|challenges| SR
+    CX -.->|challenges| C
+    CX -.->|challenges| B
+    W -.->|compiles| KL
+    JS1 -.->|records| PM
+    JS3 -.->|records| PM
+    W -.->|surfaces drift| PM
+
+    classDef setup fill:#1e3a8a,stroke:#93c5fd,color:#fff,stroke-width:2px
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff,stroke-width:2px
+    classDef gate fill:#be123c,stroke:#fecdd3,color:#fff,stroke-width:3px
+    classDef synth fill:#0369a1,stroke:#7dd3fc,color:#fff,stroke-width:2px
+    classDef execute fill:#15803d,stroke:#86efac,color:#fff,stroke-width:2px
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff,stroke-width:2px
+    classDef ambient fill:#0a0a0a,stroke:#3f3f46,color:#71717a,stroke-dasharray: 2 4
+</pre>
+<div class="pro-con"><b>Intent:</b> Main pipeline is the unmistakable hero. Thick spine edges, hairline side edges. Side nodes (incl. PM) fade into ambient context. <b>Pro:</b> eye lands on the path immediately; reinforces that side nodes are supporting cast. <b class="con">Con:</b> PM is so quiet that someone scanning quickly may miss the metrics story entirely.</div>
+</div>
+
+<h3>Variation D-B — Metrics Hero (PM is the most prominent node; JS2 dimmed)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::setup
+    S["/spec"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    JS1["Judge · Synth<br/><sub>review.md</sub>"]:::synth
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    JS2["Judge · Synth<br/><sub>plan.md</sub>"]:::synthDim
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    JS3["Judge · Synth<br/><sub>check.md</sub>"]:::synth
+    B["/build"]:::execute
+    W["/wrap"]:::wrap
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers"]:::side
+    CX["Codex"]:::codex
+    KL["Knowledge layer"]:::side
+    PM["★ Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::hero
+
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    JS1 ==records==> PM
+    JS3 ==records==> PM
+    W ==surfaces drift==> PM
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#52525b,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    classDef synth fill:#0c4a6e,stroke:#38bdf8,color:#bae6fd
+    classDef synthDim fill:#0c2733,stroke:#1e3a52,color:#5b7a8c
+    classDef hero fill:#6b21a8,stroke:#e9d5ff,color:#fff,stroke-width:4px
+</pre>
+<div class="pro-con"><b>Intent:</b> PM becomes the visual anchor — saturated violet, thick stroke, a star prefix. JS2 is intentionally dimmed (Judge runs but doesn't emit). Tells the story: this whole pipeline exists partly to feed the metrics loop. <b>Pro:</b> makes the persona-metrics thesis legible at a glance; JS2 dimming is a smart "silently runs" signal. <b class="con">Con:</b> may feel like a metrics dashboard rather than a pipeline; pulls focus from the path.</div>
+</div>
+
+<h3>Variation D-C — Clustered Layers (vertical, subgraphs group related concepts)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart TD
+    subgraph Pipeline["━━ Pipeline ━━"]
+        direction LR
+        K["/kickoff"]:::setup
+        S["/spec"]:::define
+        SR["/spec-review"]:::review
+        P["/plan"]:::plan
+        C["/check"]:::gate
+        B["/build"]:::execute
+        W["/wrap"]:::wrap
+        K --> S --> SR
+        SR -.-> P
+        P -.-> C
+        C -.-> B --> W
+    end
+
+    subgraph Synthesis["━━ Synthesis &amp; Metrics ━━"]
+        direction LR
+        JS1["JS · review.md"]:::synth
+        JS2["JS · plan.md"]:::synth
+        JS3["JS · check.md"]:::synth
+        PM["Persona Metrics<br/><sub>load-bearing · silent</sub>"]:::metrics
+        JS1 -.records.-> PM
+        JS3 -.records.-> PM
+    end
+
+    subgraph External["━━ External Pressure ━━"]
+        SP["Superpowers"]:::side
+        CX["Codex"]:::codex
+        KL["Knowledge layer"]:::side
+    end
+
+    SR --> JS1 --> P
+    P --> JS2 --> C
+    C --> JS3 --> B
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    W -.surfaces drift.-> PM
+
+    classDef setup fill:#1e3a8a,stroke:#60a5fa,color:#fff
+    classDef define fill:#0f766e,stroke:#5eead4,color:#fff
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fff
+    classDef plan fill:#5b21b6,stroke:#c4b5fd,color:#fff
+    classDef gate fill:#9f1239,stroke:#fda4af,color:#fff
+    classDef execute fill:#166534,stroke:#86efac,color:#fff
+    classDef wrap fill:#3f3f46,stroke:#d4d4d8,color:#fff
+    classDef side fill:#18181b,stroke:#71717a,color:#a1a1aa,stroke-dasharray: 4 3
+    classDef codex fill:#1c1917,stroke:#f59e0b,color:#fcd34d,stroke-dasharray: 4 3
+    classDef synth fill:#0c4a6e,stroke:#38bdf8,color:#bae6fd
+    classDef metrics fill:#3b0764,stroke:#a855f7,color:#e9d5ff,stroke-width:3px
+</pre>
+<div class="pro-con"><b>Intent:</b> Top-down system architecture — Pipeline / Synthesis &amp; Metrics / External Pressure as named regions. Reads like layers of responsibility. <b>Pro:</b> conceptually clearest; vertical layout gives side nodes room to breathe. <b class="con">Con:</b> bigger footprint; subgraph borders compete with node colors; doesn't fit narrow columns.</div>
+</div>
+
+<h3>Variation D-D — Blueprint (light theme, technical-drawing aesthetic)</h3>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::node
+    S["/spec"]:::node
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::node
+    JS1["Judge · Dedupe · Synth<br/><sub>review.md</sub>"]:::synth
+    P["/plan<br/><sub>6 design agents</sub>"]:::node
+    JS2["Judge · Dedupe · Synth<br/><sub>plan.md</sub>"]:::synth
+    C["/check<br/><sub>5 plan agents</sub>"]:::node
+    JS3["Judge · Dedupe · Synth<br/><sub>check.md</sub>"]:::synth
+    B["/build<br/><sub>parallel execute</sub>"]:::node
+    W["/wrap"]:::node
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review</sub>"]:::accent
+    KL["Knowledge layer<br/><sub>graphify · wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent</sub>"]:::side
+
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    JS1 -.records.-> PM
+    JS3 -.records.-> PM
+    W -.surfaces drift.-> PM
+
+    classDef node fill:#f8fafc,stroke:#1e3a8a,color:#0f172a,stroke-width:2px
+    classDef synth fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e,stroke-width:2px
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155,stroke-dasharray: 4 3
+    classDef accent fill:#fffbeb,stroke:#b45309,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
+</pre>
+<div class="pro-con"><b>Intent:</b> Inverted palette — paper-white background, ink-blue strokes. One accent (amber, Codex only). Engineering-schematic aesthetic. <b>Pro:</b> looks polished, presentation-ready, great for external sharing; single amber accent makes Codex's adversarial role legible without screaming. <b class="con">Con:</b> loses the rich color-coded role distinctions; SR / C / B / W all start to look similar.</div>
+</div>
+
+<h2>Diagram 2 — Per-stage data flow</h2>
+<div class="pair">
+
+<div class="panel">
+<h3>Version A — Judge + Synthesis as two boxes</h3>
+<pre class="mermaid">
+flowchart TD
+    subgraph review_stage["/spec-review (same shape for /check)"]
+        step0["Phase 1 step 0<br/>snapshot spec.md → source.spec.md<br/>rotate prior findings.jsonl<br/>mkdir raw/"]
+        agents["Phase 1<br/>6 reviewer agents in parallel"]
+        raw["raw/{requirements,gaps,ambiguity,<br/>feasibility,scope,stakeholders}.md<br/>(persisted as each agent returns)"]
+        judge["Phase 2: Judge<br/>dedupe, merge convergent findings,<br/>demote speculative, promote unique<br/>(reads raw/*.md)"]
+        synth["Phase 2: Synthesis<br/>organize by topic, write review.md<br/>(reads judged clusters)"]
+        codex["Phase 2b: Codex adversarial<br/>(if available) → raw/codex-adversary.md"]
+        emit["Phase 2c [NEW]<br/>findings-emit prompt<br/>reads: judged clusters + raw/*.md<br/>writes: findings.jsonl,<br/>participation.jsonl, run.json"]
+        present["Phase 3: present review.md"]
+
+        step0 --> agents --> raw --> judge --> synth --> codex --> emit --> present
+    end
+
+    subgraph next_stage["/plan Phase 0 (same shape for /build)"]
+        check_hash["check artifact_hash<br/>vs sha256(spec.md)"]
+        classify["survival-classifier<br/>reads: findings.jsonl<br/>     + source.spec.md (pre)<br/>     + spec.md (post-revision)"]
+        survival["survival.jsonl<br/>{outcome, evidence,<br/>artifact_hash, confidence}"]
+        check_hash -- "differ or absent" --> classify --> survival
+        check_hash -- "match → skip" --> survival
+    end
+
+    emit --> check_hash
+
+    subgraph wrap["/wrap-insights Phase 1c [NEW]"]
+        proj["on-demand projection<br/>read all docs/specs/*/*/*.jsonl"]
+        diff["default: diff render<br/>↑/↓/→ 5pp deadband<br/>silent_rate column"]
+        full["personas arg: full table<br/>load_bearing + survival both"]
+        proj --> diff
+        proj --> full
+    end
+
+    emit -.-> proj
+    survival -.-> proj
+</pre>
+<div class="pro-con"><b>Pro:</b> faithful to <code>commands/spec-review.md</code>; reader sees Judge does clustering (which <code>personas[]</code> depends on). <b class="con">Con:</b> more boxes to read.</div>
+</div>
+
+<div class="panel">
+<h3>Version B — Phase 2 collapsed to single box</h3>
+<pre class="mermaid">
+flowchart TD
+    subgraph review_stage["/spec-review (same shape for /check)"]
+        step0["Phase 1 step 0<br/>snapshot spec.md → source.spec.md<br/>rotate prior findings.jsonl<br/>mkdir raw/"]
+        agents["Phase 1<br/>6 reviewer agents in parallel"]
+        raw["raw/{requirements,gaps,ambiguity,<br/>feasibility,scope,stakeholders}.md<br/>(persisted as each agent returns)"]
+        phase2["Phase 2: Judge + Synthesis<br/>dedupe + cluster + compose review.md<br/>(reads raw/*.md)"]
+        codex["Phase 2b: Codex adversarial<br/>(if available) → raw/codex-adversary.md"]
+        emit["Phase 2c [NEW]<br/>findings-emit prompt<br/>reads: clusters + raw/*.md<br/>writes: findings.jsonl,<br/>participation.jsonl, run.json"]
+        present["Phase 3: present review.md"]
+
+        step0 --> agents --> raw --> phase2 --> codex --> emit --> present
+    end
+
+    subgraph next_stage["/plan Phase 0 (same shape for /build)"]
+        check_hash["check artifact_hash<br/>vs sha256(spec.md)"]
+        classify["survival-classifier<br/>reads: findings.jsonl<br/>     + source.spec.md (pre)<br/>     + spec.md (post-revision)"]
+        survival["survival.jsonl<br/>{outcome, evidence,<br/>artifact_hash, confidence}"]
+        check_hash -- "differ or absent" --> classify --> survival
+        check_hash -- "match → skip" --> survival
+    end
+
+    emit --> check_hash
+
+    subgraph wrap["/wrap-insights Phase 1c [NEW]"]
+        proj["on-demand projection<br/>read all docs/specs/*/*/*.jsonl"]
+        diff["default: diff render<br/>↑/↓/→ 5pp deadband<br/>silent_rate column"]
+        full["personas arg: full table<br/>load_bearing + survival both"]
+        proj --> diff
+        proj --> full
+    end
+
+    emit -.-> proj
+    survival -.-> proj
+</pre>
+<div class="pro-con"><b>Pro:</b> cleaner read, fewer boxes. <b class="con">Con:</b> hides that Judge does clustering and Synthesis composes prose — they're different jobs.</div>
+</div>
+
+</div>
+
+<h2>Diagram 3 — Self-improvement loop</h2>
+<div class="pair">
+
+<div class="panel">
+<h3>Version A — deferred as sibling subgraph</h3>
+<pre class="mermaid">
+flowchart LR
+    roster["Roster<br/>28 personas + Codex"]:::shipped
+
+    subgraph pipeline["Pipeline run on a feature"]
+        sr["/spec-review<br/>+ /check"]:::shipped
+        emit["findings.jsonl<br/>participation.jsonl"]:::shipped
+        revise["user revises<br/>spec.md / plan.md"]:::shipped
+        surv["survival-classifier<br/>(/plan + /build Phase 0)"]:::shipped
+        survout["survival.jsonl<br/>addressed/not/rejected"]:::shipped
+
+        sr --> emit --> revise --> surv --> survout
+    end
+
+    subgraph measure["/wrap-insights Phase 1c"]
+        roll["rolling 10-feature window<br/>per-persona stats"]:::shipped
+        drift["drift render<br/>↑ a11y         load-bearing  4% → 18%<br/>↓ test-quality load-bearing 22% →  9%<br/>↓ security     uniqueness   85% → 60%"]:::shipped
+        roll --> drift
+    end
+
+    survout --> roll
+    emit --> roll
+
+    human["Human reads drift<br/>(this spec ships HERE)"]:::shipped
+    decide["judgment call<br/>which personas earn their slot?"]:::shipped
+
+    drift --> human --> decide
+
+    decide -. "manual roster edit<br/>(this release)" .-> roster
+    roster --> sr
+
+    subgraph deferred["persona-tiering follow-up (deferred)"]
+        tier["tiering rules<br/>Core / Conditional / Demoted"]:::deferred
+        probe["probe sampling<br/>shadow-run demoted personas"]:::deferred
+        triggers["spec-keyword triggers<br/>security only when auth/PII"]:::deferred
+    end
+
+    decide -. "automated<br/>(future)" .-> tier
+    tier -. "rules-driven roster<br/>(future)" .-> roster
+    probe -. "refresh demoted metrics<br/>(future)" .-> roll
+    triggers -. "conditional invocation<br/>(future)" .-> sr
+
+    classDef shipped fill:#dff3dd,stroke:#3a8a3a,stroke-width:2px
+    classDef deferred fill:#f3f0dd,stroke:#8a7a3a,stroke-width:2px,stroke-dasharray:5 5
+</pre>
+<div class="pro-con"><b>Pro:</b> clearly partitions shipped vs deferred work. <b class="con">Con:</b> spatial separation can read as "two unrelated systems."</div>
+</div>
+
+<div class="panel">
+<h3>Version B — tiering layer overlay around the roster</h3>
+<pre class="mermaid">
+flowchart LR
+    subgraph future_layer["future: tiering layer (persona-tiering follow-up)"]
+        roster["Roster<br/>28 personas + Codex"]:::shipped
+        tier["tiering rules<br/>Core / Conditional / Demoted"]:::deferred
+        probe["probe sampling<br/>(refresh demoted metrics)"]:::deferred
+        triggers["spec-keyword triggers<br/>(conditional invocation)"]:::deferred
+        tier -.-> roster
+        triggers -.-> roster
+    end
+
+    subgraph pipeline["Pipeline run on a feature"]
+        sr["/spec-review<br/>+ /check"]:::shipped
+        emit["findings.jsonl<br/>participation.jsonl"]:::shipped
+        revise["user revises<br/>spec.md / plan.md"]:::shipped
+        surv["survival-classifier<br/>(/plan + /build Phase 0)"]:::shipped
+        survout["survival.jsonl<br/>addressed/not/rejected"]:::shipped
+
+        sr --> emit --> revise --> surv --> survout
+    end
+
+    subgraph measure["/wrap-insights Phase 1c"]
+        roll["rolling 10-feature window<br/>per-persona stats"]:::shipped
+        drift["drift render<br/>↑ a11y         load-bearing  4% → 18%<br/>↓ test-quality load-bearing 22% →  9%<br/>↓ security     uniqueness   85% → 60%"]:::shipped
+        roll --> drift
+    end
+
+    survout --> roll
+    emit --> roll
+    probe -.-> roll
+
+    human["Human reads drift<br/>(this spec ships HERE)"]:::shipped
+    decide["judgment call /<br/>manual roster edit"]:::shipped
+
+    drift --> human --> decide
+    decide --> roster
+    decide -. "future automation" .-> tier
+    roster --> sr
+
+    classDef shipped fill:#dff3dd,stroke:#3a8a3a,stroke-width:2px
+    classDef deferred fill:#f3f0dd,stroke:#8a7a3a,stroke-width:2px,stroke-dasharray:5 5
+</pre>
+<div class="pro-con"><b>Pro:</b> roster is the single integration point — manual edit (today) + tiering (future) both feed it. Reads as one cohesive system. <b class="con">Con:</b> denser around the roster node; "future automation" edge from <code>decide</code> to <code>tier</code> may read as "human triggers tiering" which isn't quite right.</div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "default", flowchart: { htmlLabels: true, curve: "basis" } });
+</script>
+</body>
+</html>

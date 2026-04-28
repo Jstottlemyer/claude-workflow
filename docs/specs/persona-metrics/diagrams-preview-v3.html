@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Persona Metrics — Diagrams Preview v3</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 1600px; margin: 2em auto; padding: 0 1.5em; color: #222; line-height: 1.5; }
+  h1 { border-bottom: 2px solid #333; padding-bottom: 0.3em; }
+  h1 .v { font-size: 0.6em; color: #888; font-weight: normal; margin-left: 0.5em; }
+  h2 { margin-top: 2em; color: #1a1a1a; }
+  h3 { color: #444; margin-top: 1.5em; }
+  .single { border: 1px solid #ccc; border-radius: 6px; padding: 1em; background: #fafafa; margin-bottom: 2em; }
+  .pro-con { font-size: 0.9em; color: #555; margin-top: 0.8em; }
+  .pro-con b { color: #2a6f2a; }
+  .pro-con b.con { color: #8a3a3a; }
+  .mermaid { background: white; border-radius: 4px; padding: 0.5em; }
+  .feedback { background: #fffbe7; border: 1px solid #e0c870; border-radius: 6px; padding: 1em 1.4em; margin-bottom: 2em; }
+  .feedback h2 { margin-top: 0; }
+  .backup { font-size: 0.85em; color: #666; }
+  .recipe { background: #f0f9ff; border-left: 4px solid #0369a1; padding: 0.6em 1em; margin: 1em 0; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<h1>Persona Metrics — Diagrams Preview <span class="v">v3 · combined recipe</span></h1>
+
+<div class="feedback">
+<h2>Recipe applied</h2>
+<ul>
+  <li><b>Previous large Judges</b> — full size, full sub-text ("Judge · Dedupe · Synth" + "cluster · attribute personas · compose review.md"). No more shrinking.</li>
+  <li><b>V3 gate style</b> — gates show their personas in sub-text inline (no subgraphs).</li>
+  <li><b>V2 colors</b> — pastel fills + saturated strokes + role-coded gates.</li>
+  <li><b>Minimum size floor: Codex box</b> — nothing in the diagram is smaller than the Codex node. All <code>font-size</code> overrides removed.</li>
+  <li><b>All three Judges same darker blue</b> — JS2 visually unified with JS1/JS3. The "doesn't record" signal lives in the edges (no <code>records</code> edge from JS2 to PM), not the node styling.</li>
+  <li><b>Pastels bumped one shade darker</b> — still light/blueprint-friendly, no longer washed out.</li>
+</ul>
+<p class="backup">Backups: <code>diagrams-preview-v1.html</code> (D-A through D-D), <code>diagrams-preview-v2.html</code> (V1–V4 light variants).</p>
+</div>
+
+<h2>The diagram</h2>
+
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::setup
+    S["/spec"]:::define
+    SR["/spec-review<br/><sub>requirements · gaps · ambiguity<br/>feasibility · scope · stakeholders</sub>"]:::review
+    JS1["Judge · Dedupe · Synth<br/><sub>cluster · attribute personas ·<br/>compose review.md</sub>"]:::synth
+    P["/plan<br/><sub>api · data-model · ux<br/>scalability · security · integration</sub>"]:::plan
+    JS2["Judge · Dedupe · Synth<br/><sub>cluster · attribute personas ·<br/>compose plan.md</sub>"]:::synth
+    C["/check<br/><sub>completeness · sequencing · risk<br/>scope-discipline · testability</sub>"]:::gate
+    JS3["Judge · Dedupe · Synth<br/><sub>cluster · attribute personas ·<br/>compose check.md</sub>"]:::synth
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap"]:::wrap
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review</sub>"]:::accent
+    KL["Knowledge layer<br/><sub>graphify · wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    JS1 ==records==> PM
+    JS3 ==records==> PM
+    W ==surfaces drift==> PM
+
+    classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
+    classDef define fill:#5eead4,stroke:#0f766e,color:#134e4a,stroke-width:2px
+    classDef review fill:#fdba74,stroke:#9a3412,color:#7c2d12,stroke-width:2px
+    classDef plan fill:#c4b5fd,stroke:#5b21b6,color:#4c1d95,stroke-width:2px
+    classDef gate fill:#fda4af,stroke:#9f1239,color:#881337,stroke-width:2px
+    classDef execute fill:#86efac,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef wrap fill:#d4d4d8,stroke:#3f3f46,color:#27272a,stroke-width:2px
+    classDef synth fill:#7dd3fc,stroke:#075985,color:#0c4a6e,stroke-width:2px
+    classDef side fill:#e2e8f0,stroke:#475569,color:#1e293b,stroke-width:2px,stroke-dasharray: 4 3
+    classDef accent fill:#fde68a,stroke:#92400e,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
+    classDef metrics fill:#a78bfa,stroke:#5b21b6,color:#2e1065,stroke-width:3px
+</pre>
+
+<div class="recipe">
+<b>Read order:</b> top row = main pipeline (gates show their personas inline; Judges sit between gates as the terminal step that produces <code>review.md</code> / <code>plan.md</code> / <code>check.md</code>, all unified in darker blue). Bottom row = side observers (Superpowers, Codex, Knowledge layer, Persona Metrics). <code>PM</code> has the thickest stroke and bold solid edges in — it's the only side observer that's a first-class part of the new feature. <b>JS2 has no <code>records</code> edge to PM</b> — that absence is the only signal that <code>/plan</code>'s Judge doesn't emit metrics in v1.
+</div>
+
+<div class="pro-con"><b>What this satisfies:</b> Judges full size with full sub-text · gates carry personas in sub-text · darker pastel role colors with saturated strokes · no node smaller than Codex · all three Judges visually unified · JS2 distinction lives in edge topology, not node styling. <b>Open question:</b> persona lists in gate sub-text drift if roster changes (manual update — easy fix when needed).</div>
+</div>
+
+<h2>Tweak knobs (just in case)</h2>
+
+<p>If something's off, the most likely tweaks:</p>
+<ul>
+  <li><b>JS2 ghost too subtle / too loud</b> — adjust <code>synthGhost</code> classDef (fill / stroke contrast).</li>
+  <li><b>Persona lists too long</b> — wrap differently, or drop sub-text for one stage and keep for others.</li>
+  <li><b>Pastel fills too washed out on your monitor</b> — bump fills one shade darker (e.g. <code>#dbeafe → #bfdbfe</code> for setup).</li>
+  <li><b>Edge labels too crowded around PM</b> — drop "records" labels and let the dotted/solid distinction carry the meaning.</li>
+  <li><b>"surfaces drift" label phrasing</b> — alternatives: "reads at /wrap-insights", "drift render".</li>
+</ul>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "default", flowchart: { htmlLabels: true, curve: "basis" } });
+</script>
+</body>
+</html>

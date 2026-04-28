@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Persona Metrics — Diagrams Preview v2</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 1600px; margin: 2em auto; padding: 0 1.5em; color: #222; line-height: 1.5; }
+  h1 { border-bottom: 2px solid #333; padding-bottom: 0.3em; }
+  h1 .v { font-size: 0.6em; color: #888; font-weight: normal; margin-left: 0.5em; }
+  h2 { margin-top: 2em; color: #1a1a1a; }
+  h3 { color: #444; margin-top: 1.5em; }
+  .single { border: 1px solid #ccc; border-radius: 6px; padding: 1em; background: #fafafa; margin-bottom: 2em; }
+  .pro-con { font-size: 0.9em; color: #555; margin-top: 0.8em; }
+  .pro-con b { color: #2a6f2a; }
+  .pro-con b.con { color: #8a3a3a; }
+  .mermaid { background: white; border-radius: 4px; padding: 0.5em; }
+  .feedback { background: #fffbe7; border: 1px solid #e0c870; border-radius: 6px; padding: 1em 1.4em; margin-bottom: 2em; }
+  .feedback h2 { margin-top: 0; }
+  .backup { font-size: 0.85em; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>Persona Metrics — Diagrams Preview <span class="v">v2 · 4 new variants</span></h1>
+
+<div class="feedback">
+<h2>Feedback this round addresses</h2>
+<ul>
+  <li><b>D-D layout is the favorite</b> (light theme, blueprint aesthetic).</li>
+  <li><b>Judge nodes were too big</b> in D-D — tighten them.</li>
+  <li><b>Brighter colors / lines from D-B</b> — Persona Metrics deserves a real accent color, not just another grey side node.</li>
+  <li><b>JS2 (the /plan Judge) doesn't record metrics</b> — must be visually distinguished from JS1 and JS3 so the asymmetry is legible.</li>
+  <li><b>Gates could expand to include agent personas</b> (even though they aren't 100% fixed). At least one variant should explore this.</li>
+</ul>
+<p class="backup">Previous round (D-A through D-D) backed up at <code>diagrams-preview-v1.html</code>.</p>
+</div>
+
+<h2>V1 — D-D Refined (tight Judges, ghosted JS2, violet PM accent)</h2>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::node
+    S["/spec"]:::node
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::node
+    JS1["JS · review.md"]:::synth
+    P["/plan<br/><sub>6 design agents</sub>"]:::node
+    JS2["JS · plan.md"]:::synthGhost
+    C["/check<br/><sub>5 plan agents</sub>"]:::node
+    JS3["JS · check.md"]:::synth
+    B["/build<br/><sub>parallel execute</sub>"]:::node
+    W["/wrap"]:::node
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review</sub>"]:::accent
+    KL["Knowledge layer<br/><sub>graphify · wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    JS1 ==records==> PM
+    JS3 ==records==> PM
+    W ==surfaces drift==> PM
+
+    classDef node fill:#f8fafc,stroke:#1e3a8a,color:#0f172a,stroke-width:2px
+    classDef synth fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e,stroke-width:1.5px,font-size:11px
+    classDef synthGhost fill:#f8fafc,stroke:#cbd5e1,color:#94a3b8,stroke-width:1px,stroke-dasharray: 3 3,font-size:11px
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155,stroke-dasharray: 4 3
+    classDef accent fill:#fffbeb,stroke:#b45309,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
+    classDef metrics fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95,stroke-width:3px
+</pre>
+<div class="pro-con"><b>Intent:</b> Keep D-D's blueprint look. Judge nodes shrunk to a single line ("JS · review.md") with smaller font — they're now visibly *terminal steps*, not co-equal with gates. JS2 ghosted (dotted, faint grey) so the eye reads "this Judge runs but doesn't record." PM gets a real violet accent + thicker stroke + thick solid edges in. <b>Pro:</b> minimal change from D-D, addresses every feedback point. <b class="con">Con:</b> still very monochrome — gates SR/C/P/B/W look interchangeable until you read labels.</div>
+</div>
+
+<h2>V2 — Color Restore on Blueprint (light theme + role colors brought back, brighter PM)</h2>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::setup
+    S["/spec"]:::define
+    SR["/spec-review<br/><sub>6 PRD agents</sub>"]:::review
+    JS1["JS · review.md"]:::synth
+    P["/plan<br/><sub>6 design agents</sub>"]:::plan
+    JS2["JS · plan.md"]:::synthGhost
+    C["/check<br/><sub>5 plan agents</sub>"]:::gate
+    JS3["JS · check.md"]:::synth
+    B["/build<br/><sub>parallel execute</sub>"]:::execute
+    W["/wrap"]:::wrap
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review</sub>"]:::accent
+    KL["Knowledge layer<br/><sub>graphify · wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    JS1 ==records==> PM
+    JS3 ==records==> PM
+    W ==surfaces drift==> PM
+
+    classDef setup fill:#dbeafe,stroke:#1e40af,color:#1e3a8a,stroke-width:2px
+    classDef define fill:#ccfbf1,stroke:#0d9488,color:#134e4a,stroke-width:2px
+    classDef review fill:#fed7aa,stroke:#c2410c,color:#7c2d12,stroke-width:2px
+    classDef plan fill:#ddd6fe,stroke:#6d28d9,color:#4c1d95,stroke-width:2px
+    classDef gate fill:#fecdd3,stroke:#be123c,color:#881337,stroke-width:2px
+    classDef execute fill:#bbf7d0,stroke:#15803d,color:#14532d,stroke-width:2px
+    classDef wrap fill:#e4e4e7,stroke:#3f3f46,color:#27272a,stroke-width:2px
+    classDef synth fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e,stroke-width:1.5px,font-size:11px
+    classDef synthGhost fill:#f8fafc,stroke:#cbd5e1,color:#94a3b8,stroke-width:1px,stroke-dasharray: 3 3,font-size:11px
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155,stroke-dasharray: 4 3
+    classDef accent fill:#fef3c7,stroke:#b45309,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
+    classDef metrics fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:3px
+</pre>
+<div class="pro-con"><b>Intent:</b> D-D's light blueprint background, but role-coded colors (D-B's vibrancy) restored on each gate so they're recognizable at a glance without reading labels. Pastel fills + saturated strokes = readable in both screen and slide contexts. JS nodes still tight; JS2 ghosted; PM thick violet. <b>Pro:</b> best of both — light/clean *and* role-legible; PM thickness signals "real observer, not optional." <b class="con">Con:</b> 7 distinct fills can feel busy; pastel fills with similar saturation may not contrast well on high-contrast displays.</div>
+</div>
+
+<h2>V3 — Personas in Gate Sub-text (light theme, gates carry their roster inline)</h2>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::node
+    S["/spec"]:::node
+    SR["/spec-review<br/><sub>requirements · gaps · ambiguity<br/>feasibility · scope · stakeholders</sub>"]:::review
+    JS1["JS · review.md"]:::synth
+    P["/plan<br/><sub>api · data-model · ux<br/>scalability · security · integration</sub>"]:::plan
+    JS2["JS · plan.md"]:::synthGhost
+    C["/check<br/><sub>completeness · sequencing · risk<br/>scope-discipline · testability</sub>"]:::gate
+    JS3["JS · check.md"]:::synth
+    B["/build<br/><sub>parallel execute</sub>"]:::node
+    W["/wrap"]:::node
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers<br/><sub>TDD · verification</sub>"]:::side
+    CX["Codex<br/><sub>adversarial review</sub>"]:::accent
+    KL["Knowledge layer<br/><sub>graphify · wiki</sub>"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    JS1 ==records==> PM
+    JS3 ==records==> PM
+    W ==surfaces drift==> PM
+
+    classDef node fill:#f8fafc,stroke:#1e3a8a,color:#0f172a,stroke-width:2px
+    classDef review fill:#fff7ed,stroke:#c2410c,color:#7c2d12,stroke-width:2px
+    classDef plan fill:#faf5ff,stroke:#6d28d9,color:#4c1d95,stroke-width:2px
+    classDef gate fill:#fff1f2,stroke:#be123c,color:#881337,stroke-width:2px
+    classDef synth fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e,stroke-width:1.5px,font-size:11px
+    classDef synthGhost fill:#f8fafc,stroke:#cbd5e1,color:#94a3b8,stroke-width:1px,stroke-dasharray: 3 3,font-size:11px
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155,stroke-dasharray: 4 3
+    classDef accent fill:#fffbeb,stroke:#b45309,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
+    classDef metrics fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95,stroke-width:3px
+</pre>
+<div class="pro-con"><b>Intent:</b> Each multi-agent gate (SR, P, C) shows its actual personas in the sub-text — answers the "what's running here?" question without exploding the gate into a subgraph. Color-tinted gates (warm for review, violet for plan, rose for check) so they're identifiable; non-multi-agent stages (K/S/B/W) stay neutral blueprint. <b>Pro:</b> high information density without visual clutter; the personas being measured are visible exactly where they're invoked. <b class="con">Con:</b> wider nodes — diagram footprint grows; persona lists get stale if roster changes (the user's "not 100% fixed" caveat); 6-line sub-text on plan/SR may overflow on smaller renders.</div>
+</div>
+
+<h2>V4 — Gates as Subgraphs (gates explode into containers; "open the box")</h2>
+<div class="single">
+<pre class="mermaid">
+flowchart LR
+    K["/kickoff"]:::node
+    S["/spec"]:::node
+
+    subgraph SR["/spec-review · 6 PRD agents"]
+        direction TB
+        sr1["requirements"]:::persona
+        sr2["gaps"]:::persona
+        sr3["ambiguity"]:::persona
+        sr4["feasibility"]:::persona
+        sr5["scope"]:::persona
+        sr6["stakeholders"]:::persona
+    end
+    JS1["JS · review.md"]:::synth
+
+    subgraph P["/plan · 6 design agents"]
+        direction TB
+        p1["api"]:::persona
+        p2["data-model"]:::persona
+        p3["ux"]:::persona
+        p4["scalability"]:::persona
+        p5["security"]:::persona
+        p6["integration"]:::persona
+    end
+    JS2["JS · plan.md"]:::synthGhost
+
+    subgraph C["/check · 5 plan agents"]
+        direction TB
+        c1["completeness"]:::persona
+        c2["sequencing"]:::persona
+        c3["risk"]:::persona
+        c4["scope-discipline"]:::persona
+        c5["testability"]:::persona
+    end
+    JS3["JS · check.md"]:::synth
+
+    B["/build"]:::node
+    W["/wrap"]:::node
+
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
+    SP["Superpowers"]:::side
+    CX["Codex<br/><sub>adversarial review</sub>"]:::accent
+    KL["Knowledge layer"]:::side
+    PM["Persona Metrics<br/><sub>load-bearing · silent ·<br/>survival rates</sub>"]:::metrics
+
+    SP -.in-session.-> B
+    CX -.challenges.-> SR
+    CX -.challenges.-> C
+    CX -.challenges.-> B
+    W -.compiles.-> KL
+    JS1 ==records==> PM
+    JS3 ==records==> PM
+    W ==surfaces drift==> PM
+
+    classDef node fill:#f8fafc,stroke:#1e3a8a,color:#0f172a,stroke-width:2px
+    classDef persona fill:#fff,stroke:#94a3b8,color:#475569,font-size:11px
+    classDef synth fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e,stroke-width:1.5px,font-size:11px
+    classDef synthGhost fill:#f8fafc,stroke:#cbd5e1,color:#94a3b8,stroke-width:1px,stroke-dasharray: 3 3,font-size:11px
+    classDef side fill:#f1f5f9,stroke:#64748b,color:#334155,stroke-dasharray: 4 3
+    classDef accent fill:#fffbeb,stroke:#b45309,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
+    classDef metrics fill:#f5f3ff,stroke:#7c3aed,color:#4c1d95,stroke-width:3px
+</pre>
+<div class="pro-con"><b>Intent:</b> Most "honest" view — the parallel-agent gates are subgraphs containing the actual persona nodes. Judge appears outside the subgraph as the terminal step (consistent with "Judge feeds the next section"). Reader sees exactly what gets measured. <b>Pro:</b> the persona-metrics thesis becomes self-evident — each persona is a node, the Judge that consumes them is a node, the metric that measures them is a node. <b class="con">Con:</b> *much* larger footprint; not suitable for README hero diagram (becomes its own page). Best as a "deep dive" diagram for documentation, not the production pipeline overview.</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: "default", flowchart: { htmlLabels: true, curve: "basis" } });
+</script>
+</body>
+</html>
