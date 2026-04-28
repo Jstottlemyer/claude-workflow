@@ -231,7 +231,7 @@
 <section id="pipeline">
   <div class="wrap">
     <h2>The pipeline</h2>
-    <p class="lede">Bug fix, small change, feature, or full V2 — the same flow scales.</p>
+    <p class="lede">Five gates between an idea and shipped code. Specialist agents run in parallel at each one — their findings judged, deduplicated, and synthesized before the next phase starts.</p>
     <div class="mermaid-frame">
       <pre class="mermaid">
 flowchart LR
@@ -276,6 +276,62 @@ flowchart LR
     classDef metrics fill:#a78bfa,stroke:#5b21b6,color:#2e1065,stroke-width:3px
       </pre>
     </div>
+    <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 6 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
+  </div>
+</section>
+
+<section id="self-learning">
+  <div class="wrap">
+    <h2>Self-learning</h2>
+    <p class="lede">Every gate quietly records which findings shaped the next phase. <code>/wrap-insights</code> renders the drift so you can see which personas earn their slot.</p>
+    <div class="mermaid-frame">
+      <pre class="mermaid">
+flowchart LR
+    roster["Roster<br/>28 personas + Codex<br/>(across all three gates)"]:::shipped
+
+    subgraph pipeline["Pipeline run on a feature"]
+        sr["/spec-review · /plan · /check<br/>(all three multi-agent gates)"]:::shipped
+        emit["findings.jsonl + participation.jsonl<br/>per gate"]:::shipped
+        revise["user revises<br/>spec.md and plan.md<br/>(plan.md synthesized fresh)"]:::shipped
+        surv["survival-classifier (3 modes/sites)<br/>· /plan: spec-review findings vs revised spec.md<br/>· /check: plan findings vs plan.md (synthesis)<br/>· /build: check findings vs revised plan.md"]:::shipped
+        survout["survival.jsonl<br/>addressed/not/rejected"]:::shipped
+
+        sr --> emit --> revise --> surv --> survout
+    end
+
+    subgraph measure["/wrap-insights Phase 1c"]
+        roll["rolling 10-feature window<br/>per-persona stats across all 3 gates"]:::shipped
+        drift["drift render<br/>↑ a11y         load-bearing  4% → 18%<br/>↓ test-quality load-bearing 22% →  9%<br/>↓ security     uniqueness   85% → 60%<br/>↓ data-model   silent_rate  10% → 35%"]:::shipped
+        roll --> drift
+    end
+
+    survout --> roll
+    emit --> roll
+
+    human["Human reads drift<br/>(this spec ships HERE)"]:::shipped
+    decide["judgment call<br/>which personas earn their slot?"]:::shipped
+
+    drift --> human --> decide
+
+    decide -. "manual roster edit<br/>(this release)" .-> roster
+    roster --> sr
+
+    subgraph deferred["persona-tiering follow-up (deferred)"]
+        tier["tiering rules<br/>Core / Conditional / Demoted<br/>(per-gate)"]:::deferred
+        probe["probe sampling<br/>shadow-run demoted personas"]:::deferred
+        triggers["spec-keyword triggers<br/>security only when auth/PII"]:::deferred
+    end
+
+    decide -. "automated<br/>(future)" .-> tier
+    tier -. "rules-driven roster<br/>(future)" .-> roster
+    probe -. "refresh demoted metrics<br/>(future)" .-> roll
+    triggers -. "conditional invocation<br/>(future)" .-> sr
+
+    classDef shipped fill:#dff3dd,stroke:#3a8a3a,stroke-width:2px
+    classDef deferred fill:#f3f0dd,stroke:#8a7a3a,stroke-width:2px,stroke-dasharray:5 5
+      </pre>
+    </div>
+    <p class="lede" style="margin-top:24px">Each Judge writes <code>findings.jsonl</code> (what each persona raised) and <code>participation.jsonl</code> (who ran). When you revise the spec or plan, a survival classifier compares pre- and post-artifacts and labels each finding <code>addressed</code> / <code>not_addressed</code> / <code>rejected</code>. <code>/wrap-insights</code> rolls a 10-feature window into per-persona stats — load-bearing rate, silent rate, survival — and renders drift (e.g. <code>↑ a11y 4% → 18%</code>, <code>↓ test-quality 22% → 9%</code>). Today the loop closes through human judgment on the roster; <strong style="color:var(--fg)">automatic tiering is a deferred follow-up</strong>.</p>
   </div>
 </section>
 
