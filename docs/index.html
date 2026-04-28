@@ -140,7 +140,6 @@
     overflow-x: auto;
   }
   .mermaid { display: flex; justify-content: center; min-width: 700px; }
-  .mermaid svg { min-height: 480px; height: auto !important; }
 
   table {
     width: 100%;
@@ -265,17 +264,17 @@ flowchart LR
     JS3 ==> PM
     W ==surfaces drift==> PM
 
-    classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
-    classDef define fill:#5eead4,stroke:#0f766e,color:#134e4a,stroke-width:2px
-    classDef review fill:#fdba74,stroke:#9a3412,color:#7c2d12,stroke-width:2px
-    classDef plan fill:#c4b5fd,stroke:#5b21b6,color:#4c1d95,stroke-width:2px
-    classDef gate fill:#fda4af,stroke:#9f1239,color:#881337,stroke-width:2px
-    classDef execute fill:#86efac,stroke:#15803d,color:#14532d,stroke-width:2px
-    classDef wrap fill:#d4d4d8,stroke:#3f3f46,color:#27272a,stroke-width:2px
-    classDef synth fill:#7dd3fc,stroke:#075985,color:#0c4a6e,stroke-width:2px
-    classDef side fill:#e2e8f0,stroke:#475569,color:#1e293b,stroke-width:2px,stroke-dasharray: 4 3
-    classDef accent fill:#fde68a,stroke:#92400e,color:#78350f,stroke-width:2px,stroke-dasharray: 4 3
-    classDef metrics fill:#a78bfa,stroke:#5b21b6,color:#2e1065,stroke-width:3px
+    classDef setup fill:#1e3a5f,stroke:#7c9cff,color:#bfdbfe,stroke-width:2px
+    classDef define fill:#0f4c4c,stroke:#5eead4,color:#99f6e4,stroke-width:2px
+    classDef review fill:#7c2d12,stroke:#fdba74,color:#fed7aa,stroke-width:2px
+    classDef plan fill:#3b1f7a,stroke:#c4b5fd,color:#ede9fe,stroke-width:2px
+    classDef gate fill:#881337,stroke:#fda4af,color:#ffe4e6,stroke-width:2px
+    classDef execute fill:#14532d,stroke:#86efac,color:#bbf7d0,stroke-width:2px
+    classDef wrap fill:#27272a,stroke:#a1a1aa,color:#e4e4e7,stroke-width:2px
+    classDef synth fill:#0c3a5f,stroke:#7dd3fc,color:#bae6fd,stroke-width:2px
+    classDef side fill:#1e293b,stroke:#64748b,color:#94a3b8,stroke-width:2px,stroke-dasharray: 4 3
+    classDef accent fill:#451a03,stroke:#fde68a,color:#fde68a,stroke-width:2px,stroke-dasharray: 4 3
+    classDef metrics fill:#2d1b69,stroke:#a78bfa,color:#e9d5ff,stroke-width:3px
       </pre>
     </div>
     <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 6 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
@@ -575,7 +574,7 @@ flowchart LR
       fontFamily: 'Inter, sans-serif',
       fontSize: '16px'
     },
-    flowchart: { curve: 'basis', padding: 28, nodeSpacing: 70, rankSpacing: 95 }
+    flowchart: { curve: 'basis', padding: 28, nodeSpacing: 50, rankSpacing: 65 }
   });
 </script>
 </body>
