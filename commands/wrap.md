@@ -110,6 +110,51 @@ After ~3 opt-in runs, review `~/.claude/session-logs/insights-cost.log` and deci
 
 ---
 
+## Phase 1c: Persona Drift (opt-in, conditional on `insights` arg)
+
+Skip this phase unless `$ARGUMENTS` contains `insights` (so `/wrap` and `/wrap-quick` skip; `/wrap-insights` and `/wrap-full` run it).
+
+Read all `docs/specs/*/<stage>/{findings,participation,survival}.jsonl` files where `<stage>` ∈ {`spec-review`, `plan`, `check`}. Compute per-persona rolling-window stats over the last 10 features (ordered by ascending `survival.jsonl` mtime in the `spec-review/` subdir; features without `survival.jsonl` are excluded from window membership).
+
+For each persona, compute:
+
+- `participated_count` = stages this persona ran (rows in `participation.jsonl` with `status == "ok"`)
+- `runs` = stages where `findings_emitted > 0`
+- `findings_total` = sum of cluster appearances by this persona across the window
+- `unique_count` = rows where `unique_to_persona == this_persona`
+- `survived_count` = rows whose joined `survival.jsonl` has `outcome == "addressed"`
+- `unique_and_survived_count` = both
+- `uniqueness_rate` = `unique_count / findings_total`
+- `survival_rate` = `survived_count / findings_total`
+- `load_bearing_rate` = `unique_and_survived_count / findings_total`
+- `silent_rate` = `(participated_count - runs) / participated_count`
+- `trend` = ↑/↓/→ comparing each rate against the prior 10-feature window (deadband 5 percentage points — arrows render only when |delta| ≥ 5pp)
+
+**Render mode** depends on `$ARGUMENTS`:
+
+- **Default** (`insights` only) — diff render with one legend line:
+  ```
+  === Persona drift (last 10 features vs prior 10) ===
+  legend: load-bearing = unique × addressed; silent = ran-but-raised-nothing
+
+  ↑ a11y          load-bearing  4% → 18%  (3 features had UI scope)
+  ↓ test-quality  load-bearing 22% →  9%  (recent flags duplicated correctness)
+  ↓ security      uniqueness   85% → 60%  (codex-adversary flagged same items)
+     no change: 14 personas
+     insufficient data (N<3): 3 personas
+     stale survival (artifact_hash mismatch): 1 feature
+  ```
+
+- **Full table** (`insights personas` — i.e., `/wrap-insights personas`) — sorted by `load_bearing_rate` descending, with `load_bearing_rate` AND `survival_rate` columns side-by-side. Distinguishes a high-survival/low-uniqueness "frequent corroborator" from a low-survival/high-uniqueness "lone wolf."
+
+**Cold-start handling:** features with <3 runs in the current window render as `(insufficient data — N runs)` and are excluded from drift arrows. Empty rollup renders: `Persona drift: no measured features yet — run 1+ feature through /spec-review and /plan to seed.`
+
+**Stale-survival warning:** for each feature, compare current `sha256(<artifact>.md)` against the `artifact_hash` recorded in its `survival.jsonl`. Mismatch → render a one-line warning naming the feature.
+
+**Lenient JSONL parsing:** malformed rows are skipped with a one-line warning (`[persona-metrics] skipped 1 malformed row in <feature>/<stage>/findings.jsonl`); the rollup proceeds.
+
+---
+
 ## Phase 2: Learning Triage (one approval gate)
 
 Review the session for learnings worth capturing. Most sessions produce nothing — that's fine. Don't manufacture learnings.
