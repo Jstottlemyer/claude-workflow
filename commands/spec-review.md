@@ -20,6 +20,19 @@ Your job is to dispatch 6 parallel PRD reviewer agents against the spec, consoli
 
 3. **Load constitution** (if `docs/specs/constitution.md` exists) for constraint checking.
 
+## Phase 1, step 0: Snapshot + rotate (persona-metrics)
+
+Before reviewer agents dispatch, run the snapshot directive at `commands/_prompts/snapshot.md`:
+
+- Snapshot `docs/specs/<feature>/spec.md` → `docs/specs/<feature>/spec-review/source.spec.md` (atomic write).
+- Refuse with `run.json.status: "failed"` if `spec.md` is not git-tracked.
+- Validate slug against `^[a-z0-9][a-z0-9-]{0,63}$`.
+- Create `docs/specs/<feature>/spec-review/raw/` directory.
+- If a prior `findings.jsonl` exists in `docs/specs/<feature>/spec-review/`, rename it to `findings-<UTC-ts>.jsonl` (format `%Y-%m-%dT%H-%M-%SZ`) BEFORE the new emit at Phase 2c. Filename is the only superseded marker — no schema mutation.
+- Echo one-line user feedback (`[persona-metrics] snapshot ... (rotated N prior)`).
+
+If snapshot refuses, halt the phase — do not dispatch reviewers.
+
 ## Phase 1: Dispatch 6 PRD Reviewer Agents
 
 Read these 6 persona files, then dispatch 6 parallel subagents using the Agent tool:
@@ -34,6 +47,8 @@ Each agent receives:
 - The full spec content
 - The constitution (if it exists)
 - Their persona's role, checklist, and key questions
+
+**As each reviewer agent returns**, persist its raw output to `docs/specs/<feature>/spec-review/raw/<persona>.md` immediately (atomic write via tmp + `os.replace`). This file-backed persistence is the structural fix that retires R1 (raw outputs no longer depend on conversation context surviving truncation). The `findings-emit` step at Phase 2c reads from this directory.
 
 The 6 reviewers:
 1. **requirements** — Success criteria and acceptance conditions
@@ -83,6 +98,20 @@ Replace `<spec-path>` with the resolved path to the spec file. If the file exist
 - If Codex surfaces findings not already in the Claude synthesis, add a **Codex Adversarial View** subsection to the consolidated review with those findings.
 - If Codex finds nothing new, note "Codex: no additional findings."
 - If Codex was skipped (not available), omit the section entirely — no mention of it.
+
+**Persist Codex output to disk** (parallel to per-persona raw outputs from Phase 1): if Codex ran successfully, copy `/tmp/codex-spec-review.txt` → `docs/specs/<feature>/spec-review/raw/codex-adversary.md` (atomic write). The `findings-emit` step at Phase 2c reads this file to attribute `codex-adversary` in `personas[]` for any cluster that includes Codex's contribution.
+
+## Phase 2c: Persona Metrics emit
+
+Run the directive at `commands/_prompts/findings-emit.md`. It reads the on-disk `docs/specs/<feature>/spec-review/raw/*.md` files (per-reviewer outputs + optional `codex-adversary.md`), reads the synthesizer's clustering decisions from this turn's context, and atomically writes:
+
+- `docs/specs/<feature>/spec-review/findings.jsonl`
+- `docs/specs/<feature>/spec-review/participation.jsonl`
+- `docs/specs/<feature>/spec-review/run.json`
+
+Schemas at `schemas/{findings,participation,run}.schema.json`. `prompt_version: "findings-emit@1.0"` recorded on every emitted row.
+
+If the metrics paths are tracked-and-not-gitignored AND `docs/specs/<feature>/.persona-metrics-warned` does not yet exist, print a one-line privacy warning and touch the sentinel file (suppresses warning on subsequent stage emits in the same feature).
 
 ## Phase 3: Present & Write
 
