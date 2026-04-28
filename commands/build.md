@@ -18,6 +18,20 @@ Your job is to execute the implementation plan using parallel agents where possi
 
 2. **Load constitution** (if exists) and spec for context.
 
+## Phase 0: Persona Metrics — survival classifier (addressed-by-revision mode)
+
+Pre-flight before execution. If `docs/specs/<feature>/check/findings.jsonl` exists, run `commands/_prompts/survival-classifier.md` in **addressed-by-revision** mode:
+
+- Inputs: `<feature>/check/findings.jsonl` + `<feature>/check/source.plan.md` (pre-snapshot) + current `<feature>/plan.md` (post-revision).
+- **Pre-revision warning:** if `mtime(plan.md) < mtime(check/findings.jsonl)`, emit a warning that `plan.md` hasn't been edited since `/check`. Run anyway.
+- Idempotency: skip if recorded `artifact_hash` matches `sha256(plan.md)`; re-classify otherwise.
+- Outcome semantics: addressed-by-revision (substance NOT in source.plan.md but IS in plan.md after revision).
+- Output: atomic write to `<feature>/check/survival.jsonl`. Echo one-liner if any `classifier_error` rows are written.
+
+If `<feature>/check/findings.jsonl` does not exist, silent no-op.
+
+**This phase never blocks the build.**
+
 ## Phase 1: Present Execution Plan
 
 Parse the plan's task breakdown and present:
