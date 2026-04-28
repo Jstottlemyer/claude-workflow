@@ -17,6 +17,20 @@ Your job is to dispatch 6 parallel design agents, synthesize their analysis into
 
 2. **Load constitution** (if exists) for constraint checking.
 
+## Phase 0: Persona Metrics — survival classifier (addressed-by-revision mode)
+
+Pre-flight before design agents dispatch. If `docs/specs/<feature>/spec-review/findings.jsonl` exists, run `commands/_prompts/survival-classifier.md` in **addressed-by-revision** mode:
+
+- Inputs: `<feature>/spec-review/findings.jsonl` + `<feature>/spec-review/source.spec.md` (pre-snapshot) + current `<feature>/spec.md` (post-revision).
+- **Pre-revision warning:** if `mtime(spec.md) < mtime(spec-review/findings.jsonl)`, emit a warning: `[persona-metrics] WARNING: spec.md hasn't been edited since /spec-review. Did you mean to revise the spec before running /plan? Running classifier anyway (most findings will likely show not_addressed).` Add `"spec-not-revised-since-review"` to `run.json.warnings[]`.
+- Idempotency: if `<feature>/spec-review/survival.jsonl` exists and every row's `artifact_hash` matches `sha256(spec.md)`, skip. If `artifact_hash` differs, re-classify and overwrite.
+- Outcome semantics: `addressed` = the revision changed the artifact in a way that resolves the finding (substance NOT in source.spec.md but IS in spec.md); `not_addressed` = no visible revision-driven change; `rejected_intentionally` = revised `spec.md`'s `## Open Questions` / `## Out of Scope` / `## Backlog Routing` / `## Deferred` section explicitly names the finding.
+- Output: atomic write to `<feature>/spec-review/survival.jsonl`. Echo one-liner if any `classifier_error` rows are written.
+
+If `<feature>/spec-review/findings.jsonl` does not exist (legacy spec or `/spec-review` skipped), this phase is a silent no-op.
+
+**This phase never blocks the stage.**
+
 ## Phase 1: Dispatch 6 Design Agents
 
 Read the persona files from `~/.claude/personas/plan/` and dispatch 6 parallel subagents using the Agent tool. Each agent receives:
@@ -24,6 +38,8 @@ Read the persona files from `~/.claude/personas/plan/` and dispatch 6 parallel s
 - The review findings (if available)
 - The constitution (if exists)
 - Their persona's role, checklist, and key questions
+
+**As each design agent returns**, persist its raw output to `docs/specs/<feature>/plan/raw/<persona>.md` immediately (atomic write). The Phase 2c emit reads from this directory. (Note: no snapshot step at `/plan` — `plan.md` is synthesized fresh at this stage, not revised; there is no pre-state to snapshot.)
 
 The 6 designers:
 1. **api** — Interface design and developer/user ergonomics
@@ -61,6 +77,16 @@ After all 6 agents return, apply two passes using the personas in `~/.claude/per
    - Dependencies between tasks
    - Which tasks can run in parallel
    - Estimated complexity per task (S/M/L)
+
+## Phase 2c: Persona Metrics emit
+
+Run `commands/_prompts/findings-emit.md`. It reads `docs/specs/<feature>/plan/raw/*.md` (per-design-persona outputs persisted in Phase 1) and the synthesizer's clustering decisions, and atomically writes:
+
+- `docs/specs/<feature>/plan/findings.jsonl` — one row per design-recommendation cluster, with `personas[]` listing the design personas (api / data-model / ux / scalability / security / integration) that contributed.
+- `docs/specs/<feature>/plan/participation.jsonl`
+- `docs/specs/<feature>/plan/run.json` — `artifact_hash: sha256(plan.md)` (the freshly synthesized plan, not a source snapshot).
+
+`stage: "plan"` recorded on every emitted row. `prompt_version: "findings-emit@1.0"`. The next stage's classifier (`/check` Phase 0 in synthesis-inclusion mode) reads this `findings.jsonl` and judges which design recommendations made it through Judge into `plan.md`.
 
 ## Phase 3: Present & Write
 
