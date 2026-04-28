@@ -16,12 +16,39 @@ Your job is to dispatch 5 parallel plan reviewer agents, synthesize their findin
 
 2. **Load constitution** (if exists) for constraint checking.
 
+## Phase 0: Persona Metrics — survival classifier (synthesis-inclusion mode)
+
+Pre-flight before reviewers dispatch. If `docs/specs/<feature>/plan/findings.jsonl` exists, run `commands/_prompts/survival-classifier.md` in **synthesis-inclusion** mode:
+
+- Inputs: `<feature>/plan/findings.jsonl` (design recommendations) + `<feature>/plan.md` (freshly synthesized — NO source snapshot, since `plan.md` is created fresh, not revised).
+- Idempotency: if `<feature>/plan/survival.jsonl` exists and every row's `artifact_hash` matches `sha256(plan.md)`, skip. If `artifact_hash` differs, re-classify and overwrite.
+- Outcome semantics: `addressed` = design recommendation visibly shaped `plan.md`; `not_addressed` = Judge dropped/demoted; `rejected_intentionally` = `plan.md`'s "Alternatives Considered" / "Rejected" / "Deferred" section explicitly names the recommendation.
+- Output: atomic write to `<feature>/plan/survival.jsonl`. Schema: `schemas/survival.schema.json`.
+- Echo one-liner if any `outcome: "classifier_error"` rows are written: `[persona-metrics] N findings could not be classified — see plan/survival.jsonl for reasons.`
+
+If `<feature>/plan/findings.jsonl` does not exist (legacy spec or `/plan` skipped), this phase is a silent no-op — no `survival.jsonl` written, no error.
+
+**This phase never blocks the stage** — instrumentation failures continue to Phase 1 review work.
+
+## Phase 1, step 0: Snapshot + rotate (persona-metrics)
+
+Before reviewer agents dispatch, run `commands/_prompts/snapshot.md`:
+
+- Snapshot `docs/specs/<feature>/plan.md` → `docs/specs/<feature>/check/source.plan.md`.
+- Refuse with `run.json.status: "failed"` if `plan.md` is not git-tracked.
+- Validate slug.
+- Create `docs/specs/<feature>/check/raw/`.
+- Rotate prior `findings.jsonl` to `findings-<UTC-ts>.jsonl` if present.
+- Echo one-line user feedback.
+
 ## Phase 1: Dispatch 5 Plan Reviewer Agents
 
 Read the persona files from `~/.claude/personas/check/` and dispatch 5 parallel subagents using the Agent tool. Each agent receives:
 - The spec, review findings, and plan
 - The constitution (if exists)
 - Their persona's role, checklist, and key questions
+
+**As each reviewer agent returns**, persist its raw output to `docs/specs/<feature>/check/raw/<persona>.md` immediately (atomic write). The Phase 2c emit reads from this directory.
 
 The 5 reviewers:
 1. **completeness** — Are all requirements covered? What's missing?
@@ -69,6 +96,18 @@ Replace `<plan-path>` with the resolved path to `docs/specs/<feature>/plan.md`. 
 - If Codex surfaces must-fix or should-fix items not already in the Claude synthesis, add a **Codex Adversarial View** subsection to the checkpoint output.
 - If Codex finds nothing new, note "Codex: no additional findings."
 - If Codex was skipped (not available), omit the section entirely — no mention of it.
+
+**Persist Codex output to disk:** if Codex ran, copy `/tmp/codex-check-review.txt` → `docs/specs/<feature>/check/raw/codex-adversary.md` (atomic write). The Phase 2c emit reads it for `personas[]` attribution.
+
+## Phase 2c: Persona Metrics emit
+
+Run `commands/_prompts/findings-emit.md`. It reads `docs/specs/<feature>/check/raw/*.md` (per-reviewer + optional `codex-adversary.md`) and the synthesizer's clustering decisions, and atomically writes:
+
+- `docs/specs/<feature>/check/findings.jsonl`
+- `docs/specs/<feature>/check/participation.jsonl`
+- `docs/specs/<feature>/check/run.json`
+
+Schemas + `prompt_version: "findings-emit@1.0"` recorded as in `/spec-review`.
 
 ## Phase 3: Present & Write
 
