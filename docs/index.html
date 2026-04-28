@@ -278,6 +278,7 @@ flowchart LR
       </pre>
     </div>
     <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 6 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
+    <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">Codex (optional).</strong> If <a href="#requirements">installed</a>, an OpenAI Codex agent runs an adversarial pass at <code>/spec-review</code>, <code>/check</code>, and <code>/build</code> — independent perspective from a different model family, joining the same Judge synthesis as the in-house personas. Silent skip if not set up.</p>
   </div>
 </section>
 
@@ -345,6 +346,7 @@ flowchart LR
       </pre>
     </div>
     <p class="lede" style="margin-top:24px"><strong style="color:var(--accent-2)">Compile, don't retrieve.</strong> Capture is cheap during the session (<code>"capture this: X"</code> → <code>_raw/</code>). Distillation happens once at <code>/wrap</code>. Reads at the start of the next session are free — the wiki is already structured, the graph is already built, memory is already loaded.</p>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Measured weekly.</strong> Graph-driven queries on real codebases land <strong style="color:var(--accent-2)">~10–20× fewer tokens</strong> than full-corpus reads — 14.2× on a 1.5K-node codebase, 16.4× on a 2.2K-node one. <code>scripts/benchmark-json.sh</code> writes data to <code>dashboard/data/&lt;project&gt;.jsonl</code>; open <code>dashboard/index.html</code> to see your own.</p>
   </div>
 </section>
 
@@ -363,6 +365,61 @@ flowchart LR
         <tr><td><code>/build</code></td><td>Parallel execution with verification discipline; + Codex implementation review (optional)</td><td>Superpowers</td></tr>
         <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
         <tr><td><code>/wrap</code></td><td>Session wrap-up — summary, learnings, git loose ends</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="requirements">
+  <div class="wrap">
+    <h2>Requirements</h2>
+    <p class="lede">The pipeline ships in this repo (<code>v0.2.0</code>). Everything else is third-party — installed at latest from its source. No version pinning required for normal use.</p>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Required</p>
+    <table>
+      <thead><tr><th>Tool</th><th>Why</th><th>How to get it</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Claude Code CLI</strong></td><td>The harness this pipeline runs in</td><td><a href="https://claude.com/claude-code">claude.com/claude-code</a></td></tr>
+        <tr><td><strong>Python ≥ 3.9</strong></td><td>Used by <code>session-cost.py</code>, persona-metrics scripts, benchmarks</td><td><code>brew install python</code></td></tr>
+      </tbody>
+    </table>
+
+    <p class="lede" style="margin-top:32px;color:var(--fg);font-weight:600">Plugins</p>
+    <table>
+      <thead><tr><th>Tier</th><th>Plugin</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td>Always-on</td><td><code>superpowers</code></td><td>Execution discipline — TDD, debugging, verification, code review</td></tr>
+        <tr><td>Always-on</td><td><code>context7</code></td><td>Library / framework / API documentation fetching</td></tr>
+        <tr><td>On-demand</td><td><code>firecrawl</code> · <code>code-review</code> · <code>ralph-loop</code> · <code>playwright</code></td><td>Research · GitHub PR review · micro-iteration · browser automation</td></tr>
+        <tr><td>Periodic</td><td><code>claude-md-management</code> · <code>skill-creator</code> · <code>claude-code-setup</code></td><td>Meta-tooling — audit CLAUDE.md, build new skills, recommend automations</td></tr>
+      </tbody>
+    </table>
+    <pre class="install" style="margin-top:16px"><span class="prompt">$ </span>claude plugins install superpowers context7</pre>
+
+    <p class="lede" style="margin-top:32px;color:var(--fg);font-weight:600">Optional integrations</p>
+    <table>
+      <thead><tr><th>Integration</th><th>Why</th><th>Install</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong style="color:var(--accent-2)">graphify</strong><br><span style="color:var(--muted);font-size:12px">recommended for best performance</span></td>
+          <td>Knowledge-graph backend driving the <a href="#knowledge-loop">10–20× token reduction</a> shown in the Knowledge loop</td>
+          <td><code>pip install graphifyy</code><br><span style="color:var(--muted);font-size:12px">last reviewed: <strong>0.4.20</strong></span></td>
+        </tr>
+        <tr>
+          <td><strong>Codex</strong></td>
+          <td>Adversarial reviewer at <code>/spec-review</code>, <code>/check</code>, <code>/build</code> — silent skip if not installed</td>
+          <td><code>npm i -g @openai/codex</code><br><span style="color:var(--muted);font-size:12px">+ <code>openai/codex-plugin-cc</code> marketplace</span></td>
+        </tr>
+        <tr>
+          <td><strong>Obsidian</strong></td>
+          <td>Destination for distilled wiki pages produced at <code>/wrap</code></td>
+          <td><a href="https://obsidian.md">obsidian.md</a> + set <code>OBSIDIAN_VAULT_PATH</code></td>
+        </tr>
+        <tr>
+          <td><strong>gh CLI</strong></td>
+          <td>Used by <code>code-review</code> plugin and a few git-aware scripts</td>
+          <td><code>brew install gh &amp;&amp; gh auth login</code></td>
+        </tr>
       </tbody>
     </table>
   </div>
