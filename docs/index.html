@@ -139,16 +139,7 @@
     padding: 48px 16px;
     overflow-x: auto;
   }
-  .mermaid-frame.full-bleed {
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    width: 100vw;
-    position: relative;
-    left: 50%;
-    margin-left: -50vw;
-  }
-  .mermaid { display: flex; justify-content: center; min-width: max-content; }
+.mermaid { display: flex; justify-content: center; min-width: max-content; }
 
   table {
     width: 100%;
@@ -242,9 +233,9 @@
   <div class="wrap">
     <h2>The pipeline</h2>
     <p class="lede">Five gates between an idea and shipped code. Specialist agents run in parallel at each one — their findings judged, deduplicated, and synthesized before the next phase starts.</p>
-    <div class="mermaid-frame full-bleed">
+    <div class="mermaid-frame">
       <pre class="mermaid">
-flowchart LR
+flowchart TD
     K["/kickoff\nconstruction + agent roster"]:::setup
     S["/spec\nQ&A · confidence-tracked"]:::define
     SR["/spec-review\nrequirements · gaps · ambiguity\nfeasibility · scope · stakeholders"]:::review
@@ -577,9 +568,9 @@ flowchart LR
       secondaryColor: '#1a1c26',
       tertiaryColor: '#11121a',
       fontFamily: 'Inter, sans-serif',
-      fontSize: '19px'
+      fontSize: '14px'
     },
-    flowchart: { curve: 'basis', padding: 32, nodeSpacing: 55, rankSpacing: 80 }
+    flowchart: { curve: 'basis', padding: 18, nodeSpacing: 38, rankSpacing: 50 }
   });
 </script>
 </body>
