@@ -281,14 +281,14 @@ flowchart TD
 <section id="self-learning">
   <div class="wrap">
     <h2>Self-learning</h2>
-    <p class="lede">Every gate quietly records which findings shaped the next phase. <code>/wrap-insights</code> renders the drift so you can see which personas earn their slot.</p>
+    <p class="lede">Every gate quietly records which findings shaped the next phase. <code>/wrap</code> Phase 1c renders the drift table and emits triage candidates for any persona that shifted meaningfully — closing the loop into Phase 2.</p>
     <div class="mermaid-frame">
       <pre class="mermaid">
 flowchart LR
     R["Roster<br/><sub>28 personas + Codex</sub>"]:::roster
     G["3 multi-agent gates<br/><sub>/spec-review · /plan · /check</sub>"]:::gate
     E["findings.jsonl<br/>participation.jsonl<br/>survival.jsonl"]:::data
-    W["/wrap-insights<br/><sub>10-feature window<br/>drift render</sub>"]:::metrics
+    W["/wrap Phase 1c<br/><sub>10-feature window<br/>drift → [TRIAGE]</sub>"]:::metrics
     H["Human reads drift<br/><sub>roster judgment</sub>"]:::human
 
     R --> G
@@ -304,7 +304,7 @@ flowchart LR
     classDef human fill:#14532d,stroke:#86efac,color:#bbf7d0,stroke-width:2px
       </pre>
     </div>
-    <p class="lede" style="margin-top:24px">Each Judge writes <code>findings.jsonl</code> (what each persona raised) and <code>participation.jsonl</code> (who ran). When you revise the spec or plan, a survival classifier compares pre- and post-artifacts and labels each finding <code>addressed</code> / <code>not_addressed</code> / <code>rejected</code>. <code>/wrap-insights</code> rolls a 10-feature window into per-persona stats — load-bearing rate, silent rate, survival — and renders drift (e.g. <code>↑ a11y 4% → 18%</code>, <code>↓ test-quality 22% → 9%</code>). Today the loop closes through human judgment on the roster; <strong style="color:var(--fg)">automatic tiering is a deferred follow-up</strong>.</p>
+    <p class="lede" style="margin-top:24px">Each Judge writes <code>findings.jsonl</code> (what each persona raised) and <code>participation.jsonl</code> (who ran). When you revise the spec or plan, a survival classifier compares pre- and post-artifacts and labels each finding <code>addressed</code> / <code>not_addressed</code> / <code>rejected</code>. <code>/wrap</code> Phase 1c rolls a 10-feature window into per-persona stats — load-bearing rate, silent rate, survival — renders drift (e.g. <code>↑ a11y 4% → 18%</code>, <code>↓ test-quality 22% → 9%</code>), and emits <code>[TRIAGE MEMORY]</code> lines for any persona that shifted ≥ 5pp. Those triage candidates flow into Phase 2's approval gate — roster edits can be written in the same session.</p>
   </div>
 </section>
 
@@ -349,29 +349,28 @@ flowchart LR
 <section id="wrap">
   <div class="wrap">
     <h2>Session wrap</h2>
-    <p class="lede">The default <code>/wrap</code> auto-ingests session feedback, triages learnings, and cleans up loose ends — no extra flags needed. <code>/wrap-quick</code> skips Phase 1a and the slower phases for speed. <code>/wrap-insights</code> adds the periodic cross-session report and persona drift table on top of everything the default already does.</p>
+    <p class="lede">The default <code>/wrap</code> runs the full ingestion chain — no flags needed. <code>/wrap-quick</code> skips all three insight phases for speed. <code>/wrap-full</code> forces phases that would otherwise soft-skip.</p>
     <div class="mermaid-frame">
       <pre class="mermaid">
 flowchart TD
-    ENTRY["/wrap\nwrap-quick · wrap-insights · wrap-full"]:::entry
+    ENTRY["/wrap\nwrap-quick · wrap-full"]:::entry
     P1["Phase 1 · always\nsummary + token cost"]:::always
-    P1a["Phase 1a · auto\nfacets → friction · outcome · cost\nskip: quick"]:::auto
-    OPTIN["Phases 1b + 1c · opt-in\n/insights cross-session\npersona drift table\nflag: insights"]:::optin
-    P2["Phase 2 · always\nlearning triage\napprove → CLAUDE.md · Memory"]:::triage
+    P1a["Phase 1a · default\nfacets → friction · outcome\nskip: quick"]:::auto
+    P1b["Phase 1b · default\ninsights-parser → report.html\nCLAUDE.md · hooks · skills · prompts\nskip: quick"]:::auto
+    P1c["Phase 1c · default\npersona drift · [TRIAGE] on ≥5pp\nskip: quick or cold-start"]:::auto
+    P2["Phase 2 · always\nlearning triage\napprove → CLAUDE.md · Memory · Settings · Skills"]:::triage
     P2c["Phase 2c · conditional\nwiki flush + distill\nif vault present"]:::wiki
     P3["Phases 3–4 · default\ngit loose ends · dep audit\npermission cleanup\nskip: quick (partial)"]:::loose
     P5["Phase 5 · default\nCLAUDE.md health check\nskip: quick"]:::health
     CM["CLAUDE.md"]:::artifact
     MEM["Memory\nfeedback · project · ref"]:::artifact
-    ENTRY --> P1 --> P1a --> P2
-    P1a -. insights .-> OPTIN --> P2
+    ENTRY --> P1 --> P1a --> P1b --> P1c --> P2
     P2 --> CM & MEM
     P2 -. vault .-> P2c
     P2 --> P3 --> P5
     classDef entry    fill:#1e3a5f,stroke:#7c9cff,color:#bfdbfe,stroke-width:2px
     classDef always   fill:#14532d,stroke:#86efac,color:#bbf7d0,stroke-width:2px
     classDef auto     fill:#0c3a5f,stroke:#7dd3fc,color:#bae6fd,stroke-width:2px
-    classDef optin    fill:#2d1b69,stroke:#a78bfa,color:#e9d5ff,stroke-width:2px
     classDef triage   fill:#3b1f7a,stroke:#c4b5fd,color:#ede9fe,stroke-width:2px
     classDef wiki     fill:#451a03,stroke:#fde68a,color:#fde68a,stroke-width:2px
     classDef loose    fill:#27272a,stroke:#a1a1aa,color:#e4e4e7,stroke-width:2px
@@ -379,8 +378,8 @@ flowchart TD
     classDef artifact fill:#1e293b,stroke:#64748b,color:#94a3b8,stroke-width:2px,stroke-dasharray:4 3
       </pre>
     </div>
-    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Phase 1a closes the feedback loop automatically.</strong> Claude Code's analytics write a <code>facets</code> file after each session — friction signals, outcome, helpfulness rating. Phase 1a reads that file and surfaces it without any extra input; the <code>[TRIAGE]</code> lines it emits join Phase 2's triage queue. Approved items are written to CLAUDE.md or Memory <strong>in the same session</strong>, ready before the next one starts. Nothing falls through the gap between "what went wrong" and "what Claude remembers."</p>
-    <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">Phase 2 is the filter, not a rubber stamp.</strong> The hard rule: if a future session could reconstruct the learning in 30 seconds with <code>grep</code>, skip it. Only non-obvious gotchas, workflow preferences, and decisions whose rationale would otherwise be lost make it to memory or CLAUDE.md.</p>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Three automatic insight phases feed one triage gate.</strong> Phase 1a reads the per-session <code>facets</code> file — friction, outcome, helpfulness. Phase 1b parses <code>report.html</code> from the built-in <code>/insights</code> command, extracting pre-written CLAUDE.md sections, friction patterns, hook configs, and skill templates. Phase 1c computes persona drift across the last 10 features and emits triage candidates for any rate that shifted ≥ 5pp. All <code>[TRIAGE]</code> lines converge at Phase 2 — one approval gate writes CLAUDE.md edits, feedback memories, <code>settings.json</code> hooks, and skill files <strong>in the same session</strong>.</p>
+    <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">After the gate, the pipeline surfaces its own next version.</strong> Copyable prompts appear for next-session use. Horizon cards from <code>/insights</code> — autonomous pipelines, parallel worktree racing, multi-repo sync — surface as <code>/spec</code> candidates: the pipeline proposing what to build next.</p>
   </div>
 </section>
 
@@ -398,7 +397,7 @@ flowchart TD
         <tr><td><code>/check</code></td><td>Last gate before code — validates the plan; + Codex adversarial pass (optional)</td><td>5 validators</td></tr>
         <tr><td><code>/build</code></td><td>Parallel execution with verification discipline; + Codex implementation review (optional)</td><td>Superpowers</td></tr>
         <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
-        <tr><td><code>/wrap</code></td><td>Session wrap-up — auto-ingests session feedback, triages learnings to CLAUDE.md/Memory, git loose ends. Variants: <code>quick</code> · <code>insights</code> · <code>full</code></td><td>—</td></tr>
+        <tr><td><code>/wrap</code></td><td>Session wrap-up — three automatic insight phases feed one triage gate (CLAUDE.md · Memory · hooks · skills), then git loose ends. Variants: <code>quick</code> (fast, skips insights) · <code>full</code> (forces soft-skip phases)</td><td>—</td></tr>
       </tbody>
     </table>
   </div>
@@ -561,7 +560,9 @@ flowchart TD
 ║  Compile, don't retrieve. Capture cheap, distill at /wrap.   ║
 ║                                                              ║
 ║  SESSION END                                                 ║
-║  /wrap → summary · learnings · knowledge flush · git ends    ║
+║  /wrap → insights (facets · report.html · persona drift)     ║
+║          triage gate (CLAUDE.md · memory · hooks · skills)   ║
+║          knowledge flush · git loose ends                    ║
 ║                                                              ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  AGENTS: review(6) plan(6) check(5) code-review(9)           ║
