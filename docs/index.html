@@ -139,8 +139,7 @@
     padding: 48px 16px;
     overflow-x: auto;
   }
-  .mermaid { display: flex; justify-content: center; width: 100%; }
-  .mermaid svg { width: 100%; height: auto; }
+  .mermaid { display: flex; justify-content: center; min-width: max-content; }
 
   table {
     width: 100%;
@@ -302,7 +301,7 @@ flowchart LR
     W ==surfaces==> H
     H -. roster edit .-> R
 
-    classDef roster fill:#1e293b,stroke:#7c9cff,color:#e7e9ee,stroke-width:2px
+    classDef roster fill:#1e293b,stroke:#64748b,color:#94a3b8,stroke-width:2px
     classDef gate fill:#881337,stroke:#fda4af,color:#ffe4e6,stroke-width:2px
     classDef data fill:#0c3a5f,stroke:#7dd3fc,color:#bae6fd,stroke-width:2px
     classDef metrics fill:#2d1b69,stroke:#a78bfa,color:#e9d5ff,stroke-width:3px
@@ -573,9 +572,9 @@ flowchart LR
       secondaryColor: '#1a1c26',
       tertiaryColor: '#11121a',
       fontFamily: 'Inter, sans-serif',
-      fontSize: '17px'
+      fontSize: '19px'
     },
-    flowchart: { curve: 'basis', padding: 28, nodeSpacing: 50, rankSpacing: 72 }
+    flowchart: { curve: 'basis', padding: 32, nodeSpacing: 55, rankSpacing: 80 }
   });
 </script>
 </body>
