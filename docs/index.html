@@ -139,6 +139,15 @@
     padding: 48px 16px;
     overflow-x: auto;
   }
+  .mermaid-frame.full-bleed {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    width: 100vw;
+    position: relative;
+    left: 50%;
+    margin-left: -50vw;
+  }
   .mermaid { display: flex; justify-content: center; min-width: max-content; }
 
   table {
@@ -233,16 +242,16 @@
   <div class="wrap">
     <h2>The pipeline</h2>
     <p class="lede">Five gates between an idea and shipped code. Specialist agents run in parallel at each one — their findings judged, deduplicated, and synthesized before the next phase starts.</p>
-    <div class="mermaid-frame">
+    <div class="mermaid-frame full-bleed">
       <pre class="mermaid">
-flowchart TD
+flowchart LR
     K["/kickoff\nconstruction + agent roster"]:::setup
     S["/spec\nQ&A · confidence-tracked"]:::define
     SR["/spec-review\nrequirements · gaps · ambiguity\nfeasibility · scope · stakeholders"]:::review
     JS1["Judge · Dedupe · Synth\ncluster · attribute · compose → review.md"]:::synth
-    P["/plan\napi · data-model · ux · scalability · security · integration"]:::plan
+    P["/plan\napi · data-model · ux\nscalability · security · integration"]:::plan
     JS2["Judge · Dedupe · Synth → plan.md"]:::synth
-    C["/check\ncompleteness · sequencing · risk · scope-discipline · testability"]:::gate
+    C["/check\ncompleteness · sequencing · risk\nscope-discipline · testability"]:::gate
     JS3["Judge · Dedupe · Synth → check.md"]:::synth
     B["/build\nparallel execute"]:::execute
     W["/wrap"]:::wrap
