@@ -189,6 +189,20 @@ if [[ "$PERSONA_METRICS_GITIGNORE" == "1" && -n "$ADOPTER_ROOT" ]]; then
     fi
 fi
 
+# --- CLAUDE.md baseline ---
+echo ""
+GLOBAL_CLAUDE="$HOME/CLAUDE.md"
+if [ ! -f "$GLOBAL_CLAUDE" ]; then
+    read -rp "No ~/CLAUDE.md found. Copy baseline template? [Y/n]: " COPY_CLAUDE
+    if [[ ! "$COPY_CLAUDE" =~ ^[Nn]$ ]]; then
+        cp "$REPO_DIR/templates/CLAUDE.md" "$GLOBAL_CLAUDE"
+        echo "  Copied templates/CLAUDE.md → ~/CLAUDE.md"
+        echo "  Edit it to add your name, role, and personal context."
+    fi
+else
+    echo "~/CLAUDE.md already exists — skipping (compare with templates/CLAUDE.md to pick up new sections)"
+fi
+
 # --- Plugin installation ---
 echo ""
 read -rp "Install required plugins now? [y/N]: " INSTALL_PLUGINS
@@ -210,12 +224,12 @@ echo "  - 37 agents total:"
 echo "      28 pipeline personas (review 6, plan 6, check 5, code-review 9, judge, synthesis)"
 echo "       9 domain agents (mobile 6, games 3) — available to /kickoff for per-project install"
 echo "  - 8 pipeline commands (/kickoff → /spec → /spec-review → /plan → /check → /build + /flow + /wrap)"
-echo "  - 2 templates (constitution, repo-signals)"
+echo "  - 3 templates (constitution, repo-signals, CLAUDE.md baseline)"
 echo "  - Settings with pipeline-optimized permissions"
 echo "  - Scripts (session-cost.py, doctor.sh, statusline-command.sh)"
 echo ""
 echo "Next steps:"
-echo "  1. Create a ~/CLAUDE.md with your personal context"
+echo "  1. Customize ~/CLAUDE.md (copied from templates/CLAUDE.md — fill in your name, role, dev env)"
 echo "  2. Review ~/.claude/settings.json and adjust permissions"
 echo "  3. See plugins.md for optional plugins"
 echo "  4. See QUICKSTART.md if this is your first time"
