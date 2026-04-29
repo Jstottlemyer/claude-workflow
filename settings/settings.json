@@ -47,6 +47,16 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git -C \"$PWD\" status --porcelain 2>/dev/null | head -20; git -C \"$PWD\" status --porcelain 2>/dev/null | grep -q . && echo '⚠️  Uncommitted WIP on main — check before declaring done' || true"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
