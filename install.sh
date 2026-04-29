@@ -200,7 +200,7 @@ if [ ! -f "$GLOBAL_CLAUDE" ]; then
         echo "  Edit it to add your name, role, and personal context."
     fi
 else
-    echo "~/CLAUDE.md already exists — skipping (compare with templates/CLAUDE.md to pick up new sections)"
+    python3 "$REPO_DIR/scripts/claude-md-merge.py" --target "$GLOBAL_CLAUDE" --template "$REPO_DIR/templates/CLAUDE.md"
 fi
 
 # --- Plugin installation ---
