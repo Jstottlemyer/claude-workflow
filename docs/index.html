@@ -346,6 +346,44 @@ flowchart LR
   </div>
 </section>
 
+<section id="wrap">
+  <div class="wrap">
+    <h2>Session wrap</h2>
+    <p class="lede"><code>/wrap</code> closes every session in under 3 minutes — five phases, one command, three variants. <code>/wrap-quick</code> for speed, bare <code>/wrap</code> for the default, <code>/wrap-insights</code> to add the cross-session report and persona drift table.</p>
+    <div class="mermaid-frame">
+      <pre class="mermaid">
+flowchart TD
+    ENTRY["/wrap\nwrap-quick · wrap-insights · wrap-full"]:::entry
+    P1["Phase 1 · always\nsummary + token cost"]:::always
+    P1a["Phase 1a · auto\nfacets → friction · outcome · cost\nskip: quick"]:::auto
+    OPTIN["Phases 1b + 1c · opt-in\n/insights cross-session\npersona drift table\nflag: insights"]:::optin
+    P2["Phase 2 · always\nlearning triage\napprove → CLAUDE.md · Memory"]:::triage
+    P2c["Phase 2c · conditional\nwiki flush + distill\nif vault present"]:::wiki
+    P3["Phases 3–4 · default\ngit loose ends · dep audit\npermission cleanup\nskip: quick (partial)"]:::loose
+    P5["Phase 5 · default\nCLAUDE.md health check\nskip: quick"]:::health
+    CM["CLAUDE.md"]:::artifact
+    MEM["Memory\nfeedback · project · ref"]:::artifact
+    ENTRY --> P1 --> P1a --> P2
+    P1a -. insights .-> OPTIN --> P2
+    P2 --> CM & MEM
+    P2 -. vault .-> P2c
+    P2 --> P3 --> P5
+    classDef entry    fill:#1e3a5f,stroke:#7c9cff,color:#bfdbfe,stroke-width:2px
+    classDef always   fill:#14532d,stroke:#86efac,color:#bbf7d0,stroke-width:2px
+    classDef auto     fill:#0c3a5f,stroke:#7dd3fc,color:#bae6fd,stroke-width:2px
+    classDef optin    fill:#2d1b69,stroke:#a78bfa,color:#e9d5ff,stroke-width:2px
+    classDef triage   fill:#3b1f7a,stroke:#c4b5fd,color:#ede9fe,stroke-width:2px
+    classDef wiki     fill:#451a03,stroke:#fde68a,color:#fde68a,stroke-width:2px
+    classDef loose    fill:#27272a,stroke:#a1a1aa,color:#e4e4e7,stroke-width:2px
+    classDef health   fill:#0f4c4c,stroke:#5eead4,color:#99f6e4,stroke-width:2px
+    classDef artifact fill:#1e293b,stroke:#64748b,color:#94a3b8,stroke-width:2px,stroke-dasharray:4 3
+      </pre>
+    </div>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Phase 1a closes the feedback loop automatically.</strong> Claude Code's analytics write a <code>facets</code> file after each session — friction signals, outcome, helpfulness rating. Phase 1a reads that file and surfaces it without any extra input; the <code>[TRIAGE]</code> lines it emits join Phase 2's triage queue. Approved items are written to CLAUDE.md or Memory <strong>in the same session</strong>, ready before the next one starts. Nothing falls through the gap between "what went wrong" and "what Claude remembers."</p>
+    <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">Phase 2 is the filter, not a rubber stamp.</strong> The hard rule: if a future session could reconstruct the learning in 30 seconds with <code>grep</code>, skip it. Only non-obvious gotchas, workflow preferences, and decisions whose rationale would otherwise be lost make it to memory or CLAUDE.md.</p>
+  </div>
+</section>
+
 <section id="commands">
   <div class="wrap">
     <h2>Commands</h2>
@@ -360,7 +398,7 @@ flowchart LR
         <tr><td><code>/check</code></td><td>Last gate before code — validates the plan; + Codex adversarial pass (optional)</td><td>5 validators</td></tr>
         <tr><td><code>/build</code></td><td>Parallel execution with verification discipline; + Codex implementation review (optional)</td><td>Superpowers</td></tr>
         <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
-        <tr><td><code>/wrap</code></td><td>Session wrap-up — summary, learnings, git loose ends</td><td>—</td></tr>
+        <tr><td><code>/wrap</code></td><td>Session wrap-up — auto-ingests session feedback, triages learnings to CLAUDE.md/Memory, git loose ends. Variants: <code>quick</code> · <code>insights</code> · <code>full</code></td><td>—</td></tr>
       </tbody>
     </table>
   </div>
