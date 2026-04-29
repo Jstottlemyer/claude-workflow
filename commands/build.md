@@ -91,7 +91,12 @@ After all waves complete:
 
    If `/tmp/codex-build-review.txt` exists and contains findings, include a **Codex Review** section in the build complete summary. If skipped or no findings, omit.
 
-3. Present results:
+3. **Run `/preship`** — pre-commit gate before declaring done:
+   - `git status` for uncommitted WIP
+   - Verify any CLI flags suggested this session
+   - Audit numbered instructions from the user (all ✓ before reporting done)
+
+4. Present results:
    ```
    === BUILD COMPLETE: [Feature Name] ===
 
