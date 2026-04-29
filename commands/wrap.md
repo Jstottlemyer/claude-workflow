@@ -66,6 +66,26 @@ fi
 
 Skip silently if `graphify-out/` is missing (covers projects not yet bootstrapped) or if the helper script isn't present (older workflow install).
 
+Continue immediately to Phase 1a. Do NOT wait for user input.
+
+---
+
+## Phase 1a: Session Insights (automatic, conditional)
+
+**Skip this phase if:** arguments include "quick".
+
+Reads `~/.claude/usage-data/session-meta/` and `~/.claude/usage-data/facets/` for today's session in this project. Surfaces cost, outcome, and friction without requiring the user to invoke `/insights`.
+
+```bash
+python3 ~/Projects/claude-workflow/scripts/session-insights.py 2>/dev/null || true
+```
+
+**Paste the script's stdout verbatim** into your response as a fenced code block immediately after the Phase 1 cost output. If the script prints nothing or "No session data found", skip the block silently.
+
+### Feed friction into Phase 2
+
+Any line beginning with `[TRIAGE]` in the script output is a friction signal from the Claude-analyzed facets. When Phase 2 runs its learning triage, treat each `[TRIAGE]` line as a candidate feedback memory — apply the same filter ("would a future session benefit from knowing this?") before surfacing it. Do not auto-create memories; include them in the Phase 2 triage list for user approval.
+
 Continue immediately to Phase 1b. Do NOT wait for user input.
 
 ---
@@ -76,7 +96,7 @@ Continue immediately to Phase 1b. Do NOT wait for user input.
 - Arguments include "quick"
 - Arguments do NOT include "insights"
 
-This phase is in measurement mode. The built-in `/insights` command produces a cross-session report (project areas, interaction patterns, friction points). Its cost profile is undocumented — we capture it once per opt-in run so we can decide later whether to promote to default.
+The built-in `/insights` command produces a cross-session HTML report (project areas, interaction patterns, friction trends across sessions). Per-session friction is now handled automatically in Phase 1a — this phase is for the periodic cross-session view.
 
 ### Run /insights and capture cost
 
