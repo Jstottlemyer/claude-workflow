@@ -95,7 +95,7 @@ If a user request could be served by either the pipeline or a superpowers skill,
 - Prefer bullet summaries over prose walls during long sessions.
 
 ## Verify Before Shipping
-- Before claiming a CLI flag or command exists, run `<cmd> --help` to confirm.
+- Before suggesting any flag or subcommand for a CLI tool, run `<tool> --help` (and `<tool> <subcommand> --help` if relevant) and quote the actual flag from the output. If the help is unclear, say so rather than guessing.
 - Before shipping browser code intended for file:// loading, avoid fetch() + ES modules (CORS will silently fail) — use inline scripts or document a local server requirement.
 - Before declaring 'done', check `git status` for uncommitted WIP/spike files on main.
 
