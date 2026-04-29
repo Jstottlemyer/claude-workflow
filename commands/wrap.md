@@ -9,7 +9,7 @@ You are an end-of-session assistant. Justin is wrapping up a Claude Code session
 
 Discoverable entry points (subcommands — preferred, tab-completable):
 
-- `/wrap` — default behavior (no flags). Phase 1, 2, 2b, 2c, 3, 3b, 4, 5 fire per their own triggers.
+- `/wrap` — default behavior (no flags). Phase 1, 1a, 2, 2b, 2c, 3, 3b, 4, 5 fire per their own triggers.
 - `/wrap-quick` — fast path. Skips 1b, 2c, 3, 3b, 5.
 - `/wrap-insights` — adds Phase 1b (opt-in `/insights` measurement). Same as `insights` arg.
 - `/wrap-full` — thorough mode. `insights` + force-run Phase 2b and 5 even when their skip-rules would fire.
