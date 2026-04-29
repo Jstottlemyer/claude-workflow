@@ -483,8 +483,11 @@ This is the graphify → wiki bridge. Rather than let the code-graph structure l
 # Current branch
 git branch --show-current
 
-# Uncommitted changes (staged + unstaged)
-git status --short
+# Uncommitted changes (staged + unstaged) — porcelain for programmatic parsing
+git status --porcelain
+
+# Stashed work
+git stash list
 
 # Unpushed commits
 git log --oneline @{upstream}..HEAD 2>/dev/null
@@ -496,36 +499,61 @@ git worktree list
 ls docs/specs/*/spec.md 2>/dev/null
 ```
 
+### Categorize uncommitted files:
+
+For each file in `git status --porcelain` output, assign one of three categories by cross-referencing the Phase 1 session summary:
+
+| Category | Label | When |
+|---|---|---|
+| Touched intentionally this session | `part of session` | File appears in Phase 1 summary or was mentioned by the user |
+| In-progress work, not ready to commit | `WIP to stash` | Partially modified, no clear commit boundary, user likely wants to continue |
+| Unrelated leftover | `orphan to clean` | Temp files, screenshots, test artifacts, spike files with no session context |
+
 ### Present findings:
 
 ```
 === Git Status ===
 Branch: [branch name]
-Uncommitted: [count] files ([list if ≤5, summary if more])
 Unpushed: [count] commits
-Worktrees: [list if >1, "clean" if only main]
+Stashes: [count, or "none"]
+
+Uncommitted files:
+  [status] path/to/file  → part of session
+  [status] path/to/file  → WIP to stash
+  [status] path/to/file  → orphan to clean
 
 === Active Specs ===
 [If docs/specs/ exists: list features and their latest artifact (spec/review/plan/check)]
 [If no specs directory: omit this section]
 ```
 
+If all uncommitted files are `part of session` and already committed or staged, show "All clean. ✓" and skip the confirmation prompt.
+
 ### Suggest actions based on findings:
 
 | Finding | Suggestion |
 |---|---|
+| Files marked `part of session` | "Want to commit before leaving? I can help stage and commit." |
+| Files marked `WIP to stash` | "Run `git stash push -m 'wip: [description]'` to save for next session." |
+| Files marked `orphan to clean` | "These look like leftovers — delete them? (list files)" |
 | Unpushed branch with commits | "Run `/finish` to create a PR or merge → uses `finishing-a-development-branch` skill" |
-| Significant uncommitted changes | "Want to commit before leaving? I can help stage and commit." |
 | Open worktrees (besides main) | "You have open worktrees — clean up or leave for next session?" |
 | Specs with partial pipeline (e.g., spec.md but no plan.md) | Note where each feature is in the pipeline for next session |
-| Everything clean | "All clean. ✓" |
 
 Ask once:
 > Handle any of these, or done for today?
 
-If the user picks something, help with that one thing (commit, close a beads task, or suggest the appropriate skill). Do NOT chain into multi-step workflows — the user is leaving.
+If the user picks something, help with that one thing (commit, stash, delete, or suggest the appropriate skill). Do NOT chain into multi-step workflows — the user is leaving.
 
 If Phase 3b also has findings, append them under the same `=== Loose Ends ===` block (subsection `**Packages**`) and ask once for both at the end. Do not double-prompt.
+
+### Wrap confirmation gate:
+
+After Phase 3 (and 3b if applicable) are resolved, require explicit confirmation before the wrap is declared complete:
+
+> All loose ends handled — wrap complete? (yes / no, handle [item] first)
+
+Do not print any "wrap complete" or session-closed message until the user confirms. If they say "no" or name something to handle first, assist with that item and re-ask.
 
 ---
 
