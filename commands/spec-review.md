@@ -143,6 +143,7 @@ If the metrics paths are tracked-and-not-gitignored AND `docs/specs/<feature>/.p
    ## Conflicts Resolved
    [Any agent disagreements and how they were resolved]
 
+   [AUTORUN MODE: If AUTORUN=1 is set in your environment, skip this approval prompt. Write all artifacts and proceed immediately to the next stage. Do not output the approval prompt text below.]
    Approve to proceed to /plan? (approve / refine <what to change>)
    ```
 

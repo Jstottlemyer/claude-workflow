@@ -1,0 +1,9 @@
+{
+  "webhook_url": "",
+  "mail_to": "",
+  "spec_review_fatal_threshold": 2,
+  "build_max_retries": 3,
+  "test_cmd": "",
+  "timeout_stage": 300,
+  "timeout_codex": 120
+}

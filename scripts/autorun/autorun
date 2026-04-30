@@ -1,0 +1,88 @@
+#!/bin/bash
+##############################################################################
+# scripts/autorun/autorun
+#
+# Thin CLI wrapper around run.sh.
+# Usage: autorun <start|stop|status>
+#
+#   start   — run the queue (blocks until complete)
+#   stop    — write STOP file (halts after current build wave)
+#   status  — show current stage and recent run log
+##############################################################################
+set -euo pipefail
+
+REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+QUEUE_DIR="$REPO_DIR/queue"
+
+case "${1:-}" in
+    start)
+        LOCKFILE="$QUEUE_DIR/.autorun.lock"
+
+        # Ensure flock is available
+        if ! command -v flock &>/dev/null; then
+            echo "autorun: 'flock' is not available on this system."
+            echo "Install util-linux (Linux) or use brew install util-linux (macOS) and ensure it is on PATH."
+            exit 1
+        fi
+
+        # Acquire lock; exit clearly if another instance is already running
+        if ! flock -n "$LOCKFILE" true 2>/dev/null; then
+            echo "autorun: already running (another instance holds $LOCKFILE)"
+            echo "Use 'autorun status' to check progress, or 'autorun stop' to request a halt."
+            exit 1
+        fi
+
+        # exec replaces this wrapper process for a cleaner process table
+        exec flock -n "$LOCKFILE" bash "$REPO_DIR/scripts/autorun/run.sh"
+        ;;
+
+    stop)
+        touch "$QUEUE_DIR/STOP"
+        echo "autorun: STOP file written. Run will halt after the current build wave completes."
+        echo "Remove queue/STOP before the next run."
+        ;;
+
+    status)
+        echo "=== autorun status ==="
+        echo ""
+        echo "Current stage:"
+        if [ -f "$QUEUE_DIR/.current-stage" ]; then
+            cat "$QUEUE_DIR/.current-stage"
+        else
+            echo "  (not running)"
+        fi
+        echo ""
+        echo "STOP file: $([ -f "$QUEUE_DIR/STOP" ] && echo 'present (will halt after current wave)' || echo 'not set')"
+        echo ""
+        echo "Recent run log (last 5 lines):"
+        if [ -f "$QUEUE_DIR/run.log" ]; then
+            tail -5 "$QUEUE_DIR/run.log"
+        else
+            echo "  (no run.log yet)"
+        fi
+        echo ""
+        echo "Queue:"
+        ls "$QUEUE_DIR"/*.spec.md 2>/dev/null | while read -r f; do
+            slug="$(basename "$f" .spec.md)"
+            if [ -f "$QUEUE_DIR/$slug/run-summary.md" ]; then
+                echo "  $slug: complete"
+            elif [ -f "$QUEUE_DIR/$slug/failure.md" ]; then
+                echo "  $slug: FAILED"
+            elif [ -f "$QUEUE_DIR/$slug/state.json" ]; then
+                stage="$(python3 -c "import json; print(json.load(open('$QUEUE_DIR/$slug/state.json')).get('stage','?'))" 2>/dev/null || echo '?')"
+                echo "  $slug: in-progress (stage=$stage)"
+            else
+                echo "  $slug: pending"
+            fi
+        done
+        ;;
+
+    *)
+        echo "Usage: autorun <start|stop|status>"
+        echo ""
+        echo "  start   — run the queue (blocks until complete)"
+        echo "  stop    — write STOP file (halts after current build wave)"
+        echo "  status  — show current stage and recent run log"
+        exit 1
+        ;;
+esac

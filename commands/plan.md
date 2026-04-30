@@ -110,6 +110,7 @@ Run `commands/_prompts/findings-emit.md`. It reads `docs/specs/<feature>/plan/ra
    ## Risks
    [Top risks from design analysis]
 
+   [AUTORUN MODE: If AUTORUN=1 is set in your environment, skip this approval prompt. Write all artifacts and proceed immediately to the next stage. Do not output the approval prompt text below.]
    Approve to proceed to /check? (approve / adjust <what to change>)
    ```
 

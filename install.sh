@@ -135,6 +135,27 @@ for script in "$REPO_DIR"/scripts/*.py "$REPO_DIR"/scripts/*.sh; do
     link_file "$script" "$CLAUDE_DIR/scripts/$(basename "$script")"
 done
 
+# --- Autorun scripts ---
+echo ""
+echo "Installing autorun scripts..."
+mkdir -p "$REPO_DIR/scripts/autorun"
+find "$REPO_DIR/scripts/autorun" -type f \( -name "*.sh" -o -name "autorun" \) -exec chmod +x {} \;
+mkdir -p "$REPO_DIR/queue"
+if [ ! -f "$REPO_DIR/queue/.gitignore" ]; then
+    cat > "$REPO_DIR/queue/.gitignore" << 'GITIGNORE'
+# autorun queue — transient artifacts, never commit
+autorun.config.json
+*/
+STOP
+run.log
+.current-stage
+.autorun.lock
+*.spec.md
+*.prompt.txt
+GITIGNORE
+    echo "  CREATED: queue/.gitignore"
+fi
+
 # --- Persona Metrics: gitignore default-flip for adopters ---
 # Adopter installs (any project NOT named 'claude-workflow') default to opt-in-to-commit
 # for persona-metrics artifacts. claude-workflow's own repo overrides via name detection.
@@ -227,6 +248,7 @@ echo "  - 8 pipeline commands (/kickoff → /spec → /spec-review → /plan →
 echo "  - 3 templates (constitution, repo-signals, CLAUDE.md baseline)"
 echo "  - Settings with pipeline-optimized permissions"
 echo "  - Scripts (session-cost.py, doctor.sh, statusline-command.sh)"
+echo "  - Autorun pipeline (scripts/autorun/ + queue/ with .gitignore)"
 echo ""
 echo "Next steps:"
 echo "  1. Customize ~/CLAUDE.md (copied from templates/CLAUDE.md — fill in your name, role, dev env)"

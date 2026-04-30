@@ -1,0 +1,9 @@
+# autorun queue — transient artifacts, never commit
+autorun.config.json
+*/
+STOP
+run.log
+.current-stage
+.autorun.lock
+*.spec.md
+*.prompt.txt

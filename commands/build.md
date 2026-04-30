@@ -51,6 +51,7 @@ Execution discipline:
 - Verification: superpowers:verification-before-completion
 - Testing: write thorough tests
 
+[AUTORUN MODE: If AUTORUN=1 is set in your environment, skip this approval prompt. Write all artifacts and proceed immediately to the next stage. Do not output the approval prompt text below.]
 Launch Wave 1? (go / hold)
 ```
 
