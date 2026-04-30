@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT_DIR="${PROJECT_DIR:-$REPO_DIR}"
 source "$REPO_DIR/scripts/autorun/defaults.sh"
 
 # ---------------------------------------------------------------------------
@@ -20,7 +21,7 @@ mkdir -p "$ARTIFACT_DIR"
 if [ "${AUTORUN_DRY_RUN:-0}" = "1" ]; then
   echo "[autorun] spec-review: DRY RUN mode — skipping claude -p invocation"
 
-  REVIEW_DIR="$REPO_DIR/docs/specs/$SLUG/spec-review"
+  REVIEW_DIR="$PROJECT_DIR/docs/specs/$SLUG/spec-review"
   mkdir -p "$REVIEW_DIR"
 
   cat > "$ARTIFACT_DIR/review-findings.md" <<'EOF'
@@ -68,7 +69,7 @@ echo "[autorun] spec-review: starting claude -p (timeout=${TIMEOUT_STAGE}s, slug
 CLAUDE_EXIT=0
 timeout "$TIMEOUT_STAGE" claude -p \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
-    --add-dir "$REPO_DIR" \
+    --add-dir "$PROJECT_DIR" \
     "$PROMPT" \
     2>"$STDERR_LOG" || CLAUDE_EXIT=$?
 
@@ -95,7 +96,7 @@ fi
 # ---------------------------------------------------------------------------
 # Test 3: Verify per-persona raw files exist
 # ---------------------------------------------------------------------------
-RAW_DIR="$REPO_DIR/docs/specs/$SLUG/spec-review/raw"
+RAW_DIR="$PROJECT_DIR/docs/specs/$SLUG/spec-review/raw"
 echo "[autorun] spec-review: checking per-persona raw files in $RAW_DIR"
 
 EXPECTED_PERSONAS=(requirements gaps ambiguity feasibility scope stakeholders)
@@ -118,7 +119,7 @@ fi
 # ---------------------------------------------------------------------------
 # Test 4: Verify findings.jsonl exists
 # ---------------------------------------------------------------------------
-FINDINGS_FILE="$REPO_DIR/docs/specs/$SLUG/spec-review/findings.jsonl"
+FINDINGS_FILE="$PROJECT_DIR/docs/specs/$SLUG/spec-review/findings.jsonl"
 if [ -f "$FINDINGS_FILE" ]; then
   echo "[autorun] spec-review: findings.jsonl present ($(wc -l < "$FINDINGS_FILE") lines)"
 else
@@ -128,7 +129,7 @@ fi
 # ---------------------------------------------------------------------------
 # Test 5: Verify run.json exists and has status "ok"
 # ---------------------------------------------------------------------------
-RUN_JSON="$REPO_DIR/docs/specs/$SLUG/spec-review/run.json"
+RUN_JSON="$PROJECT_DIR/docs/specs/$SLUG/spec-review/run.json"
 if [ ! -f "$RUN_JSON" ]; then
   echo "[autorun] spec-review: WARN — run.json not found at $RUN_JSON"
 else
@@ -173,7 +174,7 @@ if [ "$FAIL_COUNT" -ge "$SPEC_REVIEW_FATAL_THRESHOLD" ]; then
   echo "[autorun] spec-review: threshold exceeded ($FAIL_COUNT >= $SPEC_REVIEW_FATAL_THRESHOLD) — writing findings and exiting 2"
   # Write findings artifact before halting
   _write_findings_artifact() {
-    local review_md="$REPO_DIR/docs/specs/$SLUG/review.md"
+    local review_md="$PROJECT_DIR/docs/specs/$SLUG/review.md"
     if [ -f "$review_md" ]; then
       cp "$review_md" "$ARTIFACT_DIR/review-findings.md"
       echo "[autorun] spec-review: wrote review-findings.md from review.md"
@@ -207,7 +208,7 @@ fi
 # ---------------------------------------------------------------------------
 # Context handoff: write review-findings.md to ARTIFACT_DIR
 # ---------------------------------------------------------------------------
-REVIEW_MD="$REPO_DIR/docs/specs/$SLUG/review.md"
+REVIEW_MD="$PROJECT_DIR/docs/specs/$SLUG/review.md"
 if [ -f "$REVIEW_MD" ]; then
   cp "$REVIEW_MD" "$ARTIFACT_DIR/review-findings.md"
   echo "[autorun] spec-review: wrote review-findings.md from review.md"

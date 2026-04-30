@@ -4,21 +4,22 @@
 #
 # Main orchestrator for the autonomous overnight pipeline.
 # Invoked via:
-#   flock -n "$REPO_DIR/queue/.autorun.lock" bash "$REPO_DIR/scripts/autorun/run.sh"
+#   flock -n "$PROJECT_DIR/queue/.autorun.lock" bash "$ENGINE_DIR/scripts/autorun/run.sh"
 #
 # Processes every queue/*.spec.md file in order, running the full pipeline:
 #   spec-review → risk-analysis → plan → check → build → pr-creation → codex-review → merge
 ##############################################################################
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-source "$REPO_DIR/scripts/autorun/defaults.sh"
+ENGINE_DIR="${ENGINE_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+PROJECT_DIR="${PROJECT_DIR:-$PWD}"
+source "$ENGINE_DIR/scripts/autorun/defaults.sh"
 
-QUEUE_DIR="$REPO_DIR/queue"
+QUEUE_DIR="$PROJECT_DIR/queue"
 CONFIG_FILE="$QUEUE_DIR/autorun.config.json"
 AUTORUN=1
-AUTORUN_VERSION="$(cat "$REPO_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
-export QUEUE_DIR CONFIG_FILE AUTORUN AUTORUN_VERSION
+AUTORUN_VERSION="$(cat "$ENGINE_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
+export QUEUE_DIR CONFIG_FILE AUTORUN AUTORUN_VERSION ENGINE_DIR PROJECT_DIR
 
 # ---------------------------------------------------------------------------
 # DRY RUN notice (stage scripts handle their own stubs; run.sh just logs it)
@@ -87,7 +88,7 @@ FAIL_EOF
 # Helper: detect_orphan
 # Check for a stale or live run from a previous invocation.
 # Returns 0 = safe to proceed, 1 = live process found (skip item).
-# Requires SLUG, ARTIFACT_DIR, REPO_DIR to be set in calling scope.
+# Requires SLUG, ARTIFACT_DIR, PROJECT_DIR to be set in calling scope.
 # ---------------------------------------------------------------------------
 detect_orphan() {
     if [ ! -f "$ARTIFACT_DIR/state.json" ]; then return 0; fi
@@ -107,7 +108,7 @@ detect_orphan() {
     echo "[autorun] $SLUG: orphaned run detected (stale pid=$prev_pid) — cleaning up"
 
     # Delete stale remote branch before Stage 1 re-entry
-    git -C "$REPO_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null \
+    git -C "$PROJECT_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null \
         && echo "[autorun] $SLUG: deleted stale remote branch autorun/$SLUG" \
         || true
 
@@ -158,7 +159,7 @@ run_item() {
     write_state "spec-review"
 
     local STAGE_EXIT=0
-    bash "$REPO_DIR/scripts/autorun/spec-review.sh" || STAGE_EXIT=$?
+    bash "$ENGINE_DIR/scripts/autorun/spec-review.sh" || STAGE_EXIT=$?
     log_run "$SLUG" "spec-review" "$STAGE_EXIT"
 
     if [ "$STAGE_EXIT" -eq 2 ]; then
@@ -178,7 +179,7 @@ run_item() {
     write_state "risk-analysis"
 
     STAGE_EXIT=0
-    bash "$REPO_DIR/scripts/autorun/risk-analysis.sh" || STAGE_EXIT=$?
+    bash "$ENGINE_DIR/scripts/autorun/risk-analysis.sh" || STAGE_EXIT=$?
     log_run "$SLUG" "risk-analysis" "$STAGE_EXIT"
 
     if [ "$STAGE_EXIT" -ne 0 ]; then
@@ -206,7 +207,7 @@ run_item() {
     write_state "plan"
 
     STAGE_EXIT=0
-    bash "$REPO_DIR/scripts/autorun/plan.sh" || STAGE_EXIT=$?
+    bash "$ENGINE_DIR/scripts/autorun/plan.sh" || STAGE_EXIT=$?
     log_run "$SLUG" "plan" "$STAGE_EXIT"
 
     if [ "$STAGE_EXIT" -ne 0 ]; then
@@ -222,7 +223,7 @@ run_item() {
     write_state "check"
 
     STAGE_EXIT=0
-    bash "$REPO_DIR/scripts/autorun/check.sh" || STAGE_EXIT=$?
+    bash "$ENGINE_DIR/scripts/autorun/check.sh" || STAGE_EXIT=$?
     log_run "$SLUG" "check" "$STAGE_EXIT"
 
     if [ "$STAGE_EXIT" -eq 2 ]; then
@@ -239,13 +240,13 @@ run_item() {
     # Create or reset the autorun branch for this item
     update_stage "branch-setup"
     BRANCH_NAME="autorun/$SLUG"
-    if git -C "$REPO_DIR" rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+    if git -C "$PROJECT_DIR" rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
         # Branch exists — reset to main to start fresh
-        git -C "$REPO_DIR" checkout "$BRANCH_NAME"
-        git -C "$REPO_DIR" reset --hard "$(git -C "$REPO_DIR" rev-parse main)"
+        git -C "$PROJECT_DIR" checkout "$BRANCH_NAME"
+        git -C "$PROJECT_DIR" reset --hard "$(git -C "$PROJECT_DIR" rev-parse main)"
         echo "[autorun] $SLUG: reset existing branch $BRANCH_NAME to main"
     else
-        git -C "$REPO_DIR" checkout -b "$BRANCH_NAME"
+        git -C "$PROJECT_DIR" checkout -b "$BRANCH_NAME"
         echo "[autorun] $SLUG: created branch $BRANCH_NAME"
     fi
 
@@ -256,7 +257,7 @@ run_item() {
     write_state "build"
 
     STAGE_EXIT=0
-    bash "$REPO_DIR/scripts/autorun/build.sh" || STAGE_EXIT=$?
+    bash "$ENGINE_DIR/scripts/autorun/build.sh" || STAGE_EXIT=$?
     log_run "$SLUG" "build" "$STAGE_EXIT"
 
     if [ "$STAGE_EXIT" -eq 3 ]; then
@@ -279,7 +280,7 @@ run_item() {
 
     STAGE_EXIT=0
     PR_URL="$(gh pr create \
-        --repo "$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null | sed 's|https://github.com/||;s|.git$||')" \
+        --repo "$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null | sed 's|https://github.com/||;s|.git$||')" \
         --title "autorun: $SLUG" \
         --body "$(cat <<PRBODY
 ## Summary
@@ -384,22 +385,22 @@ $(cat "$ARTIFACT_DIR/build-log.md" | tail -200)
 ## Codex High-Severity Findings
 $(grep '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null)"
 
-        SHA_BEFORE_FIX="$(git -C "$REPO_DIR" rev-parse HEAD)"
+        SHA_BEFORE_FIX="$(git -C "$PROJECT_DIR" rev-parse HEAD)"
 
         FIX_EXIT=0
         timeout "$TIMEOUT_STAGE" claude -p \
             --system-prompt "You are running in fully autonomous overnight mode. Fix the failing issues. Commit your fix. Do not ask for approval." \
-            --add-dir "$REPO_DIR" \
+            --add-dir "$PROJECT_DIR" \
             "$FIX_PROMPT" \
             2>/dev/null || FIX_EXIT=$?
 
-        SHA_AFTER_FIX="$(git -C "$REPO_DIR" rev-parse HEAD)"
+        SHA_AFTER_FIX="$(git -C "$PROJECT_DIR" rev-parse HEAD)"
 
         # Verify a new commit was produced
         if [ "$FIX_EXIT" -ne 0 ] || [ "$SHA_BEFORE_FIX" = "$SHA_AFTER_FIX" ]; then
             echo "[autorun] $SLUG: fix attempt failed (exit $FIX_EXIT, no new commit) — closing PR"
             [ -f "$ARTIFACT_DIR/pr-url.txt" ] && gh pr close "$(cat "$ARTIFACT_DIR/pr-url.txt")" 2>/dev/null || true
-            git -C "$REPO_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null || true
+            git -C "$PROJECT_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null || true
             write_failure_item "fix-attempt" "fix attempt produced no commit (exit $FIX_EXIT)"
             return 0
         fi
@@ -435,14 +436,14 @@ $(grep '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null)"
         if [ "$FIX_TEST_PASSED" -eq 0 ] || [ "$FIX_CODEX_HIGH" -gt 0 ]; then
             echo "[autorun] $SLUG: still failing after fix — closing PR, writing failure"
             [ -f "$ARTIFACT_DIR/pr-url.txt" ] && gh pr close "$(cat "$ARTIFACT_DIR/pr-url.txt")" 2>/dev/null || true
-            git -C "$REPO_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null || true
+            git -C "$PROJECT_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null || true
             write_failure_item "fix-attempt" "still failing after fix (tests=$FIX_TEST_PASSED codex_high=$FIX_CODEX_HIGH)"
             return 0
         fi
 
         echo "[autorun] $SLUG: fix successful — proceeding to merge"
         # Push the fix commit
-        git -C "$REPO_DIR" push origin "autorun/$SLUG" 2>/dev/null || true
+        git -C "$PROJECT_DIR" push origin "autorun/$SLUG" 2>/dev/null || true
         CODEX_HIGH_COUNT=0  # cleared — fix succeeded
     fi
 
@@ -507,7 +508,6 @@ for SPEC_FILE in "$QUEUE_DIR"/*.spec.md; do
     [ -f "$SPEC_FILE" ] || continue  # glob miss (no .spec.md files)
 
     SLUG="$(basename "$SPEC_FILE" .spec.md)"
-    ARTIFACT_DIR="$QUEUE_DIR/$SLUG"
 
     # Check STOP file between items
     if [ -f "$QUEUE_DIR/STOP" ]; then
@@ -544,7 +544,8 @@ done
         [ -d "$d" ] || continue
         s="$(basename "$d")"
         if [ -f "$d/run-summary.md" ]; then
-            echo "| $s | complete | build | (see 10b) | — |"
+            pr="$(cat "$d/pr-url.txt" 2>/dev/null || echo "—")"
+            echo "| $s | complete | merge | $pr | — |"
         elif [ -f "$d/failure.md" ]; then
             stage="$(grep -o 'stage=[a-z-]*' "$d/failure.md" | head -1 | cut -d= -f2 || echo unknown)"
             echo "| $s | failed | $stage | — | $d/failure.md |"
@@ -558,7 +559,7 @@ echo "none" > "$QUEUE_DIR/.current-stage"
 # ---------------------------------------------------------------------------
 # Notify (best-effort — failure here does not affect exit code)
 # ---------------------------------------------------------------------------
-if [ -x "$REPO_DIR/scripts/autorun/notify.sh" ]; then
+if [ -x "$ENGINE_DIR/scripts/autorun/notify.sh" ]; then
     NOTIFY_SUMMARY="$QUEUE_DIR/run-summary.md"
     cat > "$NOTIFY_SUMMARY" <<NS_EOF
 # Autorun Run Summary
@@ -567,5 +568,5 @@ if [ -x "$REPO_DIR/scripts/autorun/notify.sh" ]; then
 **Failures:** $ITEMS_FAILED
 **Stop requested:** $STOP_REQUESTED
 NS_EOF
-    bash "$REPO_DIR/scripts/autorun/notify.sh" || true
+    bash "$ENGINE_DIR/scripts/autorun/notify.sh" || true
 fi

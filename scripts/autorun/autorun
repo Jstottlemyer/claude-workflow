@@ -11,8 +11,20 @@
 ##############################################################################
 set -euo pipefail
 
-REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-QUEUE_DIR="$REPO_DIR/queue"
+# Resolve real script location — handles symlinks (macOS-compatible, no readlink -f)
+_self="$0"
+while [ -L "$_self" ]; do
+    _dir="$(cd "$(dirname "$_self")" && pwd)"
+    _target="$(readlink "$_self")"
+    case "$_target" in /*) _self="$_target" ;; *) _self="$_dir/$_target" ;; esac
+done
+ENGINE_DIR="$(cd "$(dirname "$_self")/../.." && pwd)"
+unset _self _dir _target
+
+# PROJECT_DIR = the target repo to operate on (override via AUTORUN_PROJECT_DIR)
+PROJECT_DIR="${AUTORUN_PROJECT_DIR:-$PWD}"
+QUEUE_DIR="$PROJECT_DIR/queue"
+export ENGINE_DIR PROJECT_DIR
 
 case "${1:-}" in
     start)
@@ -33,7 +45,7 @@ case "${1:-}" in
         fi
 
         # exec replaces this wrapper process for a cleaner process table
-        exec flock -n "$LOCKFILE" bash "$REPO_DIR/scripts/autorun/run.sh"
+        exec flock -n "$LOCKFILE" bash "$ENGINE_DIR/scripts/autorun/run.sh"
         ;;
 
     stop)

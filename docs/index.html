@@ -396,6 +396,7 @@ flowchart TD
         <tr><td><code>/plan</code></td><td>Architecture + implementation design</td><td>6 designers</td></tr>
         <tr><td><code>/check</code></td><td>Last gate before code — validates the plan; + Codex adversarial pass (optional)</td><td>5 validators</td></tr>
         <tr><td><code>/build</code></td><td>Parallel execution with verification discipline; + Codex implementation review (optional)</td><td>Superpowers</td></tr>
+        <tr><td><code>/autorun</code></td><td>Headless overnight pipeline — queues a spec and drives all 8 stages unattended via <code>autorun start</code>. Works cross-project: engine scripts stay in <code>claude-workflow</code>, target git/docs/queue live in <code>$PWD</code>.</td><td>Shell</td></tr>
         <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
         <tr><td><code>/wrap</code></td><td>Session wrap-up — three automatic insight phases feed one triage gate (CLAUDE.md · Memory · hooks · skills), then git loose ends. Variants: <code>quick</code> (fast, skips insights) · <code>full</code> (forces soft-skip phases)</td><td>—</td></tr>
       </tbody>

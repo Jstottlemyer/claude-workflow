@@ -137,6 +137,36 @@ Work scales — you don't need the full pipeline for a bug fix:
 | Feature | Full pipeline |
 | V2 / rework | Revise existing spec, then full pipeline |
 
+## 7. Run the pipeline overnight (optional)
+
+Write a spec, then let `/autorun` drive the rest while you sleep — no interactive session needed.
+
+```bash
+# From any project:
+cd ~/Projects/myproject
+
+# Queue the spec you already wrote
+cp docs/specs/myfeature/spec.md queue/myfeature.spec.md
+
+# Start headless in a detached tmux window
+tmux new-window -n autorun 'autorun start; echo "[autorun] done — press enter"; read'
+
+# Check progress
+autorun status
+
+# Morning check
+cat queue/index.md
+```
+
+**How it works:** `autorun` is a thin CLI wrapper installed at `~/.local/bin/autorun` by `install.sh`. It resolves back to `claude-workflow/scripts/autorun/run.sh` regardless of where it's called from. The engine (stage scripts, personas) always lives in `claude-workflow`; the target (git, docs/, queue/) is always `$PWD` of the project you called it from.
+
+**Kill-switch:**
+```bash
+touch queue/STOP    # halts cleanly after the current build wave
+```
+
+See `commands/autorun.md` for the full reference (config options, failure handling, dry-run mode, notification channels).
+
 ## If something looks wrong
 
 Run the doctor — it captures your install state and auto-files a GitHub Issue for Justin:

@@ -117,6 +117,7 @@ flowchart LR
 | `/plan` | Architecture + implementation design | 6 designers |
 | `/check` | Last gate before code — validates the plan; + Codex adversarial pass (optional) | 5 validators |
 | `/build` | Parallel execution with verification discipline; + Codex implementation review (optional) | Superpowers |
+| `/autorun` | Headless overnight pipeline — queues a spec and drives all 8 stages unattended via `autorun start` | Shell |
 | `/flow` | Displays workflow reference card | - |
 | `/wrap` | Session wrap-up — summary, learnings, git loose ends | - |
 

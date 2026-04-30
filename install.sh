@@ -140,6 +140,9 @@ echo ""
 echo "Installing autorun scripts..."
 mkdir -p "$REPO_DIR/scripts/autorun"
 find "$REPO_DIR/scripts/autorun" -type f \( -name "*.sh" -o -name "autorun" \) -exec chmod +x {} \;
+mkdir -p "$HOME/.local/bin"
+ln -sf "$REPO_DIR/scripts/autorun/autorun" "$HOME/.local/bin/autorun"
+echo "  LINKED: autorun -> $HOME/.local/bin/autorun"
 mkdir -p "$REPO_DIR/queue"
 if [ ! -f "$REPO_DIR/queue/.gitignore" ]; then
     cat > "$REPO_DIR/queue/.gitignore" << 'GITIGNORE'

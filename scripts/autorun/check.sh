@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT_DIR="${PROJECT_DIR:-$REPO_DIR}"
 source "$REPO_DIR/scripts/autorun/defaults.sh"
 
 # ---------------------------------------------------------------------------
@@ -79,7 +80,7 @@ echo "[autorun] check: starting claude -p (timeout=${TIMEOUT_STAGE}s, slug=$SLUG
 CLAUDE_EXIT=0
 timeout "$TIMEOUT_STAGE" claude -p \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
-    --add-dir "$REPO_DIR" \
+    --add-dir "$PROJECT_DIR" \
     "$PROMPT" \
     >"$STDOUT_LOG" \
     2>"$STDERR_LOG" || CLAUDE_EXIT=$?
@@ -97,7 +98,7 @@ echo "[autorun] check: claude -p exited 0"
 # Artifact verification: check docs/specs/$SLUG/check.md first,
 # then fall back to stdout capture
 # ---------------------------------------------------------------------------
-CHECK_CANONICAL="$REPO_DIR/docs/specs/$SLUG/check.md"
+CHECK_CANONICAL="$PROJECT_DIR/docs/specs/$SLUG/check.md"
 
 if [ -f "$CHECK_CANONICAL" ]; then
   cp "$CHECK_CANONICAL" "$ARTIFACT_DIR/check.md"

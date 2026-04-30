@@ -58,6 +58,11 @@ All notable changes to `claude-workflow` are documented here.
 
 ### Fixed
 
+- **`/autorun` cross-project support** — the `autorun` CLI and all stage scripts (`run.sh`, `build.sh`, `spec-review.sh`, `plan.sh`, `check.sh`, `risk-analysis.sh`) now cleanly separate `ENGINE_DIR` (where scripts live, always `claude-workflow`) from `PROJECT_DIR` (the target repo, defaults to `$PWD`). Previously all paths used a single `REPO_DIR` that pointed to `claude-workflow`, so running `/autorun` from any other project silently operated on the wrong directory. Stage scripts fall back to `REPO_DIR` when `PROJECT_DIR` is unset, so existing single-repo setups are unaffected.
+- **`autorun` not on PATH** — `install.sh` now symlinks `scripts/autorun/autorun` → `~/.local/bin/autorun`. Previously the binary was never added to `PATH`, so `autorun start` produced "command not found" outside the repo directory.
+- **`autorun` symlink resolution on macOS** — `dirname "$0"` on a symlinked binary resolves to the symlink's directory, not the script's real location. The wrapper now uses a `while [ -L ]` loop (macOS-safe; `readlink -f` is unavailable on stock macOS) to find `ENGINE_DIR` before any path calculation.
+- **`/autorun` in-session simulation** — `commands/autorun.md` lacked an explicit action instruction; Claude read the pipeline documentation and attempted to orchestrate each stage interactively. Added an `## Action` block at the top of the command that explicitly delegates to `autorun start` and prohibits in-session simulation.
+- **`index.md` PR column placeholder** — `run.sh` was writing `(see 10b)` (a leftover development note) instead of the actual PR URL in the queue summary table. Fixed to read `pr-url.txt`.
 - **Namespace collision** between user `/brainstorm` and `superpowers:brainstorm` — resolved by rename.
 
 ### Security

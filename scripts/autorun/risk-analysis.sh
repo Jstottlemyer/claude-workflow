@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT_DIR="${PROJECT_DIR:-$REPO_DIR}"
 source "$REPO_DIR/scripts/autorun/defaults.sh"
 
 # ---------------------------------------------------------------------------
@@ -99,7 +100,7 @@ echo "[autorun] risk-analysis: starting claude -p (timeout=${TIMEOUT_STAGE}s, sl
 CLAUDE_EXIT=0
 timeout "$TIMEOUT_STAGE" claude -p \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
-    --add-dir "$REPO_DIR" \
+    --add-dir "$PROJECT_DIR" \
     "$PROMPT" \
     > "$ARTIFACT_DIR/risk-findings.md" \
     2>"$STDERR_LOG" || CLAUDE_EXIT=$?

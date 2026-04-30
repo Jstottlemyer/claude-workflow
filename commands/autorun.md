@@ -2,6 +2,28 @@
 description: Run the full pipeline headlessly overnight — spec-review → plan → check → build → PR → merge
 ---
 
+## Action
+
+**Your only job is to invoke the shell pipeline. Do NOT orchestrate this in-session.**
+
+1. Confirm `queue/<slug>.spec.md` exists in the current project. If not, copy it:
+   ```bash
+   cp docs/specs/<slug>/spec.md queue/<slug>.spec.md
+   ```
+2. Run the pipeline in a detached tmux window so it survives session end:
+   ```bash
+   tmux new-window -n autorun 'autorun start; echo "[autorun] done — press enter"; read'
+   ```
+   Or to run inline (blocks until complete):
+   ```bash
+   autorun start
+   ```
+3. Confirm it started with `autorun status`.
+
+Do NOT read the stage commands (spec-review.md, plan.md, etc.) and simulate them yourself. The entire pipeline is driven by `scripts/autorun/run.sh` via the `autorun` CLI.
+
+---
+
 ## Overview
 
 `/autorun` orchestrates the existing 8-command pipeline headlessly while you sleep. It is not a replacement for the interactive workflow — you write specs interactively via `/spec` as usual, then drop the result into `queue/` and let `/autorun` drive everything else. It runs as a local process via launchd or a detached tmux session and exits cleanly on the next morning.

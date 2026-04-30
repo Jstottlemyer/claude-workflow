@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT_DIR="${PROJECT_DIR:-$REPO_DIR}"
 source "$REPO_DIR/scripts/autorun/defaults.sh"
 
 # ---------------------------------------------------------------------------
@@ -41,7 +42,7 @@ AUTONOMY_DIRECTIVE="You are running in fully autonomous overnight mode. At every
 # ---------------------------------------------------------------------------
 PRE_BUILD_SHA_FILE="$ARTIFACT_DIR/pre-build-sha.txt"
 if [ ! -f "$PRE_BUILD_SHA_FILE" ]; then
-  git -C "$REPO_DIR" rev-parse HEAD > "$PRE_BUILD_SHA_FILE"
+  git -C "$PROJECT_DIR" rev-parse HEAD > "$PRE_BUILD_SHA_FILE"
 fi
 PRE_BUILD_SHA="$(cat "$PRE_BUILD_SHA_FILE")"
 
@@ -139,7 +140,7 @@ $(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")"
   CLAUDE_EXIT=0
   timeout "$TIMEOUT_STAGE" claude -p \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
-    --add-dir "$REPO_DIR" \
+    --add-dir "$PROJECT_DIR" \
     "$BUILD_PROMPT" \
     2>"$STDERR_LOG" | tee -a "$ARTIFACT_DIR/build-log.md" || CLAUDE_EXIT=${PIPESTATUS[0]}
 
@@ -183,7 +184,7 @@ done
 if [ "$BUILD_SUCCESS" -ne 1 ]; then
   echo "[autorun] build: exhausted $BUILD_MAX_RETRIES retries — rolling back to pre-build SHA $PRE_BUILD_SHA"
 
-  git -C "$REPO_DIR" reset --hard "$PRE_BUILD_SHA"
+  git -C "$PROJECT_DIR" reset --hard "$PRE_BUILD_SHA"
 
   # Remote cleanup — close any open PR
   if [ -f "$ARTIFACT_DIR/pr-url.txt" ]; then
@@ -194,7 +195,7 @@ if [ "$BUILD_SUCCESS" -ne 1 ]; then
   fi
 
   # Delete remote branch
-  git -C "$REPO_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null \
+  git -C "$PROJECT_DIR" push origin --delete "autorun/$SLUG" 2>/dev/null \
     && echo "[autorun] build: deleted remote branch autorun/$SLUG" \
     || true
 
