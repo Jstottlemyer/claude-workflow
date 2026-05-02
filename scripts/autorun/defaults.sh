@@ -33,7 +33,7 @@ export SPEC_REVIEW_FATAL_THRESHOLD="${SPEC_REVIEW_FATAL_THRESHOLD:-2}"
 export BUILD_MAX_RETRIES="${BUILD_MAX_RETRIES:-3}"
 
 # Seconds passed to timeout(1) wrapping every `claude -p` invocation.
-export TIMEOUT_STAGE="${TIMEOUT_STAGE:-300}"
+export TIMEOUT_STAGE="${TIMEOUT_STAGE:-1800}"
 
 # Seconds passed to timeout(1) wrapping every `codex` invocation.
 export TIMEOUT_CODEX="${TIMEOUT_CODEX:-120}"
@@ -49,6 +49,14 @@ export WEBHOOK_URL="${WEBHOOK_URL:-}"
 
 # Shell command run after each build attempt; empty = skip tests. Set to "exit 1" to test retry logic.
 export TEST_CMD="${TEST_CMD:-}"
+
+# ---------------------------------------------------------------------------
+# Auth: always use OAuth (claude.ai subscription), never the API key.
+# ANTHROPIC_API_KEY draws from the API console pay-as-you-go balance, which
+# is a separate account from the claude.ai subscription. Unset it so
+# `claude -p` falls back to OAuth.
+# ---------------------------------------------------------------------------
+unset ANTHROPIC_API_KEY
 
 # ---------------------------------------------------------------------------
 # Override defaults from autorun.config.json when present

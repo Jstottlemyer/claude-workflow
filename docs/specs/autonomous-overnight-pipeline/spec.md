@@ -205,3 +205,15 @@ None — all dimensions resolved at ≥0.85.
 ## Roster Changes
 
 No roster changes. 27 default personas cover this domain. The risk-analysis agent is a lightweight inline prompt defined in `scripts/autorun/risk-analysis.sh`, not a named persona file.
+
+---
+
+## Backlog
+
+Items captured post-ship for future pipeline improvement.
+
+| # | Item | Notes |
+|---|------|-------|
+| B1 | **Heartbeat / liveness detection for long-running `claude -p` stages** | 0.5% CPU on a running process is indistinguishable from idle/stuck. Need a periodic stdout heartbeat from `claude -p` or a side-channel signal (e.g. last-modified time on an in-progress artifact file) to confirm the agent is making progress. Without it, a genuinely stuck process waits silently until timeout. Potential approach: write a `.stage-heartbeat` file per stage at start; have the stage script `touch` it periodically (or check if claude wrote any output recently via `wc -c`); surface elapsed-since-last-write in `autorun status`. |
+| B2 | **`unset ANTHROPIC_API_KEY` in defaults.sh** | Shipped 2026-05-01 as a workaround so `claude -p` uses OAuth (claude.ai subscription) instead of the API console pay-as-you-go balance. Should be reviewed: does OAuth headless mode have its own rate limits that could bite overnight runs? |
+| B3 | **`--add-dir` greedy-arg bug fix** | Shipped 2026-05-01: prompt must be passed via `printf '%s' "$PROMPT" |` stdin, not as positional arg, because `--add-dir <directories...>` consumes the next token. All 5 stage scripts + run.sh patched. |

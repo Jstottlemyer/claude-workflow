@@ -73,10 +73,10 @@ trap 'rm -f "$STDERR_LOG" "$STDOUT_LOG"' EXIT
 echo "[autorun] plan: starting claude -p (timeout=${TIMEOUT_STAGE}s, slug=$SLUG)"
 
 CLAUDE_EXIT=0
-timeout "$TIMEOUT_STAGE" claude -p \
+printf '%s' "$PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
+    --dangerously-skip-permissions \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
     --add-dir "$PROJECT_DIR" \
-    "$PROMPT" \
     >"$STDOUT_LOG" \
     2>"$STDERR_LOG" || CLAUDE_EXIT=$?
 

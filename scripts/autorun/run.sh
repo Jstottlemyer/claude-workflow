@@ -274,6 +274,15 @@ run_item() {
     update_stage "pr-creation"
     write_state "pr-creation"
 
+    # Push branch to remote before creating PR (gh pr create requires the branch to exist remotely)
+    PUSH_EXIT=0
+    git -C "$PROJECT_DIR" push origin "autorun/$SLUG" 2>/dev/null || PUSH_EXIT=$?
+    if [ "$PUSH_EXIT" -ne 0 ]; then
+        echo "[autorun] $SLUG: WARN — failed to push branch autorun/$SLUG (exit $PUSH_EXIT)"
+    else
+        echo "[autorun] $SLUG: pushed branch autorun/$SLUG to origin"
+    fi
+
     PRE_BUILD_SHA="$(cat "$ARTIFACT_DIR/pre-build-sha.txt" 2>/dev/null || echo "unknown")"
     WAVE_COUNT="$(grep -c "^## Wave" "$ARTIFACT_DIR/build-log.md" 2>/dev/null || echo "unknown")"
     TEST_CMD_DISPLAY="${TEST_CMD:-(empty — skipped)}"
@@ -388,10 +397,10 @@ $(grep '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null)"
         SHA_BEFORE_FIX="$(git -C "$PROJECT_DIR" rev-parse HEAD)"
 
         FIX_EXIT=0
-        timeout "$TIMEOUT_STAGE" claude -p \
+        printf '%s' "$FIX_PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
+            --dangerously-skip-permissions \
             --system-prompt "You are running in fully autonomous overnight mode. Fix the failing issues. Commit your fix. Do not ask for approval." \
             --add-dir "$PROJECT_DIR" \
-            "$FIX_PROMPT" \
             2>/dev/null || FIX_EXIT=$?
 
         SHA_AFTER_FIX="$(git -C "$PROJECT_DIR" rev-parse HEAD)"

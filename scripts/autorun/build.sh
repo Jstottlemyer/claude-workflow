@@ -138,10 +138,10 @@ $(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")"
   > "$STDERR_LOG"
 
   CLAUDE_EXIT=0
-  timeout "$TIMEOUT_STAGE" claude -p \
+  printf '%s' "$BUILD_PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
+    --dangerously-skip-permissions \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
     --add-dir "$PROJECT_DIR" \
-    "$BUILD_PROMPT" \
     2>"$STDERR_LOG" | tee -a "$ARTIFACT_DIR/build-log.md" || CLAUDE_EXIT=${PIPESTATUS[0]}
 
   if [ "$CLAUDE_EXIT" -ne 0 ]; then

@@ -67,10 +67,10 @@ trap 'rm -f "$STDERR_LOG"' EXIT
 echo "[autorun] spec-review: starting claude -p (timeout=${TIMEOUT_STAGE}s, slug=$SLUG)"
 
 CLAUDE_EXIT=0
-timeout "$TIMEOUT_STAGE" claude -p \
+printf '%s' "$PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
+    --dangerously-skip-permissions \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
     --add-dir "$PROJECT_DIR" \
-    "$PROMPT" \
     2>"$STDERR_LOG" || CLAUDE_EXIT=$?
 
 if [ "$CLAUDE_EXIT" -ne 0 ]; then
