@@ -76,7 +76,13 @@ fi
 
 # Method 3: Webhook (Slack/generic)
 if [ -n "${WEBHOOK_URL:-}" ]; then
-  PAYLOAD="{\"text\": \"*$SUBJECT*\\n$(head -10 "$BODY_FILE" | sed 's/"/\\"/g' | tr '\n' '\\' | sed 's/\\/\\n/g')\"}"
+  BODY_TEXT="$(head -10 "$BODY_FILE" 2>/dev/null || true)"
+  PAYLOAD="$(python3 -c "
+import json, sys
+subject = sys.argv[1]
+body = sys.argv[2]
+print(json.dumps({'text': '*{}*\n{}'.format(subject, body)}))
+" "$SUBJECT" "$BODY_TEXT" 2>/dev/null || printf '{"text": "%s"}' "$SUBJECT")"
   curl -s -X POST "$WEBHOOK_URL" \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" >/dev/null \

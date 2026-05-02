@@ -79,7 +79,7 @@ All fields are optional. Create this file only when you need to override a defau
   "spec_review_fatal_threshold": 2,
   "build_max_retries": 3,
   "test_cmd": "",
-  "timeout_stage": 300,
+  "timeout_stage": 1800,
   "timeout_codex": 120
 }
 ```

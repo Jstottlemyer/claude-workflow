@@ -18,7 +18,7 @@ source "$ENGINE_DIR/scripts/autorun/defaults.sh"
 QUEUE_DIR="$PROJECT_DIR/queue"
 CONFIG_FILE="$QUEUE_DIR/autorun.config.json"
 AUTORUN=1
-AUTORUN_VERSION="$(cat "$ENGINE_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
+AUTORUN_VERSION="$(tr -d '[:space:]' < "$ENGINE_DIR/VERSION" 2>/dev/null || echo 'unknown')"
 export QUEUE_DIR CONFIG_FILE AUTORUN AUTORUN_VERSION ENGINE_DIR PROJECT_DIR
 
 # ---------------------------------------------------------------------------
@@ -240,14 +240,17 @@ run_item() {
     # Create or reset the autorun branch for this item
     update_stage "branch-setup"
     BRANCH_NAME="autorun/$SLUG"
+    git -C "$PROJECT_DIR" fetch origin main 2>/dev/null \
+      && BASE_REF="origin/main" \
+      || { echo "[autorun] $SLUG: WARN — could not fetch origin/main — using local main"; BASE_REF="main"; }
     if git -C "$PROJECT_DIR" rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-        # Branch exists — reset to main to start fresh
+        # Branch exists — reset to upstream main to start fresh
         git -C "$PROJECT_DIR" checkout "$BRANCH_NAME"
-        git -C "$PROJECT_DIR" reset --hard "$(git -C "$PROJECT_DIR" rev-parse main)"
-        echo "[autorun] $SLUG: reset existing branch $BRANCH_NAME to main"
+        git -C "$PROJECT_DIR" reset --hard "$BASE_REF"
+        echo "[autorun] $SLUG: reset existing branch $BRANCH_NAME to $BASE_REF"
     else
-        git -C "$PROJECT_DIR" checkout -b "$BRANCH_NAME"
-        echo "[autorun] $SLUG: created branch $BRANCH_NAME"
+        git -C "$PROJECT_DIR" checkout -b "$BRANCH_NAME" "$BASE_REF"
+        echo "[autorun] $SLUG: created branch $BRANCH_NAME from $BASE_REF"
     fi
 
     # -------------------------------------------------------------------------
@@ -333,12 +336,22 @@ PRBODY
         echo "[autorun] $SLUG: running Codex review (timeout=${TIMEOUT_CODEX}s)"
 
         CODEX_EXIT=0
+        CODEX_CONTEXT="$(mktemp "${TMPDIR:-/tmp}/autorun-codex-ctx-XXXXXX.md")"
+        {
+          printf '## Git Diff (committed changes since pre-build SHA)\n'
+          [ "$PRE_BUILD_SHA" != "unknown" ] && \
+            git -C "$PROJECT_DIR" diff "$PRE_BUILD_SHA" HEAD -- . 2>/dev/null | head -2000 || \
+            printf '(diff unavailable)\n'
+          printf '\n## Build Log (last 100 lines)\n'
+          tail -100 "$ARTIFACT_DIR/build-log.md" 2>/dev/null || true
+        } > "$CODEX_CONTEXT"
         timeout "$TIMEOUT_CODEX" codex exec \
             --full-auto --ephemeral \
             --output-last-message "$CODEX_OUTPUT_FILE" \
             "Review this PR implementation for correctness, security issues, and adherence to the spec. Look for: blocking bugs, security vulnerabilities, and significant deviations from the plan. For each finding, start the line with either **High:** (blocking), **Medium:** (non-blocking), or **Low:** (informational)." \
-            < "$ARTIFACT_DIR/build-log.md" \
+            < "$CODEX_CONTEXT" \
             2>/dev/null || CODEX_EXIT=$?
+        rm -f "$CODEX_CONTEXT"
 
         if [ "$CODEX_EXIT" -eq 0 ] && [ -f "$CODEX_OUTPUT_FILE" ]; then
             CODEX_AVAILABLE=1
@@ -346,7 +359,8 @@ PRBODY
             log_run "$SLUG" "codex-review" 0
 
             # Count **High:** findings (blocking)
-            CODEX_HIGH_COUNT="$(grep -c '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null || echo 0)"
+            CODEX_HIGH_COUNT="$(grep -c '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null || true)"
+            CODEX_HIGH_COUNT="${CODEX_HIGH_COUNT:-0}"
             CODEX_MEDIUM_LOW="$(grep -E '^\*\*(Medium|Low):\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null | wc -l | tr -d ' ')"
 
             echo "[autorun] $SLUG: Codex findings — High: $CODEX_HIGH_COUNT, Medium+Low: $CODEX_MEDIUM_LOW"
@@ -432,13 +446,27 @@ $(grep '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null)"
         FIX_CODEX_HIGH=0
         if [ "$FIX_TEST_PASSED" -eq 1 ] && [ "$CODEX_AVAILABLE" -eq 1 ]; then
             CODEX_FIX_OUTPUT="${TMPDIR:-/tmp}/codex-autorun-fix-review-${SLUG}.txt"
+            CODEX_FIX_CONTEXT="$(mktemp "${TMPDIR:-/tmp}/autorun-codex-fix-ctx-XXXXXX.md")"
+            {
+              printf '## Git Diff (all committed changes)\n'
+              [ "$PRE_BUILD_SHA" != "unknown" ] && \
+                git -C "$PROJECT_DIR" diff "$PRE_BUILD_SHA" HEAD -- . 2>/dev/null | head -2000 || \
+                printf '(diff unavailable)\n'
+              printf '\n## Build Log (last 100 lines)\n'
+              tail -100 "$ARTIFACT_DIR/build-log.md" 2>/dev/null || true
+            } > "$CODEX_FIX_CONTEXT"
+            CODEX_FIX_EXIT=0
             timeout "$TIMEOUT_CODEX" codex exec \
                 --full-auto --ephemeral \
                 --output-last-message "$CODEX_FIX_OUTPUT" \
                 "Re-review after the fix attempt. Report only **High:** blocking findings that remain." \
-                < "$ARTIFACT_DIR/build-log.md" \
-                2>/dev/null && \
-            FIX_CODEX_HIGH="$(grep -c '^\*\*High:\*\*' "$CODEX_FIX_OUTPUT" 2>/dev/null || echo 0)" || true
+                < "$CODEX_FIX_CONTEXT" \
+                2>/dev/null || CODEX_FIX_EXIT=$?
+            rm -f "$CODEX_FIX_CONTEXT"
+            if [ "$CODEX_FIX_EXIT" -eq 0 ]; then
+              FIX_CODEX_HIGH="$(grep -c '^\*\*High:\*\*' "$CODEX_FIX_OUTPUT" 2>/dev/null || true)"
+              FIX_CODEX_HIGH="${FIX_CODEX_HIGH:-0}"
+            fi
             echo "[autorun] $SLUG: post-fix Codex: $FIX_CODEX_HIGH High findings remain"
         fi
 
