@@ -59,6 +59,8 @@ flowchart TD
     KL -. "wiki-query · graphify<br/>auto-memory" .-> S
     PM -. "drift informs<br/>roster decisions" .-> K
 
+    linkStyle 4,5,6 stroke:#92400e,stroke-width:1.5px,stroke-dasharray:4 3,opacity:0.55
+
     classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
     classDef define fill:#5eead4,stroke:#0f766e,color:#134e4a,stroke-width:2px
     classDef review fill:#fdba74,stroke:#9a3412,color:#7c2d12,stroke-width:2px

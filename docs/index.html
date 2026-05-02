@@ -410,10 +410,12 @@ flowchart TD
     B["/build\nparallel execute"]:::execute
     W["/wrap"]:::wrap
     K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+
     SP["Superpowers\nTDD · verification"]:::side
     CX["Codex\nadversarial review"]:::accent
     KL["Knowledge layer\ngraphify · wiki"]:::side
     PM["Persona Metrics\nload-bearing · silent · survival rates"]:::metrics
+
     SP -.-> B
     CX -.-> SR
     CX -.-> C
@@ -425,6 +427,12 @@ flowchart TD
     W ==surfaces drift==> PM
     KL -. "wiki-query · graphify\nauto-memory" .-> S
     PM -. "drift informs\nroster decisions" .-> K
+
+    %% Codex edges (links 4,5,6 = CX→SR, CX→C, CX→B) are visually softened
+    %% so they read as ambient adversarial reviews without competing with
+    %% the main forward flow. Same intent as the other dashed-orange edges,
+    %% just lower-opacity stroke so overlapping reads as a wash, not a clash.
+    linkStyle 4,5,6 stroke:#92400e,stroke-width:1.5px,stroke-dasharray:4 3,opacity:0.55
     classDef setup   fill:#1e3a5f,stroke:#7c9cff,color:#bfdbfe,stroke-width:2px
     classDef define  fill:#0f4c4c,stroke:#5eead4,color:#99f6e4,stroke-width:2px
     classDef review  fill:#7c2d12,stroke:#fdba74,color:#fed7aa,stroke-width:2px
@@ -507,7 +515,7 @@ flowchart LR
       </pre>
     </div>
     <p class="lede" style="margin-top:24px"><strong style="color:var(--accent-2)">Compile, don't retrieve.</strong> Capture is cheap during the session (<code>"capture this: X"</code> → <code>_raw/</code>). Distillation happens once at <code>/wrap</code>. Reads at the start of the next session are free — the wiki is already structured, the graph is already built, memory is already loaded.</p>
-    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Measured weekly.</strong> Graph-driven queries on real codebases land <strong style="color:var(--accent-2)">~10–20× fewer tokens</strong> than full-corpus reads — 14.2× on a 1.5K-node codebase, 16.4× on a 2.2K-node one. <code>scripts/benchmark-json.sh</code> writes data to <code>dashboard/data/&lt;project&gt;.jsonl</code>; open <code>dashboard/index.html</code> to see your own.</p>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Measured weekly.</strong> Graph-driven queries on real codebases land <strong style="color:var(--accent-2)">~10–20× fewer tokens</strong> than full-corpus reads — 14.2× on a 1.5K-node codebase, 16.4× on a 2.2K-node one. <code>scripts/benchmark-json.sh</code> writes data to <code>dashboard/data/&lt;project&gt;.jsonl</code>; open <a href="../dashboard/index.html"><code>dashboard/index.html</code></a> to see your own (from a clone, run <code>open ~/Projects/MonsterFlow/dashboard/index.html</code>).</p>
   </div>
 </section>
 
