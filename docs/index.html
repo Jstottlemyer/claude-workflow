@@ -72,7 +72,10 @@
     letter-spacing: -0.025em;
     line-height: 1.05;
     margin: 0 0 20px;
-    background: linear-gradient(135deg, #fff 0%, #c4b5fd 60%, #5eead4 100%);
+    /* Brand pair: indigo accent → teal accent-2. Used consistently in the
+       monogram, hero gradient, and primary CTA so the color combo becomes
+       the page's recognizable signature. */
+    background: linear-gradient(120deg, var(--accent) 0%, var(--accent-2) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -113,6 +116,14 @@
   .btn.primary:hover { box-shadow: 0 8px 24px rgba(124,156,255,0.35); }
 
   section { padding: 64px 0; border-bottom: 1px solid var(--line); }
+  /* Narrative sections (Pipeline, Self-learning, Knowledge loop, Wrap) carry
+     the visual story — give them more breathing room than the reference
+     sections so the page reads as chapters rather than one long scroll. */
+  section.narrative { padding: 96px 0; }
+  /* Drop the border between adjacent narrative sections so paired diagrams
+     group visually instead of being chopped by horizontal lines. */
+  section.narrative + section.narrative { border-top: none; }
+  section.narrative:not(:has(+ section:not(.narrative))) { border-bottom: none; }
   section h2 {
     font-size: 28px;
     font-weight: 700;
@@ -123,6 +134,102 @@
     color: var(--muted);
     margin: 0 0 32px;
     font-size: 16px;
+  }
+
+  /* Sticky in-page nav — wayfinding for an 11k-px tall page. Backdrop-blur
+     keeps it readable over the gradient background; transparent at top of
+     scroll, slightly more opaque once scrolled. */
+  nav.topnav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10,10,15,0.72);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+    height: 48px;
+    display: flex;
+    align-items: center;
+  }
+  nav.topnav .nav-inner {
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 13px;
+  }
+  nav.topnav .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--fg);
+    margin-right: auto;
+  }
+  nav.topnav .brand:hover { text-decoration: none; }
+  nav.topnav .nav-links {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  nav.topnav .nav-links a {
+    color: var(--muted);
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+  nav.topnav .nav-links a:hover { color: var(--fg); text-decoration: none; }
+  @media (max-width: 640px) {
+    nav.topnav .nav-links { gap: 12px; font-size: 12px; }
+    nav.topnav .nav-links a.hide-mobile { display: none; }
+  }
+
+  /* Brand monogram — circular badge with the MF gradient pair. Used in the
+     hero (above the eyebrow) and as the icon in the sticky nav. */
+  .monogram {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: #0a0a0f;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    font-family: 'Inter', sans-serif;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .monogram-lg { width: 56px; height: 56px; font-size: 22px; margin-bottom: 16px; }
+  .monogram-sm { width: 26px; height: 26px; font-size: 11px; }
+
+  /* Hero CTA hierarchy: primary (Install) carries the gradient; secondary
+     (GitHub) is ghosted; the small text link below the buttons points users
+     into the docs without competing with the two primary actions. */
+  .cta-secondary {
+    margin-top: 18px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .cta-secondary a { color: var(--accent); }
+
+  /* Mermaid: cap SVG height so a 1500-px-tall diagram doesn't dominate the
+     page; on mobile, reduce the frame's chrome and let the diagram scroll
+     within its container rather than scaling labels into illegibility. */
+  .mermaid svg { max-height: 540px; width: auto !important; height: auto; }
+  @media (max-width: 640px) {
+    .mermaid-frame { padding: 20px 12px; }
+    .mermaid { min-width: max-content; }
+    .mermaid-frame::after {
+      content: "↔ scroll";
+      display: block;
+      text-align: right;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 8px;
+      opacity: 0.6;
+    }
   }
 
   pre.install {
@@ -245,8 +352,22 @@
 </head>
 <body>
 
+<nav class="topnav">
+  <div class="nav-inner">
+    <a href="#" class="brand"><span class="monogram monogram-sm">MF</span> MonsterFlow</a>
+    <div class="nav-links">
+      <a href="#pipeline">Pipeline</a>
+      <a href="#self-learning" class="hide-mobile">Self-learning</a>
+      <a href="#commands">Commands</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/Jstottlemyer/MonsterFlow">GitHub ↗</a>
+    </div>
+  </div>
+</nav>
+
 <header class="hero">
   <div class="wrap">
+    <div class="monogram monogram-lg">MF</div>
     <span class="eyebrow">8-command pipeline · Claude Code · v0.2.0</span>
     <h1>You say WHAT.<br>Claude handles HOW.</h1>
     <p class="tagline">
@@ -256,15 +377,14 @@
       Each phase calls only the slice it needs. One <code>/wrap</code> at the end compiles what you learned into durable memory.
     </p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/Jstottlemyer/MonsterFlow">View on GitHub</a>
-      <a class="btn" href="#install">Install</a>
-      <a class="btn" href="#pipeline">See the pipeline</a>
-      <a class="btn" href="#self-learning">Self-learning</a>
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="https://github.com/Jstottlemyer/MonsterFlow">View on GitHub</a>
     </div>
+    <p class="cta-secondary">Or jump to <a href="#pipeline">the pipeline ↓</a></p>
   </div>
 </header>
 
-<section id="pipeline">
+<section id="pipeline" class="narrative">
   <div class="wrap">
     <h2>The pipeline</h2>
     <p class="lede">Five gates between an idea and shipped code. Specialist agents run in parallel at each one — their findings judged, deduplicated, and synthesized before the next phase starts.</p>
@@ -313,7 +433,7 @@ flowchart TD
   </div>
 </section>
 
-<section id="self-learning">
+<section id="self-learning" class="narrative">
   <div class="wrap">
     <h2>Self-learning</h2>
     <p class="lede">Every gate quietly records which findings shaped the next phase. <code>/wrap</code> Phase 1c renders the drift table and emits triage candidates for any persona that shifted meaningfully — closing the loop into Phase 2.</p>
@@ -343,7 +463,7 @@ flowchart LR
   </div>
 </section>
 
-<section id="knowledge-loop">
+<section id="knowledge-loop" class="narrative">
   <div class="wrap">
     <h2>The knowledge loop</h2>
     <p class="lede"><code>/wrap</code> doesn't just end a session — it compiles what you learned into stores that the next session reads from. Every <code>/spec</code> and <code>/kickoff</code> starts smarter than the last.</p>
@@ -381,7 +501,7 @@ flowchart LR
   </div>
 </section>
 
-<section id="wrap">
+<section id="wrap" class="narrative">
   <div class="wrap">
     <h2>Session wrap</h2>
     <p class="lede">The default <code>/wrap</code> runs the full ingestion chain — no flags needed. <code>/wrap-quick</code> skips all three insight phases for speed. <code>/wrap-full</code> forces phases that would otherwise soft-skip.</p>
