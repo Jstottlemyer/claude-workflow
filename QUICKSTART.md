@@ -124,7 +124,7 @@ Captures session summary, triages learnings, checks git loose ends, and audits p
 
 ```
 /kickoff → /spec → /spec-review → /plan → /check → /build
-           define    6 PRD        6 design  5 plan   execute
+           define    6 PRD        7 design  5 plan   execute
            (Q&A)     agents       agents    agents   (parallel)
 ```
 

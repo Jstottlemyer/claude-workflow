@@ -20,7 +20,16 @@ All notable changes to `MonsterFlow` are documented here.
 
 ### Added
 
-- *(none yet — next release)*
+- **`wave-sequencer` persona at `/plan`** (7th designer) — owns wave structure and dependency contracts. Codifies the three-gate default surfaced by Codex review: (1) data contract first, (2) UI / behavior closure second, (3) test hardening last. Other `/plan` personas own *what* gets built; `wave-sequencer` owns *the order* and *what each wave commits to*. Flags anti-patterns: polish-bucket waves, schema-as-afterthought, UI-first sequencing, hardening-before-closure, single-mega-wave. Output adds a "Wave decomposition" block per wave with `Closes / Includes / Depends on / Verifier signal / Minimum-shippable test`. Persona-metrics will surface its `load_bearing_rate` over the next ~10 features as the empirical test for whether it earns the slot.
+- **Virtuous-loop edges in Diagram 1** (the canonical pipeline mermaid in `docs/specs/persona-metrics/diagrams.md`, propagated to README.md and docs/index.html):
+  - `W -. next session reads compiled knowledge .-> S` — closes the knowledge loop. `/wrap` distills graphify graph + wiki + auto-memory; the next session's `/spec` starts smarter.
+  - `PM -. drift informs roster decisions .-> K` — closes the measurement loop. `/wrap-insights` Phase 1c surfaces per-persona drift; the human reads it and applies roster decisions at the next `/kickoff` (or via mid-project constitution edit).
+  - Both edges are dotted-with-label to distinguish them from the linear forward flow without losing visual weight on what closes the pipeline.
+
+### Changed
+
+- **`/plan` persona count: 6 → 7.** Updated counts everywhere: README "Agent Roster (40 total)" + Plan row (7), docs/index.html h2 + plan card + flow card, install.sh tail summary (29 pipeline personas, 38 pipeline agents), QUICKSTART.md / templates/CLAUDE.md / domains/mobile/CLAUDE.md / commands/_prompts/survival-classifier.md / commands/plan.md (dispatch list + "all 7 agents" / "all 7 designers" prose).
+- **Grand total agents: 39 → 40** (29 pipeline personas + 9 domain personas + 2 subagents).
 
 ## [0.3.0] — Automation infrastructure + autorun hardening — 2026-05-01
 

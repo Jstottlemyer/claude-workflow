@@ -18,7 +18,7 @@ flowchart LR
     S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
     SR["/spec-review<br/><sub>requirements · gaps · ambiguity<br/>feasibility · scope · stakeholders</sub>"]:::review
     JS1["Judge · Dedupe · Synth<br/><sub>cluster · attribute · compose<br/>→ review.md</sub>"]:::synth
-    P["/plan<br/><sub>api · data-model · ux<br/>scalability · security · integration</sub>"]:::plan
+    P["/plan<br/><sub>api · data-model · ux · scalability<br/>security · integration · wave-sequencer</sub>"]:::plan
     JS2["Judge · Dedupe · Synth<br/><sub>→ plan.md</sub>"]:::synth
     C["/check<br/><sub>completeness · sequencing · risk<br/>scope-discipline · testability</sub>"]:::gate
     JS3["Judge · Dedupe · Synth<br/><sub>→ check.md</sub>"]:::synth
@@ -42,6 +42,12 @@ flowchart LR
     JS3 ==> PM
     W ==surfaces drift==> PM
 
+    %% Virtuous loops — feedback edges that close the pipeline back to the start.
+    %% W → S: compiled knowledge auto-loaded at session start; /spec reads it.
+    %% PM → K: persona drift signals which agents earn their slot at next /kickoff.
+    W -. "next session<br/>reads compiled knowledge" .-> S
+    PM -. "drift informs<br/>roster decisions" .-> K
+
     classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
     classDef define fill:#5eead4,stroke:#0f766e,color:#134e4a,stroke-width:2px
     classDef review fill:#fdba74,stroke:#9a3412,color:#7c2d12,stroke-width:2px
@@ -55,7 +61,9 @@ flowchart LR
     classDef metrics fill:#a78bfa,stroke:#5b21b6,color:#2e1065,stroke-width:3px
 ```
 
-**Reading:** Main row = pipeline. Judges are inline interstitials between gates — they're the terminal step that produces `review.md` / `plan.md` / `check.md`. JS1 carries the legend ("cluster · attribute · compose → review.md"); JS2/JS3 are recognizably the same operation. All three Judges feed PM via thick violet edges; the `records` label appears once on JS1→PM as the canonical example. PM is the only side observer that's a first-class part of the new feature (thick stroke, solid edges in). The dotted feedback to the pipeline is *implicit* through the human reading `/wrap-insights` drift.
+**Reading:** Main row = pipeline. Judges are inline interstitials between gates — they're the terminal step that produces `review.md` / `plan.md` / `check.md`. JS1 carries the legend ("cluster · attribute · compose → review.md"); JS2/JS3 are recognizably the same operation. All three Judges feed PM via thick violet edges; the `records` label appears once on JS1→PM as the canonical example. PM is the only side observer that's a first-class part of the new feature (thick stroke, solid edges in).
+
+**Two virtuous loops close the pipeline:** (1) `W -. next session reads compiled knowledge .-> S` — `/wrap` distills the session into graphify graph + wiki + auto-memory; the next session's `/spec` starts smarter. (2) `PM -. drift informs roster decisions .-> K` — `/wrap-insights` Phase 1c surfaces per-persona drift; the human reads it and applies roster decisions at the next `/kickoff` (or via mid-project constitution edit). Both feedback edges are dotted-with-label to distinguish them from the linear forward flow without losing visual emphasis on what closes the loop.
 
 ---
 

@@ -32,7 +32,7 @@ flowchart LR
     S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
     SR["/spec-review<br/><sub>requirements · gaps · ambiguity<br/>feasibility · scope · stakeholders</sub>"]:::review
     JS1["Judge · Dedupe · Synth<br/><sub>cluster · attribute · compose<br/>→ review.md</sub>"]:::synth
-    P["/plan<br/><sub>api · data-model · ux<br/>scalability · security · integration</sub>"]:::plan
+    P["/plan<br/><sub>api · data-model · ux · scalability<br/>security · integration · wave-sequencer</sub>"]:::plan
     JS2["Judge · Dedupe · Synth<br/><sub>→ plan.md</sub>"]:::synth
     C["/check<br/><sub>completeness · sequencing · risk<br/>scope-discipline · testability</sub>"]:::gate
     JS3["Judge · Dedupe · Synth<br/><sub>→ check.md</sub>"]:::synth
@@ -56,6 +56,9 @@ flowchart LR
     JS3 ==> PM
     W ==surfaces drift==> PM
 
+    W -. "next session<br/>reads compiled knowledge" .-> S
+    PM -. "drift informs<br/>roster decisions" .-> K
+
     classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
     classDef define fill:#5eead4,stroke:#0f766e,color:#134e4a,stroke-width:2px
     classDef review fill:#fdba74,stroke:#9a3412,color:#7c2d12,stroke-width:2px
@@ -71,7 +74,7 @@ flowchart LR
 
 ```
 /kickoff → /spec → /spec-review → /plan → /check → /build
-           define    6 PRD        6 design  5 plan   execute
+           define    6 PRD        7 design  5 plan   execute
            (Q&A)     agents       agents    agents   (parallel)
 ```
 
@@ -114,7 +117,7 @@ flowchart LR
 | `/kickoff` | One-time project init — scans repo, drafts constitution, selects agent roster | - |
 | `/spec` | Confidence-tracked Q&A — writes `spec.md` (falls back to session roster if no constitution) | Interactive |
 | `/spec-review` | Parallel PRD review — gaps, risks, ambiguity; + Codex adversarial pass (optional) | 6 reviewers |
-| `/plan` | Architecture + implementation design | 6 designers |
+| `/plan` | Architecture + implementation design | 7 designers |
 | `/check` | Last gate before code — validates the plan; + Codex adversarial pass (optional) | 5 validators |
 | `/build` | Parallel execution with verification discipline; + Codex implementation review (optional) | Superpowers |
 | `/autorun` | Headless overnight pipeline — queues a spec and drives all 8 stages unattended via `autorun start` | Shell |
@@ -136,7 +139,7 @@ flowchart LR
 ║                                                              ║
 ║  FEATURE (full pipeline)                                     ║
 ║  /spec  →  /spec-review  →  /plan  →  /check  →  /build      ║
-║   define    6 PRD          6 design   5 plan     execute     ║
+║   define    6 PRD          7 design   5 plan     execute     ║
 ║   (Q&A)     agents         agents     agents     (parallel)  ║
 ║  + firecrawl (research) · context7 (API docs)                ║
 ║  + codex adversarial review at spec-review, check, build     ║
@@ -205,22 +208,22 @@ flowchart LR
 
 </details>
 
-## Agent Roster (39 total)
+## Agent Roster (40 total)
 
-The repo ships **37 pipeline personas + 2 focused subagents = 39 agents**:
+The repo ships **38 pipeline personas + 2 focused subagents = 40 agents**:
 
-- **28 always-available pipeline personas** — dispatched by `/spec-review`, `/plan`, `/check`, `/build` in parallel slices.
+- **29 always-available pipeline personas** — dispatched by `/spec-review`, `/plan`, `/check`, `/build` in parallel slices.
 - **9 domain personas** — loaded conditionally at `/kickoff` based on project signals.
 - **2 Claude Code subagents** — invoked directly via `Agent(subagent_type: ...)`. See the [Subagents](#subagents-focused-reviewers) section below.
 
-A single session calls **only the subset relevant to the current phase** — never all 39 at once. Each `/spec-review`, `/plan`, `/check`, or `/build` invokes its own slice.
+A single session calls **only the subset relevant to the current phase** — never all 40 at once. Each `/spec-review`, `/plan`, `/check`, or `/build` invokes its own slice.
 
 ### Pipeline agents (28) — always available
 
 | Stage | Count | Personas |
 |-------|-------|----------|
 | Review (`/spec-review`) | 6 | Requirements · Gaps · Ambiguity · Feasibility · Scope · Stakeholders |
-| Plan (`/plan`) | 6 | API · Data Model · UX · Scalability · Security · Integration |
+| Plan (`/plan`) | 7 | API · Data Model · UX · Scalability · Security · Integration · Wave Sequencer |
 | Check (`/check`) | 5 | Completeness · Sequencing · Risk · Scope Discipline · Testability |
 | Code review (full mode) | 9 | Correctness · Dependency · Design Quality · Documentation · Performance · Resilience · Security · Test Quality · Wiring |
 | Synthesis layer | 2 | Judge (quality scoring) · Synthesis (multi-agent consolidation) — used by `/spec-review`, `/plan`, `/check` |

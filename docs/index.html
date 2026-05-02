@@ -6,7 +6,7 @@
 <title>MonsterFlow — structured pipeline for Claude Code</title>
 <meta name="description" content="MonsterFlow is an 8-command pipeline for Claude Code that adds structured planning, multi-agent review, and execution discipline to any project.">
 <meta property="og:title" content="MonsterFlow — structured pipeline for Claude Code">
-<meta property="og:description" content="An 8-command pipeline for Claude Code: structured planning, multi-agent review, execution discipline. 37 personas + 2 focused subagents, persona-metrics measurement loop, autonomous overnight pipeline.">
+<meta property="og:description" content="An 8-command pipeline for Claude Code: structured planning, multi-agent review, execution discipline. 38 personas + 2 focused subagents, persona-metrics measurement loop, autonomous overnight pipeline.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://jstottlemyer.github.io/MonsterFlow/">
 <meta name="twitter:card" content="summary_large_image">
@@ -395,7 +395,7 @@ flowchart TD
     S["/spec\nQ&A · confidence-tracked"]:::define
     SR["/spec-review\nrequirements · gaps · ambiguity\nfeasibility · scope · stakeholders"]:::review
     JS1["Judge · Dedupe · Synth\ncluster · attribute · compose → review.md"]:::synth
-    P["/plan\napi · data-model · ux\nscalability · security · integration"]:::plan
+    P["/plan\napi · data-model · ux · scalability\nsecurity · integration · wave-sequencer"]:::plan
     JS2["Judge · Dedupe · Synth → plan.md"]:::synth
     C["/check\ncompleteness · sequencing · risk\nscope-discipline · testability"]:::gate
     JS3["Judge · Dedupe · Synth → check.md"]:::synth
@@ -415,6 +415,8 @@ flowchart TD
     JS2 ==> PM
     JS3 ==> PM
     W ==surfaces drift==> PM
+    W -. "next session\nreads compiled knowledge" .-> S
+    PM -. "drift informs\nroster decisions" .-> K
     classDef setup   fill:#1e3a5f,stroke:#7c9cff,color:#bfdbfe,stroke-width:2px
     classDef define  fill:#0f4c4c,stroke:#5eead4,color:#99f6e4,stroke-width:2px
     classDef review  fill:#7c2d12,stroke:#fdba74,color:#fed7aa,stroke-width:2px
@@ -428,7 +430,7 @@ flowchart TD
     classDef metrics fill:#2d1b69,stroke:#a78bfa,color:#e9d5ff,stroke-width:3px
       </pre>
     </div>
-    <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 6 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
+    <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 7 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
     <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">Codex (optional).</strong> If <a href="#requirements">installed</a>, an OpenAI Codex agent runs an adversarial pass at <code>/spec-review</code>, <code>/check</code>, and <code>/build</code> — independent perspective from a different model family, joining the same Judge synthesis as the in-house personas. Silent skip if not set up.</p>
   </div>
 </section>
@@ -548,7 +550,7 @@ flowchart TD
         <tr><td><code>/kickoff</code></td><td>One-time project init — scans repo, drafts constitution, picks agent roster</td><td>—</td></tr>
         <tr><td><code>/spec</code></td><td>Confidence-tracked Q&amp;A — writes <code>spec.md</code></td><td>Interactive</td></tr>
         <tr><td><code>/spec-review</code></td><td>Parallel PRD review — gaps, risks, ambiguity; + Codex adversarial pass (optional)</td><td>6 reviewers</td></tr>
-        <tr><td><code>/plan</code></td><td>Architecture + implementation design</td><td>6 designers</td></tr>
+        <tr><td><code>/plan</code></td><td>Architecture + implementation design (incl. wave-sequencer for data-contract precedence)</td><td>7 designers</td></tr>
         <tr><td><code>/check</code></td><td>Last gate before code — validates the plan; + Codex adversarial pass (optional)</td><td>5 validators</td></tr>
         <tr><td><code>/build</code></td><td>Parallel execution with verification discipline; + Codex implementation review (optional)</td><td>Superpowers</td></tr>
         <tr><td><code>/autorun</code></td><td>Headless overnight pipeline — queues a spec and drives all 8 stages unattended via <code>autorun start</code>. Works cross-project: engine scripts stay in <code>claude-workflow</code>, target git/docs/queue live in <code>$PWD</code>.</td><td>Shell</td></tr>
@@ -627,8 +629,8 @@ cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh">Copy</button><pre class="inst
 
 <section id="agents">
   <div class="wrap">
-    <h2>Agent roster <span style="color:var(--muted);font-weight:400">— 39 total (37 personas + 2 subagents)</span></h2>
-    <p class="lede">28 always-available pipeline personas + 9 domain personas + 2 focused Claude Code subagents (<code>autorun-shell-reviewer</code>, <code>persona-metrics-validator</code>). A session calls only the slice for the current phase — never all 39 at once.</p>
+    <h2>Agent roster <span style="color:var(--muted);font-weight:400">— 40 total (38 personas + 2 subagents)</span></h2>
+    <p class="lede">29 always-available pipeline personas + 9 domain personas + 2 focused Claude Code subagents (<code>autorun-shell-reviewer</code>, <code>persona-metrics-validator</code>). A session calls only the slice for the current phase — never all 40 at once.</p>
     <div class="grid">
       <div class="card">
         <h3>Review · <code>/spec-review</code> <span class="count">6</span></h3>
@@ -636,7 +638,7 @@ cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh">Copy</button><pre class="inst
       </div>
       <div class="card">
         <h3>Plan · <code>/plan</code> <span class="count">6</span></h3>
-        <p>API · Data Model · UX · Scalability · Security · Integration</p>
+        <p>API · Data Model · UX · Scalability · Security · Integration · Wave Sequencer</p>
       </div>
       <div class="card">
         <h3>Check · <code>/check</code> <span class="count">5</span></h3>
@@ -671,7 +673,7 @@ cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh">Copy</button><pre class="inst
 ║                                                              ║
 ║  FEATURE (full pipeline)                                     ║
 ║  /spec  →  /spec-review  →  /plan  →  /check  →  /build      ║
-║   define    6 PRD          6 design   5 plan     execute     ║
+║   define    6 PRD          7 design   5 plan     execute     ║
 ║   (Q&amp;A)     agents         agents     agents     (parallel)  ║
 ║  + firecrawl (research) · context7 (API docs)                ║
 ║  + codex adversarial review at spec-review, check, build     ║

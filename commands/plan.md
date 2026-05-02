@@ -6,7 +6,7 @@ description: Design and implementation planning — 6 specialist agents explore 
 
 You are the plan step in the pipeline: `/spec → /spec-review → /plan → /check → /build`
 
-Your job is to dispatch 6 parallel design agents, synthesize their analysis into an implementation plan, and present it for approval.
+Your job is to dispatch 7 parallel design agents, synthesize their analysis into an implementation plan, and present it for approval.
 
 ## Pre-flight
 
@@ -33,7 +33,7 @@ If `<feature>/spec-review/findings.jsonl` does not exist (legacy spec or `/spec-
 
 ## Phase 1: Dispatch 6 Design Agents
 
-Read the persona files from `~/.claude/personas/plan/` and dispatch 6 parallel subagents using the Agent tool. Each agent receives:
+Read the persona files from `~/.claude/personas/plan/` and dispatch 7 parallel subagents using the Agent tool. Each agent receives:
 - The spec content
 - The review findings (if available)
 - The constitution (if exists)
@@ -41,13 +41,14 @@ Read the persona files from `~/.claude/personas/plan/` and dispatch 6 parallel s
 
 **As each design agent returns**, persist its raw output to `docs/specs/<feature>/plan/raw/<persona>.md` immediately (atomic write). The Phase 2c emit reads from this directory. (Note: no snapshot step at `/plan` — `plan.md` is synthesized fresh at this stage, not revised; there is no pre-state to snapshot.)
 
-The 6 designers:
+The 7 designers:
 1. **api** — Interface design and developer/user ergonomics
 2. **data-model** — Data model, storage, and migrations
 3. **ux** — User experience and ergonomics
 4. **scalability** — Performance at scale and bottlenecks
 5. **security** — Threat model and attack surface
 6. **integration** — How it fits existing system
+7. **wave-sequencer** — What ships in what wave; data contract precedence (three-gate default: data → UI → tests)
 
 Each agent must return:
 - Key Considerations
@@ -59,7 +60,7 @@ Each agent must return:
 
 ## Phase 2: Judge + Synthesize into Implementation Plan
 
-After all 6 agents return, apply two passes using the personas in `~/.claude/personas/`:
+After all 7 agents return, apply two passes using the personas in `~/.claude/personas/`:
 
 **Pass 1 — Judge** (read `personas/judge.md`):
 1. Remove duplicate recommendations across agents → merge into one
@@ -82,7 +83,7 @@ After all 6 agents return, apply two passes using the personas in `~/.claude/per
 
 Run `commands/_prompts/findings-emit.md`. It reads `docs/specs/<feature>/plan/raw/*.md` (per-design-persona outputs persisted in Phase 1) and the synthesizer's clustering decisions, and atomically writes:
 
-- `docs/specs/<feature>/plan/findings.jsonl` — one row per design-recommendation cluster, with `personas[]` listing the design personas (api / data-model / ux / scalability / security / integration) that contributed.
+- `docs/specs/<feature>/plan/findings.jsonl` — one row per design-recommendation cluster, with `personas[]` listing the design personas (api / data-model / ux / scalability / security / integration / wave-sequencer) that contributed.
 - `docs/specs/<feature>/plan/participation.jsonl`
 - `docs/specs/<feature>/plan/run.json` — `artifact_hash: sha256(plan.md)` (the freshly synthesized plan, not a source snapshot).
 
@@ -128,7 +129,7 @@ Modify the plan as requested, re-run affected design agents if needed, re-presen
 
 ## Key Principles
 
-- **Parallel execution** — all 6 designers run simultaneously
+- **Parallel execution** — all 7 designers run simultaneously
 - **Concrete over abstract** — tasks should be implementable, not vague
 - **Show tradeoffs** — why approach A vs B
 - **YAGNI** — cut anything not needed for the current scope

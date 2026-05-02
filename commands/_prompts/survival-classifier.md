@@ -33,7 +33,7 @@ Used at `/plan` Phase 0 (judging `<feature>/spec-review/findings.jsonl`) and `/b
 Used at `/check` Phase 0 (judging `<feature>/plan/findings.jsonl`).
 
 **Inputs to the classifier:**
-- `<feature>/plan/findings.jsonl` (design recommendations from /plan's 6 design personas).
+- `<feature>/plan/findings.jsonl` (design recommendations from /plan's 7 design personas).
 - `plan.md` (the freshly-synthesized plan — there is NO source snapshot for /plan, since plan.md is created from scratch, not revised).
 
 **Outcome semantics:**
