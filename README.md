@@ -120,6 +120,8 @@ flowchart LR
 | `/autorun` | Headless overnight pipeline — queues a spec and drives all 8 stages unattended via `autorun start` | Shell |
 | `/flow` | Displays workflow reference card | - |
 | `/wrap` | Session wrap-up — summary, learnings, git loose ends | - |
+| `/autorun-dryrun` | Smoke-tests the full autorun pipeline in `AUTORUN_DRY_RUN=1` mode against a fixture spec — asserts every artifact lands. Use after editing `scripts/autorun/*.sh` | Shell |
+| `/bump-version` | Semver bump `VERSION` + commit + annotated tag. Refuses dirty trees, non-`main` branches (override with `--force-branch`), and pre-existing tags | Shell |
 
 <details>
 <summary><strong>The full <code>/flow</code> reference card</strong> — click to expand</summary>
@@ -227,6 +229,44 @@ A single session calls **only the subset relevant to the current phase** — nev
 
 Projects can also carry their own agents in `<project>/.claude/agents/` (e.g. AuthTools adds 5 auth-specific agents from a separate private repo, bringing that project's roster to 42).
 
+## Subagents (focused reviewers)
+
+In addition to the pipeline personas, MonsterFlow ships two Claude Code subagents at `.claude/agents/` that you can invoke directly via `Agent(subagent_type: ...)`:
+
+| Subagent | Purpose |
+|----------|---------|
+| `autorun-shell-reviewer` | Codifies the 13-pitfall checklist for `scripts/autorun/*.sh` — PIPESTATUS index correctness, `\|\| true` PIPESTATUS reset, `grep -c` arithmetic, branch invariants, STOP-file race windows, slug-regex enforcement, `eval` scope, SSH/HTTPS remote handling, AppleScript injection, `gh pr merge --auto` ambiguity, empty-PR loophole, truncated-diff silent pass, quoting. Returns High/Medium/Low findings with file:line. |
+| `persona-metrics-validator` | Validates JSONL schema, foreign-key joins, and `artifact_hash` freshness across `docs/specs/*/{spec-review,plan,check}/` so `/wrap-insights` Phase 1c renders meaningful drift, not garbage. |
+
+## Hooks
+
+`settings/settings.json` ships PostToolUse hooks that fire on every `Write`/`Edit`:
+
+- **`scripts/post-edit-shellcheck.sh`** — runs `shellcheck -x` on edited `.sh`/`.bash` files; emits findings as a `systemMessage`. Catches PIPESTATUS / quoting / unset-variable bugs at edit time.
+- **`scripts/post-edit-json-validate.sh`** — runs `jq empty` on edited `.json` files. Surfaces stray-comma / missing-quote breakage immediately.
+
+Both hooks are advisory-only (never block edits) and silent on clean inputs. They require `shellcheck` and `jq` on `$PATH`; they no-op silently if either is missing.
+
+## Tests
+
+Verify your install (or any change to the engine) with the test runner:
+
+```bash
+bash tests/run-tests.sh                # all 5 test files, 30+ assertions
+bash tests/run-tests.sh hooks          # filter by name fragment
+bash tests/autorun-dryrun.sh           # autorun smoke test in isolation
+```
+
+| Test file | What it covers |
+|-----------|---------------|
+| `test-hooks.sh` | shellcheck/jq hook behavior on clean and bad inputs |
+| `test-agents.sh` | subagent frontmatter validation |
+| `test-skills.sh` | SKILL.md frontmatter + `disable-model-invocation` typo guard |
+| `test-bump-version.sh` | 12 assertions across all bump types + pre-condition refusals + `--dry-run` |
+| `autorun-dryrun.sh` | full autorun pipeline in `AUTORUN_DRY_RUN=1` against an isolated tmp git repo |
+
+CI-friendly: `tests/run-tests.sh` exits non-zero if any test fails.
+
 ## Install
 
 ```bash
@@ -293,20 +333,36 @@ spec-review/
 MonsterFlow/
 ├── install.sh                  # Installer — symlinks everything into ~/.claude/
 ├── plugins.md                  # Plugin dependency manifest
-├── commands/                   # 8 pipeline commands
+├── commands/                   # 10 pipeline commands (incl. /autorun, /flow, /wrap)
 ├── personas/                   # 28 agent personas (26 stage + judge, synthesis)
 │   ├── check/       (5)
 │   ├── code-review/ (9)
 │   ├── plan/        (6)
 │   └── review/      (6)
+├── .claude/
+│   ├── agents/                 # 2 focused subagents
+│   │   ├── autorun-shell-reviewer.md
+│   │   └── persona-metrics-validator.md
+│   └── skills/                 # 2 user-only skills
+│       ├── autorun-dryrun/
+│       └── bump-version/
 ├── templates/
 │   ├── constitution.md         # Project constitution template
 │   └── repo-signals.md         # Domain-detection reference for /kickoff + /spec
 ├── settings/
-│   └── settings.json           # Base settings (permissions, plugins)
+│   └── settings.json           # Base settings (permissions, plugins, hooks)
 ├── scripts/
+│   ├── autorun/                # Autonomous overnight pipeline (run/build/verify/notify)
+│   ├── post-edit-shellcheck.sh # PostToolUse hook: shellcheck on .sh edits
+│   ├── post-edit-json-validate.sh  # PostToolUse hook: jq empty on .json edits
+│   ├── bump-version.sh         # /bump-version backing script
 │   ├── session-cost.py         # Per-session cost reporter (used by /wrap)
 │   └── doctor.sh               # Diagnostic report → auto-files GitHub Issue
+├── tests/                      # 5 test files, 30+ assertions
+│   ├── run-tests.sh            # CI runner
+│   ├── test-{hooks,agents,skills,bump-version}.sh
+│   ├── autorun-dryrun.sh       # full pipeline smoke test
+│   └── fixtures/
 └── domains/                    # Domain-specific extensions
     ├── mobile/                 # iOS development
     └── games/                  # Game development

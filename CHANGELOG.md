@@ -20,6 +20,39 @@ All notable changes to `MonsterFlow` are documented here.
 
 ### Added
 
+- **Automation infrastructure: hooks, subagents, skills, test suite** (2026-05-01):
+  - **PostToolUse hooks** (`scripts/post-edit-shellcheck.sh`, `scripts/post-edit-json-validate.sh`) wired into `settings/settings.json`. Advisory-only — emit `systemMessage` on findings, never block edits. Catch the PIPESTATUS / quoting / JSON syntax bugs that the recent autorun reviews surfaced *before* commit time.
+  - **Subagents** at `.claude/agents/`:
+    - `autorun-shell-reviewer` — codifies the 13-pitfall checklist for `scripts/autorun/*.sh` (PIPESTATUS index, `\|\| true` reset, `grep -c` arithmetic, branch invariant, STOP race, slug regex, eval scope, SSH/HTTPS remote, AppleScript injection, `--auto` merge ambiguity, empty-PR loophole, truncated diff, quoting). Returns High/Medium/Low findings with file:line.
+    - `persona-metrics-validator` — validates JSONL schema + foreign-key joins + `artifact_hash` freshness across `docs/specs/*/{spec-review,plan,check}/`.
+  - **User-only skills** at `.claude/skills/` (both `disable-model-invocation: true` since they have side effects):
+    - `autorun-dryrun` — runs the full autorun pipeline in `AUTORUN_DRY_RUN=1` against an isolated tmp git repo with a fixture spec, asserts every artifact lands.
+    - `bump-version` — semver bump `VERSION` + commit + annotated tag with dirty-tree / branch / pre-existing-tag pre-conditions and `--dry-run` support.
+  - **Test suite** at `tests/` — 5 files, 30+ assertions, all green:
+    - `run-tests.sh` (CI runner), `test-hooks.sh`, `test-agents.sh`, `test-skills.sh`, `test-bump-version.sh` (12 assertions), `autorun-dryrun.sh` (full pipeline smoke test).
+    - Fixture: `tests/fixtures/autorun-dryrun/sample.spec.md`.
+  - **`build.sh` dry-run completeness fix** — stub now writes `pre-build-sha.txt` and invokes `verify.sh` (which has its own dry-run stub) so the full artifact graph lands. Caught by the `autorun-dryrun` test — previously dry-run was a partial simulation.
+
+- **Autorun pipeline correctness — 31 fixes across 3 review rounds** (Sonnet/Opus/Codex, 2026-05-01):
+  - **Post-build spec compliance verifier** (`scripts/autorun/verify.sh`) — runs inside the build retry loop after tests pass, checks the cumulative git diff against spec requirements via a second `claude -p` call, injects unmet requirements (`[FAIL]` lines) as explicit context into the next attempt's prompt. Closes the false-done loophole where "routes load + tests pass" was treated as compliance for requirements specifying UI elements / access gates / data fields.
+  - **`PIPESTATUS` correctness** — `build.sh:157` now reads `${PIPESTATUS[1]}` (claude) instead of `${PIPESTATUS[0]}` (printf, always 0); `verify.sh` captures inside the `\|\| VAR=...` branch instead of the broken `\|\| true; VAR=${PIPESTATUS[1]}` cross-statement pattern.
+  - **`grep -c \|\| echo 0`** replaced with `\|\| true` + `${VAR:-0}` everywhere — prevents "integer expression expected" pipeline aborts when grep finds zero matches.
+  - **Branch invariant** — `verify.sh` now fails compliance if `HEAD` is not on `autorun/$SLUG` (catches agents that checked out a different branch).
+  - **STOP file race** — `build.sh` re-checks `queue/STOP` after each successful wave; `run.sh` re-checks before PR creation.
+  - **Empty-PR loophole** — `verify.sh` now writes `VERDICT: INCOMPLETE` and exits 1 when no commits exist since pre-build SHA, instead of silently exiting 0.
+  - **`install.sh` adopter detection** — owner-vs-adopter discriminator changed from `basename "$REPO_DIR"` to `$PWD == $REPO_DIR`. Adopter projects now correctly receive `queue/.gitignore` (previously written only inside the engine repo); persona-metrics gitignore default-flip is robust to clones named "MonsterFlow".
+  - **`gh pr merge --auto` state query** — exit 0 means auto-merge *enabled*, not *merged*; `run.sh` now queries `gh pr view --json state` and logs `merge-auto-enabled` if not yet `MERGED`.
+  - **SSH remote handling in `gh pr create --repo`** — uses `gh repo view --json nameWithOwner` first, with regex fallback handling both HTTPS and SSH (`git@github.com:owner/repo.git`) URL forms.
+  - **AppleScript injection** in `notify.sh` — escapes backslashes and double-quotes before passing the body to `osascript`.
+  - **`test_cmd` scope** — `build.sh` and `run.sh` now run `test_cmd` inside `(cd "$PROJECT_DIR" && eval ...)` so adopter tests don't accidentally execute against the engine repo.
+  - **Slug regex enforcement** — `run.sh` validates the documented `^[a-z0-9][a-z0-9-]{0,63}$` regex before processing each queue item.
+  - **`spec-review` artifact requirement** — `run.sh` treats a missing `review-findings.md` as a failure (was silently allowing risk-analysis to append to a never-created file).
+  - **PR-creation failure** now writes `failure.md` (was leaving items in limbo with neither `failure.md` nor `run-summary.md`, causing infinite re-runs).
+  - **Stale main fetch** — `run.sh` does `git fetch origin main` and bases the autorun branch on `origin/main` so overnight runs start from a current base.
+  - **Codex review context** — both initial and fix-attempt Codex reviews receive the actual `git diff` plus build-log tail (was only the build-log narration, same class of false-done as the original bug).
+  - **Webhook JSON escaping** — `notify.sh` uses `python3 json.dumps` for the Slack-compatible payload (was hand-rolled escaping that mangled multi-line content with quotes).
+  - **Diff truncation signal** — verifier prompt now warns when the 3000-line cap was hit, so requirements implemented past line 3000 are marked `[FAIL]` rather than silently `[PASS]`.
+
 - **`/spec` Phase 0.2: Adaptive Wiki-Query Callout** (obsidian-wiki integration — **read side of a two-release rollout; write-side `/wrap` Phase 2c ships next**):
   - After Phase 0's context summary, `/spec` invokes the `wiki-query` skill against the raw `$ARGUMENTS` string to surface prior compiled knowledge on the spec topic.
   - Renders a `### Prior wiki knowledge` callout between the context summary and Phase 0.25 / Phase 0.5 Backlog Routing **when `wiki-query` returns ≥1 cited `[[wikilink]]`**. Callout is silent when `wiki-query` returns empty or a "doesn't cover" compensatory tangent — no "no prior wiki" noise.
