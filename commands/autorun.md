@@ -91,8 +91,9 @@ All fields are optional. Create this file only when you need to override a defau
 | `spec_review_fatal_threshold` | `2` | How many `Verdict: FAIL` reviewers halt the item |
 | `build_max_retries` | `3` | Build wave retry limit before rollback |
 | `test_cmd` | `""` | Empty = skip tests (appropriate for repos with no test suite) |
-| `timeout_stage` | `300` | Per-`claude -p` call timeout in seconds |
+| `timeout_stage` | `1800` | Per-`claude -p` call timeout in seconds |
 | `timeout_codex` | `120` | Codex review timeout in seconds |
+| `timeout_verify` | `600` | Spec compliance verifier timeout in seconds |
 
 ---
 
@@ -118,13 +119,17 @@ Each queue item runs through these stages in order:
 - 5 agents validate the plan
 - **Gate:** `NO-GO` verdict → item halted
 
-### Stage 5 — Build
+### Stage 5 — Build + Verify
 - Branches from `main`: `autorun/<slug>`
 - Pre-build SHA captured to `queue/<slug>/pre-build-sha.txt`
 - One wave = one commit produced by the build agent
 - Kill-switch checked after each wave
-- Tests run (`test_cmd`) after each wave; on failure: retry up to `build_max_retries`×
+- After each wave: tests run (`test_cmd`), then spec compliance check (`verify.sh`)
+  - Verifier checks git diff against spec requirements — "routes load" does NOT satisfy a requirement that specifies UI elements, access gates, or data fields
+  - On verify failure: unmet requirements injected into the NEXT attempt's prompt as explicit `[FAIL]` items
+- Retry up to `build_max_retries`× on either test or compliance failure
 - On exhaustion: `git reset --hard <pre-build-sha>` + `failure.md` written
+- Compliance gaps preserved in `queue/<slug>/verify-gaps.md`
 
 ### Stage 6 — PR Creation
 - `gh pr create --base main --head autorun/<slug>`
@@ -252,6 +257,7 @@ queue/
     check.md
     build-log.md
     pre-build-sha.txt         # written once at Stage 5 entry
+    verify-gaps.md            # per-requirement [PASS]/[FAIL] from compliance check
     state.json                # machine-readable run state
     failure.md                # written on rollback (presence = failed)
     pr-url.txt

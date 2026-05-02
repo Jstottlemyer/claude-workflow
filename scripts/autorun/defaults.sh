@@ -38,6 +38,9 @@ export TIMEOUT_STAGE="${TIMEOUT_STAGE:-1800}"
 # Seconds passed to timeout(1) wrapping every `codex` invocation.
 export TIMEOUT_CODEX="${TIMEOUT_CODEX:-120}"
 
+# Seconds passed to timeout(1) wrapping the spec compliance verifier (verify.sh).
+export TIMEOUT_VERIFY="${TIMEOUT_VERIFY:-600}"
+
 # Set to "1" to run stage scripts in stub mode (exit 0, no real API calls).
 export AUTORUN_DRY_RUN="${AUTORUN_DRY_RUN:-0}"
 
@@ -79,6 +82,7 @@ mapping = {
     'build_max_retries':           'BUILD_MAX_RETRIES',
     'timeout_stage':               'TIMEOUT_STAGE',
     'timeout_codex':               'TIMEOUT_CODEX',
+    'timeout_verify':              'TIMEOUT_VERIFY',
     'autorun_dry_run':             'AUTORUN_DRY_RUN',
     'mail_to':                     'MAIL_TO',
     'webhook_url':                 'WEBHOOK_URL',

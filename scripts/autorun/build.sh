@@ -107,6 +107,18 @@ while [ "$ATTEMPT" -le "$BUILD_MAX_RETRIES" ]; do
     exit 3
   fi
 
+  # -- Compliance gaps from previous attempt (empty on attempt 1) -----------
+  GAPS_CONTEXT=""
+  if [ -f "$ARTIFACT_DIR/verify-gaps.md" ] && grep -iq '^\[FAIL\]' "$ARTIFACT_DIR/verify-gaps.md" 2>/dev/null; then
+    GAPS_CONTEXT="
+
+## IMPORTANT: Spec Requirements NOT Implemented in Previous Attempt (Implement These This Attempt)
+The verifier confirmed the following requirements were missing from the committed code.
+Do NOT commit until every [FAIL] item below is implemented:
+
+$(grep -i '^\[FAIL\]' "$ARTIFACT_DIR/verify-gaps.md")"
+  fi
+
   # -- State update ----------------------------------------------------------
   update_state "build" "$ATTEMPT"
 
@@ -131,7 +143,7 @@ AUTORUN_CONTEXT:
 - BUILD_ATTEMPT: $ATTEMPT of $BUILD_MAX_RETRIES
 - MODE: headless autonomous — implement all tasks and commit each wave. Do not ask for approval.
 
-$(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")"
+$(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")${GAPS_CONTEXT}"
 
   # -- Invoke claude -p -------------------------------------------------------
   # Clear stderr log before each attempt so failure.md shows the latest errors.
@@ -169,7 +181,19 @@ $(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")"
     TESTS_PASSED=1
   fi
 
-  if [ "$TESTS_PASSED" -eq 1 ]; then
+  # -- Spec compliance check (only if tests passed) --------------------------
+  COMPLIANCE_PASSED=1
+  if [ "$TESTS_PASSED" -eq 1 ] && [ -x "$REPO_DIR/scripts/autorun/verify.sh" ]; then
+    echo "[autorun] build: running spec compliance check (attempt $ATTEMPT)"
+    VERIFY_EXIT=0
+    bash "$REPO_DIR/scripts/autorun/verify.sh" || VERIFY_EXIT=$?
+    if [ "$VERIFY_EXIT" -ne 0 ]; then
+      echo "[autorun] build: spec compliance FAILED on attempt $ATTEMPT"
+      COMPLIANCE_PASSED=0
+    fi
+  fi
+
+  if [ "$TESTS_PASSED" -eq 1 ] && [ "$COMPLIANCE_PASSED" -eq 1 ]; then
     BUILD_SUCCESS=1
     break
   fi
