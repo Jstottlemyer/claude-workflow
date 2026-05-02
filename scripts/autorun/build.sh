@@ -28,6 +28,17 @@ if [ "${AUTORUN_DRY_RUN:-0}" = "1" ]; then
     echo ""
   } > "$ARTIFACT_DIR/build-log.md"
 
+  # Write pre-build-sha.txt and trigger verify.sh dry-run stub so the full
+  # artifact graph (build-log.md + pre-build-sha.txt + verify-gaps.md) lands.
+  # tests/autorun-dryrun.sh asserts on all three.
+  if [ ! -f "$ARTIFACT_DIR/pre-build-sha.txt" ]; then
+    git -C "$PROJECT_DIR" rev-parse HEAD > "$ARTIFACT_DIR/pre-build-sha.txt" 2>/dev/null \
+      || echo "0000000000000000000000000000000000000000" > "$ARTIFACT_DIR/pre-build-sha.txt"
+  fi
+  if [ -x "$REPO_DIR/scripts/autorun/verify.sh" ]; then
+    bash "$REPO_DIR/scripts/autorun/verify.sh" || true
+  fi
+
   echo "[autorun] build: dry-run stub artifact written; exiting 0"
   exit 0
 fi

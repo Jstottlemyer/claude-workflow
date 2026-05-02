@@ -38,6 +38,21 @@
         ]
       }
     ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/post-edit-shellcheck.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/post-edit-json-validate.sh"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
