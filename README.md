@@ -6,7 +6,7 @@ An 8-command pipeline for [Claude Code](https://claude.com/claude-code) that add
 
 **Install (one-liner):**
 ```bash
-git clone https://github.com/Jstottlemyer/claude-workflow.git ~/Projects/claude-workflow && cd ~/Projects/claude-workflow && ./install.sh
+git clone https://github.com/Jstottlemyer/MonsterFlow.git ~/Projects/MonsterFlow && cd ~/Projects/MonsterFlow && ./install.sh
 ```
 
 Then open any project and type `/kickoff` to initialize, or `/flow` to see the reference card.
@@ -230,8 +230,8 @@ Projects can also carry their own agents in `<project>/.claude/agents/` (e.g. Au
 ## Install
 
 ```bash
-git clone <this-repo> ~/Projects/claude-workflow
-cd ~/Projects/claude-workflow
+git clone <this-repo> ~/Projects/MonsterFlow
+cd ~/Projects/MonsterFlow
 ./install.sh
 ```
 
@@ -279,7 +279,7 @@ spec-review/
 
 `/wrap-insights` reads these to render per-persona `load_bearing_rate`, `survival_rate`, and `silent_rate` across a rolling 10-feature window. The pipeline becomes a measurement loop — over time, drift signals which personas are earning their slot.
 
-**Privacy for adopters:** these artifacts contain verbatim review prose (`body` field) that may be sensitive. Adopter installs default to **opt-in-to-commit** (`PERSONA_METRICS_GITIGNORE=1` is set automatically; metrics paths are appended to your `.gitignore`). To commit metrics intentionally, set `PERSONA_METRICS_GITIGNORE=0` before running `install.sh`. `claude-workflow`'s own repo overrides this default via name-detection in the installer.
+**Privacy for adopters:** these artifacts contain verbatim review prose (`body` field) that may be sensitive. Adopter installs default to **opt-in-to-commit** (`PERSONA_METRICS_GITIGNORE=1` is set automatically; metrics paths are appended to your `.gitignore`). To commit metrics intentionally, set `PERSONA_METRICS_GITIGNORE=0` before running `install.sh`. `MonsterFlow`'s own repo overrides this default via name-detection in the installer.
 
 ## Customization
 
@@ -290,7 +290,7 @@ spec-review/
 ## Structure
 
 ```
-claude-workflow/
+MonsterFlow/
 ├── install.sh                  # Installer — symlinks everything into ~/.claude/
 ├── plugins.md                  # Plugin dependency manifest
 ├── commands/                   # 8 pipeline commands

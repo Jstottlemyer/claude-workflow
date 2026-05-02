@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-WORKFLOW_ROOT="$HOME/Projects/claude-workflow"
+WORKFLOW_ROOT="$HOME/Projects/MonsterFlow"
 TEMPLATES="$WORKFLOW_ROOT/templates"
 DASHBOARD_DATA="$WORKFLOW_ROOT/dashboard/data"
 LAUNCH_AGENTS="$HOME/Library/LaunchAgents"

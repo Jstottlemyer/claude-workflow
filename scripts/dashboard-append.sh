@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-WORKFLOW_ROOT="$HOME/Projects/claude-workflow"
+WORKFLOW_ROOT="$HOME/Projects/MonsterFlow"
 DATA_DIR="$WORKFLOW_ROOT/dashboard/data"
 mkdir -p "$DATA_DIR"
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jstottlemyer/claude-workflow/schemas/participation.schema.json",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/participation.schema.json",
   "title": "Persona Metrics — participation.jsonl row",
   "description": "One row per persona that ran at this stage, regardless of whether the persona raised any findings. Distinguishes silent personas (ran but raised nothing) from failed personas (didn't run / errored).",
   "type": "object",

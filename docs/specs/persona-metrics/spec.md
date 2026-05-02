@@ -2,11 +2,11 @@
 
 **Created:** 2026-04-26
 **Revised:** 2026-04-26 (post-review v1.1 — 12 Before-You-Build items resolved, 4 Important items folded in)
-**Constitution:** none yet for `claude-workflow`; proceeded without constraints (tracked in Backlog Routing — same precedent as `pipeline-wiki-integration`)
+**Constitution:** none yet for `MonsterFlow`; proceeded without constraints (tracked in Backlog Routing — same precedent as `pipeline-wiki-integration`)
 **Confidence:** 0.93 (post-review)
 **Session Roster:** pipeline defaults only (28 personas) + Codex adversarial reviewer; no domain add-ons.
 
-> Session roster only — `claude-workflow` still has no constitution. Same follow-up as `pipeline-wiki-integration`.
+> Session roster only — `MonsterFlow` still has no constitution. Same follow-up as `pipeline-wiki-integration`.
 
 ## Summary
 
@@ -18,7 +18,7 @@ Add a measurement layer to the multi-agent pipeline that records, per persona, h
 |---|---|---|---|
 | 1 | Multi-model agent roster (Codex/Kimi for review stages) | memory: `project_multi_model_roster.md` | **Stays** — adjacent direction; this spec records `model` per persona so multi-model is evaluable later, but doesn't ship it. |
 | 2 | Workflow install drift (spec.md + symlink hygiene) | memory: `project_workflow_install_drift.md` | **Stays** — unrelated infra cleanup. |
-| 3 | Constitution for `claude-workflow` | `spec-upgrade` confidence note | **Stays** — separate `/kickoff` work. |
+| 3 | Constitution for `MonsterFlow` | `spec-upgrade` confidence note | **Stays** — separate `/kickoff` work. |
 | 4 | Uncommitted statusline + settings changes | `git status` | **Stays** — unrelated to persona-metrics. |
 
 Open Questions sections in all three existing specs are empty. No deferred phases. No `Next Up` items in CLAUDE.md.
@@ -46,7 +46,7 @@ Open Questions sections in all three existing specs are empty. No deferred phase
 - **`/wrap-insights` Persona Drift section (default)** — diff render against the prior 10-feature window, with ↑/↓/→ arrows on `load_bearing_rate` and `uniqueness_rate`. **Deadband:** arrows render only when `|delta| ≥ 5` percentage points; smaller deltas → render as `→`. Personas with <3 runs in the current window render as `(insufficient data — N runs)` and are excluded from drift arrows. Output includes a one-line legend on first run per session: `legend: load-bearing = unique × addressed; uniqueness = sole-source rate`.
 - **`/wrap-insights personas` tab-completable subcommand** — full table, sorted by `load_bearing_rate` descending. Surfaces both `load_bearing_rate` and `survival_rate` independently so a high-survival/low-uniqueness "frequent corroborator" persona is visible as a distinct shape from a low-survival/high-uniqueness "lone-wolf" persona.
 - **Rollup as on-demand projection** — `/wrap-insights` reads each feature's `<stage>/findings.jsonl`, `participation.jsonl`, and `survival.jsonl` fresh on each invocation. **Rolling window definition:** "feature" = a `docs/specs/<slug>/` directory; ordering = ascending `survival.jsonl` mtime in the `spec-review/` subdir; "last 10" = the 10 most recent by that ordering. Stages without `survival.jsonl` are excluded. **Stale-hash warning** when a feature's recorded `artifact_hash` no longer matches its current artifact.
-- **Adopter privacy posture** — for adopter repos using `claude-workflow`, the per-feature `findings.jsonl` `body` field contains verbatim review prose that may be sensitive. Adopters can either (a) set `PERSONA_METRICS_GITIGNORE=1` in their environment — `/spec-review` emits a `.gitignore` line for the metrics files automatically — or (b) manually add the metrics paths to their `.gitignore`. Default in `claude-workflow`'s own repo: committed (matches existing precedent of committing review/check artifacts). Documented in CLAUDE.md template and a `## Privacy` subsection in the new `docs/persona-metrics.md` adopter note.
+- **Adopter privacy posture** — for adopter repos using `MonsterFlow`, the per-feature `findings.jsonl` `body` field contains verbatim review prose that may be sensitive. Adopters can either (a) set `PERSONA_METRICS_GITIGNORE=1` in their environment — `/spec-review` emits a `.gitignore` line for the metrics files automatically — or (b) manually add the metrics paths to their `.gitignore`. Default in `MonsterFlow`'s own repo: committed (matches existing precedent of committing review/check artifacts). Documented in CLAUDE.md template and a `## Privacy` subsection in the new `docs/persona-metrics.md` adopter note.
 - **Documentation update** —
   - `README.md` mermaid pipeline diagram: dotted feedback edges from `/wrap-insights` to `/spec-review` and `/check`, labeled "drift surfaces".
   - `docs/index.html` mermaid: same edges.
@@ -175,7 +175,7 @@ docs/specs/<feature>/
     survival.jsonl                              # written at /build start; judges check findings
 ```
 
-**Privacy:** in adopter repos, `findings.jsonl` body fields contain verbatim review prose that may be sensitive. Adopters set `PERSONA_METRICS_GITIGNORE=1` to opt-out (auto-gitignore), or manually add the metrics paths to `.gitignore`. Default in `claude-workflow`'s own (public) repo: committed.
+**Privacy:** in adopter repos, `findings.jsonl` body fields contain verbatim review prose that may be sensitive. Adopters set `PERSONA_METRICS_GITIGNORE=1` to opt-out (auto-gitignore), or manually add the metrics paths to `.gitignore`. Default in `MonsterFlow`'s own (public) repo: committed.
 
 **Timestamp format** for rotation filenames: `%Y-%m-%dT%H-%M-%SZ` UTC (colon-free, cross-platform safe). Same-second collision: append `-<run_id-prefix>`.
 
@@ -351,7 +351,7 @@ Before sequencing the implementation, `/plan` must survey the existing `commands
 - **Hallucinated evidence quote** — `evidence` substring validator demotes outcome to `not_addressed` and `confidence` to `low`. Recorded but doesn't inflate `survival_rate`.
 - **Re-running rollup with no `survival.jsonl` files at all** — Persona Drift renders: *"no measured features yet — run 1+ feature through `/spec-review` and `/plan` to seed."*
 - **Cross-platform filename safety** — rotation timestamps use `%Y-%m-%dT%H-%M-%SZ` (no colons), avoiding Windows/exFAT illegality.
-- **Branch / merge workflows** — committed `findings.jsonl` and `survival.jsonl` will diff across feature branches. Adopters running this in shared repos should either (a) gitignore them via `PERSONA_METRICS_GITIGNORE=1`, or (b) accept that the rollup reflects whichever branch is checked out. For `claude-workflow`'s solo-dev pattern this is a non-issue.
+- **Branch / merge workflows** — committed `findings.jsonl` and `survival.jsonl` will diff across feature branches. Adopters running this in shared repos should either (a) gitignore them via `PERSONA_METRICS_GITIGNORE=1`, or (b) accept that the rollup reflects whichever branch is checked out. For `MonsterFlow`'s solo-dev pattern this is a non-issue.
 - **Retention / pruning** — superseded `findings-<UTC-ts>.jsonl` files accumulate indefinitely. No auto-prune in this spec; user can remove them by hand. A future `/wrap` step or `/wrap-insights` `--prune-superseded` flag is deferred.
 - **Feature directory naming** — uses existing `docs/specs/<slug>/` convention; no new constraint.
 - **`/wrap-insights` performance at scale** — pure read projection; fine through ~50 features. At 200+ features the read+aggregate may be perceptibly slow. Caching is deferred; spec ships without it.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jstottlemyer/claude-workflow/schemas/findings.schema.json",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/findings.schema.json",
   "title": "Persona Metrics — findings.jsonl row",
   "description": "One row per finding cluster emitted at the end of synthesis at /spec-review, /plan, and /check. The full findings.jsonl is a JSONL stream — one such row per line.",
   "type": "object",

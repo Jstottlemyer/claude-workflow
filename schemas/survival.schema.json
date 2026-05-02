@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jstottlemyer/claude-workflow/schemas/survival.schema.json",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/survival.schema.json",
   "title": "Persona Metrics — survival.jsonl row",
   "description": "One row per finding from the prior stage, judged by the survival classifier at the start of /plan, /check, or /build (Phase 0). The classifier runs in one of two modes selected by the calling command: addressed-by-revision (compares pre-snapshot vs revised artifact) or synthesis-inclusion (judges findings against a freshly synthesized artifact, no source snapshot).",
   "type": "object",

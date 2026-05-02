@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-WORKFLOW_ROOT="$HOME/Projects/claude-workflow"
+WORKFLOW_ROOT="$HOME/Projects/MonsterFlow"
 GRAPHIFY="$HOME/.local/bin/graphify"
 LOG="$WORKFLOW_ROOT/dashboard/data/.wiki-graph.log"
 mkdir -p "$(dirname "$LOG")"

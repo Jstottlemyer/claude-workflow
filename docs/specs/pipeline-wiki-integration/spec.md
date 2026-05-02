@@ -2,11 +2,11 @@
 
 **Created:** 2026-04-17
 **Revised:** 2026-04-17 (post-review, v1.1 — six blocking items resolved, skill-contract reality incorporated)
-**Constitution:** none yet for `claude-workflow`; proceeded without constraints (tracked as follow-up, same precedent as `spec-upgrade`)
+**Constitution:** none yet for `MonsterFlow`; proceeded without constraints (tracked as follow-up, same precedent as `spec-upgrade`)
 **Confidence:** 0.92 (Scope 0.93 / UX 0.90 / Data 0.92 / Integration 0.94 / Edge 0.92 / Acceptance 0.92)
 **Session Roster:** pipeline defaults only (28 personas); no domain add-ons — markdown command framework has no strong domain signal.
 
-> Session roster only — `claude-workflow` still has no constitution. A follow-up `/kickoff` pass is tracked in Backlog Routing.
+> Session roster only — `MonsterFlow` still has no constitution. A follow-up `/kickoff` pass is tracked in Backlog Routing.
 
 ## Summary
 
@@ -18,7 +18,7 @@ Wire the obsidian-wiki framework into the pipeline at two touchpoints so compile
 |---|---|---|
 | Context-backend evaluation (Graphify, Obsidian-Wiki, llm-wiki-compiler) — deferred | `docs/specs/spec-upgrade/spec.md` Out-of-Scope | **In scope** — this spec resolves it by selecting obsidian-wiki and wiring it in. |
 | Extending auto-run to `/spec-review`/`/plan`/`/check`/`/build` | `docs/specs/spec-upgrade/spec.md` Out-of-Scope | **Stays** — separate future spec, unrelated to wiki integration. |
-| Constitution for `claude-workflow` | `docs/specs/spec-upgrade/spec.md` Confidence line | **New spec later** — don't conflate with wiki integration. |
+| Constitution for `MonsterFlow` | `docs/specs/spec-upgrade/spec.md` Confidence line | **New spec later** — don't conflate with wiki integration. |
 
 ## Skill Contracts (verified against actual `SKILL.md` files — 2026-04-17)
 
@@ -77,17 +77,17 @@ This spec was reviewed against the real `wiki-update` and `wiki-query` SKILL.md 
   <1-2 sentence stitched synthesis, ONLY when ≥3 citations — Claude-generated>
   ```
 
-**Files Modified in `claude-workflow`:**
-- `~/Projects/claude-workflow/commands/wrap.md` — add Phase 2c section; replace the current header sentence (see "`/wrap` Header Text" below).
-- `~/Projects/claude-workflow/commands/spec.md` — add wiki-query step to Phase 0 with the adaptive callout render logic.
-- `~/Projects/claude-workflow/CHANGELOG.md` — versioned entry describing this integration as a user-visible behavior change (opt-in, but mentions the `/wrap` framing shift).
+**Files Modified in `MonsterFlow`:**
+- `~/Projects/MonsterFlow/commands/wrap.md` — add Phase 2c section; replace the current header sentence (see "`/wrap` Header Text" below).
+- `~/Projects/MonsterFlow/commands/spec.md` — add wiki-query step to Phase 0 with the adaptive callout render logic.
+- `~/Projects/MonsterFlow/CHANGELOG.md` — versioned entry describing this integration as a user-visible behavior change (opt-in, but mentions the `/wrap` framing shift).
 
 **Manual smoke test** against the Acceptance Criteria matrix before shipping.
 
 ### Out of Scope
 - **`pick individually` per-trigger drill-down** — MVP is `sync / skip`. Reinstate in a future spec with a dedicated acceptance test.
 - Automated test harness for interactive Q&A (same precedent as `spec-upgrade`).
-- `claude-workflow` constitution work (tracked as its own future spec per Backlog Routing).
+- `MonsterFlow` constitution work (tracked as its own future spec per Backlog Routing).
 - **Changes to `wiki-update` / `wiki-query` skill internals.** Steering happens through host-agent invocation context; the skills themselves are not modified. If dogfood reveals the indirect steering is too weak, adding a formal `--focus` or `--comment` arg to `wiki-update` is its own future micro-spec.
 - Install-hint UX for users without obsidian-wiki — silent probe-and-skip now; revisit later (Open Questions).
 - Per-repo or per-project wiki-sync toggles — presence of `~/.obsidian-wiki/config` is the single opt-in signal.
@@ -103,7 +103,7 @@ Two asymmetric touchpoints, one principle: **read at planning time, write at wra
 - **Write side (`/wrap` Phase 2c).** Triggered by session-touched spec dirs. A rubric-driven 4-trigger auto-eval + free-text comment + binary approval gate. On approve, the host agent invokes `wiki-update` with two steering lines in its context (touched spec dirs + user comment). `wiki-update`'s existing project-scan + git-delta logic does the actual distillation; the steering biases what it prioritizes. Failure fails soft; next sync self-corrects via `wiki-update`'s normal delta mechanism (re-reads `.manifest.json`, recomputes from `last_commit_synced`).
 - **Read side (`/spec` Phase 0).** Adaptive callout — silent when `wiki-query` returns no cited pages, prominent when populated (top 5 cited pages with per-page synthesis, injected between context summary and Phase 0.5).
 
-Both sides gated on `~/.obsidian-wiki/config` presence — opt-in via install. No new config keys in `claude-workflow`. No changes to `obsidian-wiki` skills.
+Both sides gated on `~/.obsidian-wiki/config` presence — opt-in via install. No new config keys in `MonsterFlow`. No changes to `obsidian-wiki` skills.
 
 ### `/wrap` Header Text
 
@@ -187,20 +187,20 @@ Sequence inside `/spec` Phase 0:
 
 ## Data & State
 
-### Files Modified in `claude-workflow`
-- `~/Projects/claude-workflow/commands/wrap.md` — add Phase 2c section; replace the header sentence (exact text pinned in Approach).
-- `~/Projects/claude-workflow/commands/spec.md` — add wiki-query step to Phase 0, including adaptive callout render logic.
-- `~/Projects/claude-workflow/CHANGELOG.md` — versioned entry: (a) new Phase 2c; (b) new `/spec` Phase 0 callout; (c) `/wrap` header reframed from "quick exit" to "compounding knowledge capture"; (d) opt-in mechanism (`~/.obsidian-wiki/config` presence). **Must include user-facing migration guidance**, pinned verbatim: *"If you relied on `/wrap` being fast, Phase 2c adds ~30s–2min when spec dirs are touched this session. The `skip` option at the approval gate always bypasses distillation if you're in a hurry."*
+### Files Modified in `MonsterFlow`
+- `~/Projects/MonsterFlow/commands/wrap.md` — add Phase 2c section; replace the header sentence (exact text pinned in Approach).
+- `~/Projects/MonsterFlow/commands/spec.md` — add wiki-query step to Phase 0, including adaptive callout render logic.
+- `~/Projects/MonsterFlow/CHANGELOG.md` — versioned entry: (a) new Phase 2c; (b) new `/spec` Phase 0 callout; (c) `/wrap` header reframed from "quick exit" to "compounding knowledge capture"; (d) opt-in mechanism (`~/.obsidian-wiki/config` presence). **Must include user-facing migration guidance**, pinned verbatim: *"If you relied on `/wrap` being fast, Phase 2c adds ~30s–2min when spec dirs are touched this session. The `skip` option at the approval gate always bypasses distillation if you're in a hurry."*
 
-### Files Created in `claude-workflow`
-- `~/Projects/claude-workflow/docs/specs/pipeline-wiki-integration/spec.md` — this spec.
-- `~/Projects/claude-workflow/docs/specs/pipeline-wiki-integration/review.md` — consolidated `/spec-review` findings (already written).
+### Files Created in `MonsterFlow`
+- `~/Projects/MonsterFlow/docs/specs/pipeline-wiki-integration/spec.md` — this spec.
+- `~/Projects/MonsterFlow/docs/specs/pipeline-wiki-integration/review.md` — consolidated `/spec-review` findings (already written).
 
 ### Config Keys
-- None new in `claude-workflow`. Opt-in is the existence of `~/.obsidian-wiki/config` (created by `obsidian-wiki`'s `setup.sh`).
+- None new in `MonsterFlow`. Opt-in is the existence of `~/.obsidian-wiki/config` (created by `obsidian-wiki`'s `setup.sh`).
 
 ### State Tracking
-- **Zero new persistent state** in `claude-workflow`: no new files, no new config keys, no new schema. `wiki-update` already maintains `.manifest.json`, `index.md`, `log.md` inside the vault; `wiki-query` is read-only but logs to `$VAULT/log.md`.
+- **Zero new persistent state** in `MonsterFlow`: no new files, no new config keys, no new schema. `wiki-update` already maintains `.manifest.json`, `index.md`, `log.md` inside the vault; `wiki-query` is read-only but logs to `$VAULT/log.md`.
 - Pages written via Phase 2c are **frontmatter-indistinguishable** from pages produced by a manual `wiki-update` invocation — no `source_trigger` field, no provenance marker tag. This is intentional: the steering context biases distillation, not page identity.
 - The only new log-line format this feature introduces: `QUERY_TIMEOUT` on `$VAULT/log.md` when `/spec`'s 10s wiki-query budget is exceeded — format: `- [TIMESTAMP] QUERY_TIMEOUT query="<topic>" skipped=true`.
 
@@ -289,7 +289,7 @@ Manual smoke test against this matrix before shipping:
 
 ## Open Questions
 
-1. **Install-hint UX revisit.** Chosen silent-skip (spec-review flagged public-user discoverability). Revisit after dogfooding whether a one-time install hint would drive useful adoption when users run `claude-workflow` without obsidian-wiki. Track for a future lightweight revision if data supports it.
+1. **Install-hint UX revisit.** Chosen silent-skip (spec-review flagged public-user discoverability). Revisit after dogfooding whether a one-time install hint would drive useful adoption when users run `MonsterFlow` without obsidian-wiki. Track for a future lightweight revision if data supports it.
 2. **Formal `wiki-update` comment/focus args.** v1 steers via conversational context; if dogfood reveals the distillation quality is too variable, adding `--focus <paths>` and `--comment <text>` args to `wiki-update` SKILL.md is a future micro-spec. This would also enable tighter acceptance tests for AC #2 and #5.
 3. **Concurrent vault writes.** Single-user assumption holds for v1; revisit if multiple sessions on the same vault becomes a real use case.
 4. **PII default tagging.** No redaction in v1. Future: automatic `visibility/pii` tagging when distilling files matching secret-like patterns.

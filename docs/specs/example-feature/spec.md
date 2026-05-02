@@ -8,7 +8,7 @@
 
 ## Summary
 
-Add a `--version` flag to the `claude-workflow` install script so users can verify which version they installed without inspecting internals. Outputs the version string and exits 0.
+Add a `--version` flag to the `MonsterFlow` install script so users can verify which version they installed without inspecting internals. Outputs the version string and exits 0.
 
 ## Scope
 
@@ -34,10 +34,10 @@ Add a `--version` flag to the `claude-workflow` install script so users can veri
 
 1. User runs `./install.sh --version`
 2. Script reads `VERSION` file from its own directory
-3. Prints version string (e.g., `claude-workflow 0.3.1`) to stdout
+3. Prints version string (e.g., `MonsterFlow 0.3.1`) to stdout
 4. Exits 0
 
-If `VERSION` is missing: print `claude-workflow (version unknown)` to stderr, exit 1.
+If `VERSION` is missing: print `MonsterFlow (version unknown)` to stderr, exit 1.
 
 ## Data & State
 
@@ -59,8 +59,8 @@ If `VERSION` is missing: print `claude-workflow (version unknown)` to stderr, ex
 
 ## Acceptance Criteria
 
-1. `./install.sh --version` prints `claude-workflow <version>` matching `VERSION` contents, exits 0.
-2. With `VERSION` removed, `./install.sh --version` prints `claude-workflow (version unknown)` to stderr, exits 1.
+1. `./install.sh --version` prints `MonsterFlow <version>` matching `VERSION` contents, exits 0.
+2. With `VERSION` removed, `./install.sh --version` prints `MonsterFlow (version unknown)` to stderr, exits 1.
 3. `./install.sh --help` output includes a line documenting `--version`.
 4. README has a "Verifying your install" section referencing `--version`.
 

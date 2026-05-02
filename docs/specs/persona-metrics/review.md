@@ -59,9 +59,9 @@ Spec says nothing about how writes happen. A crash mid-emit leaves a partial JSO
 
 ### 9. Public-repo data semantics for adopters (2 reviewers convergent)
 
-`findings.jsonl` `body` fields contain verbatim review prose — substantive design info. Fine for `claude-workflow`'s own (public) repo, but adopter projects may have private/sensitive content. Memory entry `feedback_public_repo_data_audit.md` is exactly this hazard.
+`findings.jsonl` `body` fields contain verbatim review prose — substantive design info. Fine for `MonsterFlow`'s own (public) repo, but adopter projects may have private/sensitive content. Memory entry `feedback_public_repo_data_audit.md` is exactly this hazard.
 
-**Fix:** add a section: "Adopters who don't want measurement data committed can set `PERSONA_METRICS_GITIGNORE=1` (or add `docs/specs/*/spec-review/findings.jsonl` etc. to their repo's `.gitignore`). Default: committed (matches `claude-workflow`'s own use)." Document in CLAUDE.md template too.
+**Fix:** add a section: "Adopters who don't want measurement data committed can set `PERSONA_METRICS_GITIGNORE=1` (or add `docs/specs/*/spec-review/findings.jsonl` etc. to their repo's `.gitignore`). Default: committed (matches `MonsterFlow`'s own use)." Document in CLAUDE.md template too.
 
 ### 10. Drift arrow deadband (1 reviewer)
 

@@ -14,8 +14,8 @@ The `install.sh` will warn if any of these are missing but won't block — insta
 ## 1. Clone + install
 
 ```bash
-git clone https://github.com/Jstottlemyer/claude-workflow.git ~/Projects/claude-workflow
-cd ~/Projects/claude-workflow
+git clone https://github.com/Jstottlemyer/MonsterFlow.git ~/Projects/MonsterFlow
+cd ~/Projects/MonsterFlow
 ./install.sh
 ```
 
@@ -158,7 +158,7 @@ autorun status
 cat queue/index.md
 ```
 
-**How it works:** `autorun` is a thin CLI wrapper installed at `~/.local/bin/autorun` by `install.sh`. It resolves back to `claude-workflow/scripts/autorun/run.sh` regardless of where it's called from. The engine (stage scripts, personas) always lives in `claude-workflow`; the target (git, docs/, queue/) is always `$PWD` of the project you called it from.
+**How it works:** `autorun` is a thin CLI wrapper installed at `~/.local/bin/autorun` by `install.sh`. It resolves back to `MonsterFlow/scripts/autorun/run.sh` regardless of where it's called from. The engine (stage scripts, personas) always lives in `MonsterFlow`; the target (git, docs/, queue/) is always `$PWD` of the project you called it from.
 
 **Kill-switch:**
 ```bash
@@ -172,7 +172,7 @@ See `commands/autorun.md` for the full reference (config options, failure handli
 Run the doctor — it captures your install state and auto-files a GitHub Issue for Justin:
 
 ```bash
-cd ~/Projects/claude-workflow
+cd ~/Projects/MonsterFlow
 ./scripts/doctor.sh
 ```
 
@@ -206,7 +206,7 @@ If entries are regular files (not symlinks), re-run `./install.sh`.
 This repo is the source of truth. When Justin pushes changes, pull and re-run install:
 
 ```bash
-cd ~/Projects/claude-workflow
+cd ~/Projects/MonsterFlow
 git pull
 ./install.sh
 ```

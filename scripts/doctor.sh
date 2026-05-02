@@ -4,12 +4,12 @@
 # Usage: ./scripts/doctor.sh
 #
 # Captures environment + Claude Code install state, writes a markdown report
-# to a temp file, then opens a GitHub Issue on Jstottlemyer/claude-workflow
+# to a temp file, then opens a GitHub Issue on Jstottlemyer/MonsterFlow
 # via gh. Requires: gh auth login already completed.
 
 set -uo pipefail  # intentionally NOT -e — we want all diagnostics to run even if some probes fail
 
-REPO="Jstottlemyer/claude-workflow"
+REPO="Jstottlemyer/MonsterFlow"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKFLOW_VERSION="$(cat "$SCRIPT_DIR/../VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
 DIAG_FILE=$(mktemp -t doctor-diagnostic.XXXXXX.md)
@@ -231,7 +231,7 @@ print(hashlib.sha256('\n'.join(canon).encode('utf-8')).hexdigest())
 
     echo "## Workflow Clone State"
     echo '```'
-    CLONE="$HOME/Projects/claude-workflow"
+    CLONE="$HOME/Projects/MonsterFlow"
     if [ -d "$CLONE/.git" ]; then
         echo "Path: $CLONE"
         echo ""

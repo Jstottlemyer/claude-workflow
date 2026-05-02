@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-WORKFLOW_ROOT="$HOME/Projects/claude-workflow"
+WORKFLOW_ROOT="$HOME/Projects/MonsterFlow"
 PROJECTS_ROOT="$HOME/Projects"
 LOG="$WORKFLOW_ROOT/dashboard/data/.cost-backfill.log"
 mkdir -p "$(dirname "$LOG")"

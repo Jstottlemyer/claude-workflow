@@ -126,7 +126,7 @@ Answers locked in this revision unless Justin overrides:
 
 **Still open (need explicit yes/no before /build):**
 
-7. **R5 default-flip:** for *adopter* installs, default `PERSONA_METRICS_GITIGNORE=1` (opt-in to commit) instead of opt-in to gitignore? `claude-workflow`'s own repo overrides via name-detection in install.sh. Recommend **yes** for adopter safety; conservative answer is no. The risk register elevated R5 likelihood to High because most users don't read installer output.
+7. **R5 default-flip:** for *adopter* installs, default `PERSONA_METRICS_GITIGNORE=1` (opt-in to commit) instead of opt-in to gitignore? `MonsterFlow`'s own repo overrides via name-detection in install.sh. Recommend **yes** for adopter safety; conservative answer is no. The risk register elevated R5 likelihood to High because most users don't read installer output.
 
 8. **Recovery story documentation:** should `docs/specs/persona-metrics/plan.md` carry a one-line rollback recipe ("remove new symlinks + revert command-file edits + leave committed JSONL as harmless leftovers") for the case where T21 fails after Waves 1–3 complete? Recommend yes; one sentence.
 

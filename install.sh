@@ -160,11 +160,11 @@ GITIGNORE
 fi
 
 # --- Persona Metrics: gitignore default-flip for adopters ---
-# Adopter installs (any project NOT named 'claude-workflow') default to opt-in-to-commit
-# for persona-metrics artifacts. claude-workflow's own repo overrides via name detection.
+# Adopter installs (any project NOT named 'MonsterFlow') default to opt-in-to-commit
+# for persona-metrics artifacts. MonsterFlow's own repo overrides via name detection.
 # Set PERSONA_METRICS_GITIGNORE=0 to override the adopter default and commit metrics.
 PERSONA_METRICS_GITIGNORE_DEFAULT=1
-if [[ "$(basename "$REPO_DIR")" == "claude-workflow" ]]; then
+if [[ "$(basename "$REPO_DIR")" == "MonsterFlow" ]]; then
     PERSONA_METRICS_GITIGNORE_DEFAULT=0  # this repo's own dogfood pattern: commit metrics
 fi
 PERSONA_METRICS_GITIGNORE="${PERSONA_METRICS_GITIGNORE:-$PERSONA_METRICS_GITIGNORE_DEFAULT}"
@@ -177,7 +177,7 @@ fi
 
 if [[ "$PERSONA_METRICS_GITIGNORE" == "1" && -n "$ADOPTER_ROOT" ]]; then
     GITIGNORE="$ADOPTER_ROOT/.gitignore"
-    BLOCK_BEGIN="# BEGIN persona-metrics (claude-workflow)"
+    BLOCK_BEGIN="# BEGIN persona-metrics (MonsterFlow)"
     BLOCK_END="# END persona-metrics"
 
     # Idempotent: check for sentinel before appending

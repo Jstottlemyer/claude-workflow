@@ -106,6 +106,6 @@ If a user request could be served by either the pipeline or a superpowers skill,
 - If system python3 is too old for scripts, install a durable venv: `python3 -m venv ~/.local/venvs/<tool> && ~/.local/venvs/<tool>/bin/pip install <tool>` + symlink `~/.local/bin/<tool>` → venv binary.
 
 ## Workflow Repo
-- Fork/clone: github.com/[your-handle]/claude-workflow
+- Fork/clone: github.com/[your-handle]/MonsterFlow
 - Tracks: commands/, personas/, templates/, settings/, shell/, scripts/, domains/, install.sh, plugins.md
 - Personal config (CLAUDE.md, .gitconfig) in gitignored `personal/` directory

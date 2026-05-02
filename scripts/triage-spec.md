@@ -1,6 +1,6 @@
 # Claude Code Release Triage Spec
 
-Spec for the scheduled bi-weekly remote agent (cron `0 16 * * 5`, routine `trig_01FN2uy1oaebprAayQhSL82k`). The agent runs in Anthropic's cloud with a fresh checkout of `Jstottlemyer/claude-workflow` and zero context — this file is the entire brief.
+Spec for the scheduled bi-weekly remote agent (cron `0 16 * * 5`, routine `trig_01FN2uy1oaebprAayQhSL82k`). The agent runs in Anthropic's cloud with a fresh checkout of `Jstottlemyer/MonsterFlow` and zero context — this file is the entire brief.
 
 ## Goal
 

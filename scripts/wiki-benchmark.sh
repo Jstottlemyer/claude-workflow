@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-WORKFLOW_ROOT="$HOME/Projects/claude-workflow"
+WORKFLOW_ROOT="$HOME/Projects/MonsterFlow"
 LOG="$WORKFLOW_ROOT/dashboard/data/.wiki-benchmark.log"
 mkdir -p "$(dirname "$LOG")"
 

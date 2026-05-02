@@ -16,7 +16,7 @@ If the file does not exist, print this and stop:
 ```
 No graph yet for this project.
 Run the workspace bootstrap (one-time):
-  bash ~/Projects/claude-workflow/scripts/bootstrap-graphify.sh --dry-run
+  bash ~/Projects/MonsterFlow/scripts/bootstrap-graphify.sh --dry-run
 
 Or index just this project:
   graphify .

@@ -5,7 +5,7 @@ Local-first benefit tracking across all `~/Projects/` codebases indexed by graph
 ## View
 
 ```bash
-open ~/Projects/claude-workflow/dashboard/index.html
+open ~/Projects/MonsterFlow/dashboard/index.html
 ```
 
 Works from `file://` with no local server — the dashboard loads data from `data-bundle.js` (a regular `<script>` tag, which bypasses the CORS block that hits `fetch()` on `file://`).
@@ -13,7 +13,7 @@ Works from `file://` with no local server — the dashboard loads data from `dat
 If you see *"No data bundle found"*, regenerate it:
 
 ```bash
-bash ~/Projects/claude-workflow/scripts/dashboard-bundle.sh
+bash ~/Projects/MonsterFlow/scripts/dashboard-bundle.sh
 ```
 
 `dashboard-append.sh` rebuilds the bundle automatically on every append, so once `/wrap`, the weekly launchd jobs, or a fresh bootstrap have run, the bundle stays current on its own.
@@ -27,14 +27,14 @@ bash ~/Projects/claude-workflow/scripts/dashboard-bundle.sh
 - `benchmark-weekly` — written by launchd agent `com.jstottlemyer.graphify-benchmarks.weekly`.
 - `wiki-graph-weekly` — written by launchd agent `com.jstottlemyer.wiki-graph.weekly`.
 
-Schema: see `~/Projects/claude-workflow/docs/graphify-usage.md` §13.
+Schema: see `~/Projects/MonsterFlow/docs/graphify-usage.md` §13.
 
 ## Publish (deferred)
 
 Dashboard is static HTML + JSONL. To put it on GitHub Pages:
 
 ```bash
-cd ~/Projects/claude-workflow
+cd ~/Projects/MonsterFlow
 git subtree push --prefix dashboard origin gh-pages
 ```
 
@@ -47,6 +47,6 @@ rm dashboard/data/career.jsonl  # will be re-seeded on next /wrap; never push ca
 ## Manual event append (debugging)
 
 ```bash
-~/Projects/claude-workflow/scripts/dashboard-append.sh \
-  --event wrap --project claude-workflow --cwd "$PWD"
+~/Projects/MonsterFlow/scripts/dashboard-append.sh \
+  --event wrap --project MonsterFlow --cwd "$PWD"
 ```

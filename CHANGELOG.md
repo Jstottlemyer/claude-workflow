@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `claude-workflow` are documented here.
+All notable changes to `MonsterFlow` are documented here.
 
 ## [0.2.0] — Persona Metrics measurement layer
 
@@ -11,7 +11,7 @@ All notable changes to `claude-workflow` are documented here.
   - **Three new prompt files** under `commands/_prompts/`: `snapshot.md`, `findings-emit.md`, `survival-classifier.md` (the classifier supports two outcome-semantics modes — addressed-by-revision at `/plan` and `/build`, synthesis-inclusion at `/check`).
   - **Four JSON Schema files** under `schemas/` (draft 2020-12) — machine-checkable contracts referenced by the prompt files.
   - **`/wrap-insights` Phase 1c (Persona Drift)** — diff render against the prior 10-feature window with `↑/↓/→` arrows (5pp deadband). Bare-arg `/wrap-insights personas` renders the full table with `load_bearing_rate` and `survival_rate` side-by-side.
-  - **`PERSONA_METRICS_GITIGNORE=1` env var** — adopter-install default flips to opt-in-to-commit (gitignored by default in adopter projects; `claude-workflow`'s own repo overrides via name-detection in `install.sh`). Protects against accidental commits of verbatim review prose to public repos.
+  - **`PERSONA_METRICS_GITIGNORE=1` env var** — adopter-install default flips to opt-in-to-commit (gitignored by default in adopter projects; `MonsterFlow`'s own repo overrides via name-detection in `install.sh`). Protects against accidental commits of verbatim review prose to public repos.
   - **`finding_id` derived from `normalized_signature`** — sha256 of NFC-normalized, lowercased, whitespace-collapsed, sorted source persona-output substrings. Best-effort stable across LLM re-syntheses given identical raw inputs; canonicalization function is deterministic and fixture-tested by `scripts/doctor.sh`.
   - **README and `docs/index.html` mermaid diagrams** updated with the new `Judge · Dedupe · Synth` interstitials between gates and the `Persona Metrics` side observer; all three Judges feed the metrics layer (Tight-C visual recipe).
   - **Spec artifacts:** `docs/specs/persona-metrics/{spec,review,plan,check,diagrams}.md` document the full pipeline cycle. Scope (b) was adopted post-checkpoint via diagram review feedback — `/plan`'s synthesis-inclusion semantics is the new structural piece.
@@ -58,7 +58,7 @@ All notable changes to `claude-workflow` are documented here.
 
 ### Fixed
 
-- **`/autorun` cross-project support** — the `autorun` CLI and all stage scripts (`run.sh`, `build.sh`, `spec-review.sh`, `plan.sh`, `check.sh`, `risk-analysis.sh`) now cleanly separate `ENGINE_DIR` (where scripts live, always `claude-workflow`) from `PROJECT_DIR` (the target repo, defaults to `$PWD`). Previously all paths used a single `REPO_DIR` that pointed to `claude-workflow`, so running `/autorun` from any other project silently operated on the wrong directory. Stage scripts fall back to `REPO_DIR` when `PROJECT_DIR` is unset, so existing single-repo setups are unaffected.
+- **`/autorun` cross-project support** — the `autorun` CLI and all stage scripts (`run.sh`, `build.sh`, `spec-review.sh`, `plan.sh`, `check.sh`, `risk-analysis.sh`) now cleanly separate `ENGINE_DIR` (where scripts live, always `MonsterFlow`) from `PROJECT_DIR` (the target repo, defaults to `$PWD`). Previously all paths used a single `REPO_DIR` that pointed to `MonsterFlow`, so running `/autorun` from any other project silently operated on the wrong directory. Stage scripts fall back to `REPO_DIR` when `PROJECT_DIR` is unset, so existing single-repo setups are unaffected.
 - **`autorun` not on PATH** — `install.sh` now symlinks `scripts/autorun/autorun` → `~/.local/bin/autorun`. Previously the binary was never added to `PATH`, so `autorun start` produced "command not found" outside the repo directory.
 - **`autorun` symlink resolution on macOS** — `dirname "$0"` on a symlinked binary resolves to the symlink's directory, not the script's real location. The wrapper now uses a `while [ -L ]` loop (macOS-safe; `readlink -f` is unavailable on stock macOS) to find `ENGINE_DIR` before any path calculation.
 - **`/autorun` in-session simulation** — `commands/autorun.md` lacked an explicit action instruction; Claude read the pipeline documentation and attempted to orchestrate each stage interactively. Added an `## Action` block at the top of the command that explicitly delegates to `autorun start` and prohibits in-session simulation.
@@ -77,5 +77,5 @@ All notable changes to `claude-workflow` are documented here.
 
 ### Notes
 
-- **Symlink-based install:** `claude-workflow/install.sh` creates symlinks from `~/.claude/commands/*.md` → this repo's `commands/*.md`. Edits here propagate to the live commands **immediately after `git pull`** — no re-install required. First-time installs over a pre-existing real file auto-backup to `<name>.bak`. Means you can `git pull` this release and `/spec` Phase 0.2 activates on your next `/spec` invocation.
+- **Symlink-based install:** `MonsterFlow/install.sh` creates symlinks from `~/.claude/commands/*.md` → this repo's `commands/*.md`. Edits here propagate to the live commands **immediately after `git pull`** — no re-install required. First-time installs over a pre-existing real file auto-backup to `<name>.bak`. Means you can `git pull` this release and `/spec` Phase 0.2 activates on your next `/spec` invocation.
 - **Obsidian-wiki is optional infrastructure.** If `~/.obsidian-wiki/config` is absent, Phase 0.2 is a silent no-op — zero behavior change for `/spec` users who haven't set up obsidian-wiki. Install via the upstream repo's `setup.sh` (see [github.com/Ar9av/obsidian-wiki](https://github.com/Ar9av/obsidian-wiki)).

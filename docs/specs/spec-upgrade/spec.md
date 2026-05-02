@@ -1,7 +1,7 @@
 # `/spec` Upgrade Spec
 
 **Created:** 2026-04-12
-**Constitution:** none yet for `claude-workflow`; proceeded without constraints (tracked as follow-up)
+**Constitution:** none yet for `MonsterFlow`; proceeded without constraints (tracked as follow-up)
 **Confidence:** 0.89 (proceeded with 3 Open Questions flagged)
 
 ## Summary
@@ -52,7 +52,7 @@ Upgrade the `/spec` command with three enhancements adapted from the `superpower
 - `~/.claude/commands/spec.md` — command prompt updated with new phases, patterns, and auto-run logic.
 
 ### Files Created
-- `CHANGELOG.md` (root of `claude-workflow`) — versioned entry describing this upgrade.
+- `CHANGELOG.md` (root of `MonsterFlow`) — versioned entry describing this upgrade.
 - `docs/specs/example-feature/spec.md` — committed example of upgraded `/spec` output; doubles as OSS documentation.
 
 ### Config Keys (new)
@@ -96,13 +96,13 @@ No external state; the command file is self-contained. Config surface (CLI flag,
 
 ## Acceptance Criteria
 
-1. **Smoke test passes** — run `/spec` on a dummy feature in `claude-workflow`; verify each upgrade fires:
+1. **Smoke test passes** — run `/spec` on a dummy feature in `MonsterFlow`; verify each upgrade fires:
    - Context summary appears before Q1, includes constitution / README / CLAUDE.md / recent commits signals.
    - Every question is multiple-choice with a recommendation and reasoning.
    - For a feature-sized prompt, the approach-proposal phase triggers; for a small-change prompt, it does not.
    - Self-review pass runs after drafting (visible as a step before presenting), auto-fixes a planted placeholder, loops for a planted contradiction.
    - With `auto_enabled=true`, `/spec` auto-writes and auto-invokes `/review` when thresholds are met; with a planted low-floor dimension, auto-run is blocked as designed.
-2. **CHANGELOG entry** — `CHANGELOG.md` in `claude-workflow` has a versioned entry describing the upgrade.
+2. **CHANGELOG entry** — `CHANGELOG.md` in `MonsterFlow` has a versioned entry describing the upgrade.
 3. **Example spec committed** — `docs/specs/example-feature/spec.md` exists and demonstrates the upgraded flow's output.
 4. **Backwards compatibility** — running `/spec` against a feature with a prior `spec.md` does not require migration.
 5. **Findings note** — short `findings.md` in the feature directory recording what the smoke test verified and anything surprising.

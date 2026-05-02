@@ -83,7 +83,7 @@ Insert two pre-Wave-1 tasks:
 - **T-1 (synthesizer survey):** read `commands/spec-review.md` and `commands/check.md`, confirm Phase 2 (Judge+Synthesize) produces accessible raw persona outputs. Already done in this `/plan` invocation — confirmed Phase 2 is explicit prose. Document the finding in plan.md.
 - **T0 (raw-output persistence spike):** in a real `/spec-review` run, dispatch one throwaway sub-agent and verify its raw output can be written to `<feature>/spec-review/raw/<persona>.md` from the host turn. ~30 min. If blocked, escalate before T6 starts.
 
-### 8. install.sh idempotency on non-claude-workflow files (Risk #2)
+### 8. install.sh idempotency on non-MonsterFlow files (Risk #2)
 
 T19 must detect pre-existing regular files (not symlinks) at `~/.claude/commands/_prompts/<name>.md` and back up to `.bak` before symlinking. Existing helper handles this for top-level commands; extend for the new subdir.
 
@@ -105,7 +105,7 @@ Add to T21: run `/plan` on an existing legacy spec (`pipeline-wiki-integration` 
 
 - R5 current rating: Medium / High. Reality: most users don't read installer messages. Bump to **High / High**.
 - "Once-per-feature" warning state model (Codex #9): use a **feature-level marker file** at `<feature>/.persona-metrics-warned` (zero-byte sentinel). Simpler than scanning `run.json.warnings[]` across stages. Documented in T14, T15.
-- Stronger mitigation worth considering for adopter installs: *opt-in to commit*, not opt-in to gitignore. `claude-workflow`'s own repo overrides via the `claude-workflow` repo name detection in install.sh. **Defer this default-flip decision to Open Question for Justin.**
+- Stronger mitigation worth considering for adopter installs: *opt-in to commit*, not opt-in to gitignore. `MonsterFlow`'s own repo overrides via the `MonsterFlow` repo name detection in install.sh. **Defer this default-flip decision to Open Question for Justin.**
 
 ---
 
@@ -126,7 +126,7 @@ Add to T21: run `/plan` on an existing legacy spec (`pipeline-wiki-integration` 
 
 - **`participation.jsonl` failed-vs-silent semantics** (Codex #8): a persona that *failed* (LLM error, timeout) is currently indistinguishable from one that *ran-but-found-nothing*. Worth a `status` field in `participation.jsonl` rows: `{"persona": "...", "model": "...", "findings_emitted": N, "status": "ok"|"failed"|"timeout"}`. Defer if not adopted now.
 - **Recovery story if T21 fails after Waves 1-3 complete** is unspecified. Worst case: remove new symlinks + revert command-file edits. Committed JSONL artifacts are harmless leftovers. Worth one sentence in plan.
-- **Codex's "ship Python scripts" recommendation rejected as architecture change.** `claude-workflow` is markdown-choreography by design; introducing Python helpers is a project-shape change, not an implementation detail. The prompt-prose enforcement is sufficient for solo-dev use; if drift surfaces in real use, scripts can be added in a follow-up `persona-metrics-helpers` spec.
+- **Codex's "ship Python scripts" recommendation rejected as architecture change.** `MonsterFlow` is markdown-choreography by design; introducing Python helpers is a project-shape change, not an implementation detail. The prompt-prose enforcement is sufficient for solo-dev use; if drift surfaces in real use, scripts can be added in a follow-up `persona-metrics-helpers` spec.
 - **R7 (Windows atomic-write) over-mitigated** (Risk obs). Solo dev macOS; "Low (now fixed)" is right. No further action.
 - **T22 hand-verification arithmetic** is loose — pin one persona's `load_bearing_rate` must round-trip within 0.01 of rendered.
 - **Open Questions 1-6 in plan.md are unanswered.** Answer #1, #3, #4 (and the new R5 default-flip question) before `/build` starts.
@@ -164,7 +164,7 @@ Codex returned 12 concerns. Most overlap with Claude reviewers; the structurally
 ## Open Questions for Justin
 
 1. **Adopt raw-output persistence (Codex #3 / Must Fix #1)?** Recommend yes — it's a structural improvement that retires R1. Cost: one new directory, ~5 lines added to T6/T14/T15 prompts.
-2. **Default-flip `PERSONA_METRICS_GITIGNORE=1` to opt-in-to-commit for adopter installs (Risk #4)?** Recommend yes for adopter safety; `claude-workflow`'s own repo overrides via name detection. Conservative answer is "no, keep current default."
+2. **Default-flip `PERSONA_METRICS_GITIGNORE=1` to opt-in-to-commit for adopter installs (Risk #4)?** Recommend yes for adopter safety; `MonsterFlow`'s own repo overrides via name detection. Conservative answer is "no, keep current default."
 3. **Cut T8 (wrap-insights-personas subcommand) and trim T9 (adopter doc)?** Recommend yes for both — bare-arg form works, full doc premature.
 4. **Codex output goes to `<feature>/<stage>/raw/codex-adversary.md` only, or also keep `/tmp` fallback?** Recommend feature-local only (clean break, simpler).
 5. **Recovery story for T21 failure post-Wave-3?** Document one-sentence rollback (remove new symlinks + revert command edits + leave committed JSONL as harmless).

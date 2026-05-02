@@ -3,7 +3,7 @@
 **Version:** 1.0 (migrated 2026-04-17)
 **Last reviewed against graphify version:** graphifyy 0.4.20 (PyPI)
 **Author:** Justin Stottlemyer
-**Home:** `~/Projects/claude-workflow/docs/graphify-usage.md` (this file — durable)
+**Home:** `~/Projects/MonsterFlow/docs/graphify-usage.md` (this file — durable)
 **Audit trail:** `~/Projects/graphify/docs/specs/graphify-adoption/` (throwaway clone, ephemeral)
 
 > This is the durable home for the graphify adoption playbook. Refresh it
@@ -53,7 +53,7 @@ Layer 2  Per-project graphs         Derived from Layer 1 by graphify, lives with
                                     (gitignored — every machine regenerates locally)
 
 Layer 3  Cross-project tooling      Patterns that apply across multiple projects
-         ~/Projects/claude-workflow/  commands, personas, templates — and THIS playbook
+         ~/Projects/MonsterFlow/  commands, personas, templates — and THIS playbook
 
 Layer 4  Personal knowledge         Hand-crafted notes, journal, ideas
          ~/Projects/obsidian-wiki/  (your Obsidian vault — written by you, not generated)
@@ -66,11 +66,11 @@ Layer 5  Ephemeral / audit          Evaluation work, specs, session memory
 
 1. **graphify primarily produces Layer 2.** Each project gets its own `graphify-out/` directory. That's the normal case — don't fight it. Keep graphs local to their project.
 
-2. **The playbook is Layer 3.** After migration (§10), this doc lives in `claude-workflow` with the rest of your cross-project tooling (pipeline commands, personas, templates). That's the right neighborhood for "how do I do X across all my projects."
+2. **The playbook is Layer 3.** After migration (§10), this doc lives in `MonsterFlow` with the rest of your cross-project tooling (pipeline commands, personas, templates). That's the right neighborhood for "how do I do X across all my projects."
 
 3. **Obsidian (Layer 4) is for your thinking, not auto-generated graphs.** graphify *can* export to Obsidian vault format (`--obsidian` flag), but that's only the right move when graphify's *input* is itself personal knowledge — a `/raw` folder of papers, notes, research. Don't auto-flow code-project graphs into your Obsidian vault; it'll clutter Layer 4 with Layer 2 content.
 
-4. **This graphify clone is Layer 5 — throwaway.** Once the playbook migrates to `claude-workflow`, this `~/Projects/graphify/` directory has no durable role. Archive or delete when convenient. Nothing you need long-term should live here.
+4. **This graphify clone is Layer 5 — throwaway.** Once the playbook migrates to `MonsterFlow`, this `~/Projects/graphify/` directory has no durable role. Archive or delete when convenient. Nothing you need long-term should live here.
 
 **When to use graphify's `--obsidian` export:**
 
@@ -83,7 +83,7 @@ Layer 5  Ephemeral / audit          Evaluation work, specs, session memory
 
 **Mental model, one sentence each:**
 - **Projects own their graphs.** (Layer 2, gitignored, per-project.)
-- **claude-workflow owns the patterns.** (Layer 3 — how to use graphify across projects.)
+- **MonsterFlow owns the patterns.** (Layer 3 — how to use graphify across projects.)
 - **Obsidian owns your thinking.** (Layer 4 — never auto-populated from code.)
 - **Memory + specs own the audit trail.** (Layer 5 — ephemeral.)
 
@@ -173,7 +173,7 @@ Then `/graphify .` from Claude Code.
 ### 4c. Claude-Workflow
 
 ```bash
-cd ~/Projects/claude-workflow
+cd ~/Projects/MonsterFlow
 python3 -m venv .venv
 .venv/bin/pip install "graphifyy[mcp]"
 .venv/bin/graphify claude install
@@ -255,13 +255,13 @@ Append to each adopted project's `CLAUDE.md`:
 
 ```markdown
 ## Knowledge graph
-This project uses graphify. See `~/Projects/claude-workflow/docs/graphify-usage.md`.
+This project uses graphify. See `~/Projects/MonsterFlow/docs/graphify-usage.md`.
 - Build / refresh: `/graphify .` from Claude Code (or `graphify update .` for code-only re-extract).
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph data: `graphify-out/graph.json` (consumable by `graphify query`, MCP, or direct Python).
 ```
 
-Keep it short. The full usage doc lives in claude-workflow (single source of truth).
+Keep it short. The full usage doc lives in MonsterFlow (single source of truth).
 
 ---
 
@@ -275,9 +275,9 @@ Keep it short. The full usage doc lives in claude-workflow (single source of tru
 
 This means once you install graphify in a project, your existing `/spec`, `/plan`, `/check`, `/build` commands automatically benefit from the graph without any changes to the pipeline command files. The leverage is in the hook, not the command.
 
-**What you don't need to do:** edit any file in `~/Projects/claude-workflow/commands/`. The pipeline's Phase 0 steps already include "read available context" — the graph just becomes part of that context when present.
+**What you don't need to do:** edit any file in `~/Projects/MonsterFlow/commands/`. The pipeline's Phase 0 steps already include "read available context" — the graph just becomes part of that context when present.
 
-**What you might later do** (deferred, not required): if you find you're asking `/plan` or `/check` specific graph-traversal questions, a future spec in claude-workflow could add a dedicated "graph-aware designer" persona. Not now.
+**What you might later do** (deferred, not required): if you find you're asking `/plan` or `/check` specific graph-traversal questions, a future spec in MonsterFlow could add a dedicated "graph-aware designer" persona. Not now.
 
 ---
 
@@ -294,15 +294,15 @@ Refresh this playbook when any of these fire — not on a calendar. The doc goes
 
 ---
 
-## 10. Migration to claude-workflow
+## 10. Migration to MonsterFlow
 
 Playbook migrates to its durable home in two manual steps:
 
-1. **Copy this file**: `cp docs/specs/graphify-adoption/playbook.md ~/Projects/claude-workflow/docs/graphify-usage.md` (create `docs/` in claude-workflow if missing).
+1. **Copy this file**: `cp docs/specs/graphify-adoption/playbook.md ~/Projects/MonsterFlow/docs/graphify-usage.md` (create `docs/` in MonsterFlow if missing).
 2. **Per-project CLAUDE.md additions**: for CosmicExplorer, Concierge (AuthTools), and Claude-Workflow, append §7's 1-liner pointer to that project's `CLAUDE.md`. Commit to each project separately.
 
 Post-migration, update this file's header:
-- `> This playbook lives at ~/Projects/claude-workflow/docs/graphify-usage.md.`
+- `> This playbook lives at ~/Projects/MonsterFlow/docs/graphify-usage.md.`
 - Keep "Last reviewed against graphify version: 0.4.20" until a refresh trigger fires.
 
 No automation. One-time step. The graphify clone at `~/Projects/graphify/` can then be archived or re-cloned as needed — playbook is no longer load-bearing on it.
@@ -413,7 +413,7 @@ The two indexers are complementary, not competitive:
 
 ## §13 — Benefit-over-time dashboard
 
-Local-first, single `dashboard/index.html`, Chart.js from CDN. Reads append-only JSONL under `dashboard/data/<slug>.jsonl`. View: `open ~/Projects/claude-workflow/dashboard/index.html`.
+Local-first, single `dashboard/index.html`, Chart.js from CDN. Reads append-only JSONL under `dashboard/data/<slug>.jsonl`. View: `open ~/Projects/MonsterFlow/dashboard/index.html`.
 
 ### Event types
 
@@ -442,10 +442,10 @@ One-shot initialization across `~/Projects/`:
 
 ```bash
 # Preview (safe)
-bash ~/Projects/claude-workflow/scripts/bootstrap-graphify.sh --dry-run
+bash ~/Projects/MonsterFlow/scripts/bootstrap-graphify.sh --dry-run
 
 # Apply after reviewing the cost estimate
-bash ~/Projects/claude-workflow/scripts/bootstrap-graphify.sh --apply
+bash ~/Projects/MonsterFlow/scripts/bootstrap-graphify.sh --apply
 ```
 
 The script:

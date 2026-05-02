@@ -1,4 +1,4 @@
-# claude-workflow — Repo-level Instructions for Claude
+# MonsterFlow — Repo-level Instructions for Claude
 
 Personal-tooling repo. Holds commands, personas, templates, and cross-project
 reference docs for Justin's 8-command pipeline (`/kickoff → /spec → /review

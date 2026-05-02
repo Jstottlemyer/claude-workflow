@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Jstottlemyer/claude-workflow/schemas/run.schema.json",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/run.schema.json",
   "title": "Persona Metrics — run.json manifest",
   "description": "One file per stage write. Captures audit + reproducibility metadata: run id, prompt versions, model versions, source artifact hash, output paths, status, runtime warnings.",
   "type": "object",
