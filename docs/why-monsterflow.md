@@ -1,5 +1,7 @@
 # Why MonsterFlow Exists
 
+![The MonsterFlow mascot — a friendly six-armed coding monster wearing a leather harness, each arm typing on a different floating terminal window.](social-image.png)
+
 *The long version. The short version lives in the [aside on the landing page](https://jstottlemyer.github.io/MonsterFlow/#why).*
 
 ---

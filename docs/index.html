@@ -248,6 +248,22 @@
   .monogram-lg { width: 56px; height: 56px; font-size: 22px; margin-bottom: 16px; }
   .monogram-sm { width: 26px; height: 26px; font-size: 11px; }
 
+  /* Hero monster — the brand mascot rendered prominently above the eyebrow.
+     Caps width so it doesn't dominate; subtle indigo shadow grounds it on
+     the dark bg without competing with the gradient H1 below it. */
+  .hero-image {
+    display: block;
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+    margin: 0 auto 28px;
+    border-radius: 18px;
+    box-shadow: 0 24px 60px rgba(124,156,255,0.18), 0 0 0 1px var(--line);
+  }
+  @media (max-width: 640px) {
+    .hero-image { max-width: 100%; border-radius: 12px; margin-bottom: 20px; }
+  }
+
   /* Hero CTA hierarchy: primary (Install) carries the gradient; secondary
      (GitHub) is ghosted; the small text link below the buttons points users
      into the docs without competing with the two primary actions. */
@@ -420,7 +436,7 @@
 
 <header class="hero">
   <div class="wrap">
-    <div class="monogram monogram-lg">MF</div>
+    <img src="social-image.png" alt="The MonsterFlow mascot — a friendly six-armed coding monster wearing a leather harness, each arm typing on a different floating terminal window." class="hero-image">
     <span class="eyebrow">8-command pipeline · Claude Code · v0.3.0</span>
     <h1>You say WHAT.<br>Claude handles HOW.</h1>
     <p class="hero-hook">Multi-agent review at every gate. And then the system measures whether those reviews are worth anything.</p>
