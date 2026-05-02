@@ -24,20 +24,64 @@ has_cmd() {
         || [ -x "/usr/local/bin/$1" ]
 }
 
-MISSING=()
-has_cmd claude  || MISSING+=("claude (Claude Code CLI) — https://claude.com/claude-code")
-has_cmd gh      || MISSING+=("gh (GitHub CLI) — brew install gh && gh auth login")
-has_cmd python3 || MISSING+=("python3 — brew install python")
+# Three tiers: REQUIRED (pipeline broken without), RECOMMENDED (features
+# degrade silently — hooks no-op, /autorun can't make PRs, etc.), OPTIONAL
+# (silent-skip features like Codex).
+REQUIRED_MISSING=()
+RECOMMENDED_MISSING=()
+OPTIONAL_MISSING=()
 
-if [ ${#MISSING[@]} -gt 0 ]; then
-    echo "Optional tools not detected (install works without them, but you'll want them):"
-    for tool in "${MISSING[@]}"; do
-        echo "  - $tool"
-    done
+# REQUIRED — pipeline cannot function without these
+has_cmd git     || REQUIRED_MISSING+=("git — install Xcode CLI tools (xcode-select --install) or brew install git")
+has_cmd claude  || REQUIRED_MISSING+=("claude (Claude Code CLI) — https://claude.com/claude-code")
+has_cmd python3 || REQUIRED_MISSING+=("python3 — brew install python")
+
+# Python version check (≥ 3.9 — older versions miss f-string and walrus features used in scripts)
+if has_cmd python3; then
+    PY_VER="$(python3 -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo "0.0")"
+    PY_MAJ="${PY_VER%%.*}"
+    PY_MIN="${PY_VER#*.}"
+    if [ "${PY_MAJ:-0}" -lt 3 ] 2>/dev/null || { [ "${PY_MAJ:-0}" -eq 3 ] && [ "${PY_MIN:-0}" -lt 9 ]; } 2>/dev/null; then
+        REQUIRED_MISSING+=("python3 ≥ 3.9 (detected $PY_VER) — brew install python")
+    fi
+fi
+
+# RECOMMENDED — silently degraded features without them
+has_cmd gh         || RECOMMENDED_MISSING+=("gh (GitHub CLI, /autorun needs it for PR ops) — brew install gh && gh auth login")
+has_cmd shellcheck || RECOMMENDED_MISSING+=("shellcheck (PostToolUse hook on .sh edits — silently no-ops without it) — brew install shellcheck")
+has_cmd jq         || RECOMMENDED_MISSING+=("jq (PostToolUse hook on .json edits — silently no-ops without it) — brew install jq")
+has_cmd tmux       || RECOMMENDED_MISSING+=("tmux (recommended for overnight /autorun runs) — brew install tmux")
+
+# PATH sanity — ~/.local/bin must be in PATH for `autorun` symlink to resolve
+if ! echo ":$PATH:" | grep -q ":$HOME/.local/bin:"; then
+    # shellcheck disable=SC2016  # literal $HOME/$PATH are intentional in the user-facing instruction
+    RECOMMENDED_MISSING+=('$HOME/.local/bin not in PATH — add `export PATH="$HOME/.local/bin:$PATH"` to ~/.zshrc so `autorun` runs from anywhere')
+fi
+
+# OPTIONAL — features silent-skip when absent
+has_cmd codex || OPTIONAL_MISSING+=("codex (adversarial review at /spec-review, /check, /build — silent skip) — npm i -g @openai/codex")
+
+# Display findings, tier by tier
+if [ ${#REQUIRED_MISSING[@]} -gt 0 ]; then
+    echo "✗ REQUIRED — pipeline will not work without these:"
+    for tool in "${REQUIRED_MISSING[@]}"; do echo "  - $tool"; done
     echo ""
+fi
+if [ ${#RECOMMENDED_MISSING[@]} -gt 0 ]; then
+    echo "⚠ RECOMMENDED — features degrade silently without these:"
+    for tool in "${RECOMMENDED_MISSING[@]}"; do echo "  - $tool"; done
+    echo ""
+fi
+if [ ${#OPTIONAL_MISSING[@]} -gt 0 ]; then
+    echo "○ OPTIONAL — silent skip if absent:"
+    for tool in "${OPTIONAL_MISSING[@]}"; do echo "  - $tool"; done
+    echo ""
+fi
+
+if [ ${#REQUIRED_MISSING[@]} -gt 0 ] || [ ${#RECOMMENDED_MISSING[@]} -gt 0 ]; then
     read -rp "Continue anyway? [Y/n]: " CONTINUE
     if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
-        echo "Install a missing tool, then re-run this script."
+        echo "Install missing tools, then re-run this script."
         exit 0
     fi
     echo ""
@@ -247,6 +291,17 @@ else
     python3 "$REPO_DIR/scripts/claude-md-merge.py" --target "$GLOBAL_CLAUDE" --template "$REPO_DIR/templates/CLAUDE.md"
 fi
 
+# --- Git hooks (auto-bump VERSION + tag) ---
+# Wires up scripts/hooks/post-commit which auto-bumps VERSION + tags
+# based on conventional-commit prefix (feat → minor, fix/docs/etc →
+# patch, BREAKING CHANGE → major). Only fires on `main` branch.
+# Idempotent — re-runs replace the symlink.
+if [ -x "$REPO_DIR/scripts/install-hooks.sh" ] && [ -d "$REPO_DIR/.git/hooks" ]; then
+    echo ""
+    echo "Installing git hooks (auto-bump VERSION on commit)..."
+    bash "$REPO_DIR/scripts/install-hooks.sh" 2>&1 | sed 's/^/  /'
+fi
+
 # --- Plugin installation ---
 echo ""
 read -rp "Install required plugins now? [y/N]: " INSTALL_PLUGINS
@@ -257,6 +312,16 @@ if [[ "$INSTALL_PLUGINS" =~ ^[Yy]$ ]]; then
     read -rp "Also install recommended plugins? [y/N]: " INSTALL_REC
     if [[ "$INSTALL_REC" =~ ^[Yy]$ ]]; then
         claude plugins install firecrawl code-review ralph-loop playwright || echo "  Some plugins may have failed"
+    fi
+fi
+
+# --- Validate install via test suite ---
+if [ -x "$REPO_DIR/tests/run-tests.sh" ]; then
+    echo ""
+    read -rp "Run test suite to validate install? [Y/n]: " RUN_TESTS
+    if [[ ! "$RUN_TESTS" =~ ^[Nn]$ ]]; then
+        echo ""
+        bash "$REPO_DIR/tests/run-tests.sh" || echo "⚠ some tests failed — investigate via 'bash tests/run-tests.sh'"
     fi
 fi
 
@@ -271,6 +336,7 @@ echo "  - 10 pipeline commands (/kickoff → /spec → /spec-review → /plan �
 echo "  - 2 focused subagents (autorun-shell-reviewer, persona-metrics-validator)"
 echo "  - 2 user-only skills (/autorun-dryrun, /bump-version)"
 echo "  - 2 PostToolUse hooks (shellcheck on .sh, jq empty on .json) — advisory-only"
+echo "  - 1 git post-commit hook (auto-bump VERSION + tag on main, conventional-commit driven)"
 echo "  - 3 templates (constitution, repo-signals, CLAUDE.md baseline)"
 echo "  - Settings with pipeline-optimized permissions"
 echo "  - Scripts (session-cost.py, doctor.sh, statusline-command.sh, bump-version.sh)"
@@ -282,7 +348,7 @@ echo "  1. Customize ~/CLAUDE.md (copied from templates/CLAUDE.md — fill in yo
 echo "  2. Review ~/.claude/settings.json and adjust permissions"
 echo "  3. See plugins.md for optional plugins"
 echo "  4. See QUICKSTART.md if this is your first time"
-echo "  5. Run 'bash tests/run-tests.sh' to verify your install"
+echo "  5. Auto-bump rules: feat:→minor · fix:/docs:/etc.→patch · type!: or BREAKING CHANGE:→major"
 echo "  6. If anything looks off, run ./scripts/doctor.sh to file a diagnostic"
 echo ""
 echo "Run /flow in Claude Code to see the workflow reference card."
