@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+##############################################################################
+# scripts/hooks/post-commit
+#
+# Auto-bump VERSION based on conventional-commit prefix of the commit just
+# made. Wired into .git/hooks/post-commit by scripts/install-hooks.sh.
+#
+# Bump rules (first match wins):
+#   - subject starts with "chore: bump version to"  → SKIP (recursion guard)
+#   - subject starts with "Merge " / "Revert "      → SKIP
+#   - body or subject contains "[skip-bump]"        → SKIP
+#   - branch != main                                → SKIP (main-only auto-bump)
+#   - in rebase / cherry-pick / merge-in-progress   → SKIP
+#   - subject contains "BREAKING CHANGE" or `<type>!:` → MAJOR
+#   - subject starts with "feat" or "feat(…):"      → MINOR
+#   - everything else                               → PATCH
+#
+# The bump itself reuses scripts/bump-version.sh which creates a separate
+# "chore: bump version to X.Y.Z" commit + annotated tag. The recursion guard
+# above prevents the bump commit from triggering another bump.
+##############################################################################
+set -uo pipefail
+
+REPO_DIR="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+BUMP_SCRIPT="$REPO_DIR/scripts/bump-version.sh"
+[ -x "$BUMP_SCRIPT" ] || exit 0
+
+# Branch guard — only auto-bump on main.
+BRANCH="$(git -C "$REPO_DIR" symbolic-ref --short HEAD 2>/dev/null || echo "")"
+[ "$BRANCH" = "main" ] || exit 0
+
+# In-progress operation guards (rebase, cherry-pick, merge).
+GIT_DIR="$(git -C "$REPO_DIR" rev-parse --git-dir)"
+[ -d "$GIT_DIR/rebase-merge" ] && exit 0
+[ -d "$GIT_DIR/rebase-apply" ] && exit 0
+[ -f "$GIT_DIR/CHERRY_PICK_HEAD" ] && exit 0
+[ -f "$GIT_DIR/MERGE_HEAD" ] && exit 0
+[ -f "$GIT_DIR/REVERT_HEAD" ] && exit 0
+
+# Read the most recent commit's subject + full message.
+SUBJECT="$(git -C "$REPO_DIR" log -1 --pretty=%s)"
+FULL_MSG="$(git -C "$REPO_DIR" log -1 --pretty=%B)"
+
+# Recursion + escape-hatch guards.
+case "$SUBJECT" in
+  "chore: bump version to "*) exit 0 ;;
+  "Merge "*|"Revert "*)        exit 0 ;;
+esac
+case "$FULL_MSG" in
+  *"[skip-bump]"*) exit 0 ;;
+esac
+
+# Determine bump level.
+LEVEL="patch"
+case "$SUBJECT" in
+  *"BREAKING CHANGE"*) LEVEL="major" ;;
+  *"!:"*)              LEVEL="major" ;;  # `feat!:` / `fix!:` / etc
+  feat:*|"feat("*)     LEVEL="minor" ;;
+esac
+case "$FULL_MSG" in
+  *"BREAKING CHANGE:"*) LEVEL="major" ;;  # body marker overrides subject
+esac
+
+echo "[auto-bump] subject: $SUBJECT"
+echo "[auto-bump] level:   $LEVEL"
+
+# Run bump in a way that won't re-fire this hook (the bump commit's subject
+# matches our recursion-guard pattern, so the second invocation exits 0).
+bash "$BUMP_SCRIPT" "$LEVEL" 2>&1 | sed 's/^/[auto-bump] /'
