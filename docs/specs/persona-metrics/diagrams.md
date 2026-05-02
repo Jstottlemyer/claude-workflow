@@ -13,7 +13,7 @@ These ship as the source of truth for documentation surfaces. **Diagram 1** land
 Production-style mermaid with the new `Judge · Dedupe · Synth` interstitials between gates and a new `Persona Metrics` side observer. All three Judges feed PM. Tight-C tightening applied: only JS1 carries the full Judge sub-text (acts as legend); JS2/JS3 abbreviate to `→ plan.md` / `→ check.md`. Edge labels dropped except the two that explain the new feature: `records` on JS1→PM and `surfaces drift` on W→PM. Style carries meaning everywhere else (dashed orange = Codex challenges; dashed grey = ambient; thick violet = records to PM).
 
 ```mermaid
-flowchart LR
+flowchart TD
     K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
     S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
     SR["/spec-review<br/><sub>requirements · gaps · ambiguity<br/>feasibility · scope · stakeholders</sub>"]:::review
@@ -36,16 +36,17 @@ flowchart LR
     CX -.-> SR
     CX -.-> C
     CX -.-> B
-    W -.-> KL
+    W -. compiles .-> KL
     JS1 ==records==> PM
     JS2 ==> PM
     JS3 ==> PM
     W ==surfaces drift==> PM
 
-    %% Virtuous loops — feedback edges that close the pipeline back to the start.
-    %% W → S: compiled knowledge auto-loaded at session start; /spec reads it.
-    %% PM → K: persona drift signals which agents earn their slot at next /kickoff.
-    W -. "next session<br/>reads compiled knowledge" .-> S
+    %% Virtuous loops — three feedback edges that close the pipeline back to the start.
+    %% Knowledge: /wrap writes to KL (graphify + wiki + auto-memory); KL is read at next session
+    %% via wiki-query, /graphify query, and auto-memory load → /spec starts smarter.
+    %% Metrics: /wrap-insights drift signals which agents earn their slot at next /kickoff.
+    KL -. "wiki-query · graphify<br/>auto-memory" .-> S
     PM -. "drift informs<br/>roster decisions" .-> K
 
     classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
@@ -63,7 +64,12 @@ flowchart LR
 
 **Reading:** Main row = pipeline. Judges are inline interstitials between gates — they're the terminal step that produces `review.md` / `plan.md` / `check.md`. JS1 carries the legend ("cluster · attribute · compose → review.md"); JS2/JS3 are recognizably the same operation. All three Judges feed PM via thick violet edges; the `records` label appears once on JS1→PM as the canonical example. PM is the only side observer that's a first-class part of the new feature (thick stroke, solid edges in).
 
-**Two virtuous loops close the pipeline:** (1) `W -. next session reads compiled knowledge .-> S` — `/wrap` distills the session into graphify graph + wiki + auto-memory; the next session's `/spec` starts smarter. (2) `PM -. drift informs roster decisions .-> K` — `/wrap-insights` Phase 1c surfaces per-persona drift; the human reads it and applies roster decisions at the next `/kickoff` (or via mid-project constitution edit). Both feedback edges are dotted-with-label to distinguish them from the linear forward flow without losing visual emphasis on what closes the loop.
+**Two virtuous loops close the pipeline, mediated by side nodes:**
+
+1. **Knowledge loop:** `W -. compiles .-> KL` (write) → `KL -. wiki-query · graphify · auto-memory .-> S` (read). `/wrap` distills the session into graphify graph + Obsidian wiki + auto-memory (all live inside `KL`, the Knowledge Layer node). Next session's `/spec` reads from those stores via `wiki-query`, `/graphify query`, and auto-memory loaded at session start — so `/spec` starts with full prior context instead of cold.
+2. **Measurement loop:** `PM -. drift informs roster decisions .-> K`. `/wrap-insights` Phase 1c surfaces per-persona drift; the human reads it and applies roster decisions at the next `/kickoff` (or via mid-project constitution edit).
+
+Both feedback edges are dotted-with-label to distinguish them from the linear forward flow without losing visual emphasis. **Orientation is `TD` (top-down)** so the main pipeline reads vertically and the three feedback arcs (W→KL, KL→S, PM→K) have room to route on the right edge without compressing the main nodes.
 
 ---
 

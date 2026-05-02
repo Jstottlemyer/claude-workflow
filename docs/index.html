@@ -410,12 +410,12 @@ flowchart TD
     CX -.-> SR
     CX -.-> C
     CX -.-> B
-    W -.-> KL
+    W -. compiles .-> KL
     JS1 ==records==> PM
     JS2 ==> PM
     JS3 ==> PM
     W ==surfaces drift==> PM
-    W -. "next session\nreads compiled knowledge" .-> S
+    KL -. "wiki-query · graphify\nauto-memory" .-> S
     PM -. "drift informs\nroster decisions" .-> K
     classDef setup   fill:#1e3a5f,stroke:#7c9cff,color:#bfdbfe,stroke-width:2px
     classDef define  fill:#0f4c4c,stroke:#5eead4,color:#99f6e4,stroke-width:2px

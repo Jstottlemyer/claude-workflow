@@ -27,7 +27,7 @@ A complete workflow system that scales to the size of the work:
 ## The Pipeline
 
 ```mermaid
-flowchart LR
+flowchart TD
     K["/kickoff<br/><sub>constitution<br/>+ agent roster</sub>"]:::setup
     S["/spec<br/><sub>Q&A · confidence-tracked</sub>"]:::define
     SR["/spec-review<br/><sub>requirements · gaps · ambiguity<br/>feasibility · scope · stakeholders</sub>"]:::review
@@ -50,13 +50,13 @@ flowchart LR
     CX -.-> SR
     CX -.-> C
     CX -.-> B
-    W -.-> KL
+    W -. compiles .-> KL
     JS1 ==records==> PM
     JS2 ==> PM
     JS3 ==> PM
     W ==surfaces drift==> PM
 
-    W -. "next session<br/>reads compiled knowledge" .-> S
+    KL -. "wiki-query · graphify<br/>auto-memory" .-> S
     PM -. "drift informs<br/>roster decisions" .-> K
 
     classDef setup fill:#bfdbfe,stroke:#1e3a8a,color:#1e3a8a,stroke-width:2px
