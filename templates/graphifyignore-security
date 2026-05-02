@@ -1,0 +1,55 @@
+# Default graphify ignore patterns (all owned projects inherit these)
+# Syntax: same as .gitignore
+
+# Build artifacts
+dist/
+build/
+out/
+target/
+
+# Dependency dirs
+node_modules/
+vendor/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+
+# Logs & temp
+*.log
+*.tmp
+.DS_Store
+
+# graphify itself
+graphify-out/
+
+# IDE state
+.idea/
+.vscode/
+
+# ---- security-specific additions ----
+# Even though the security tree is Justin's own content, raw scan output,
+# credentials, exploit payloads, and target lists should never enter the
+# knowledge graph. Distilled summaries (inventory.md, post-engagement
+# notes) are fine — those land in the graph and can flow to the wiki
+# with `visibility: internal` on the resulting wiki page.
+
+# Raw outputs and live data
+**/scans/
+**/output/
+**/payloads/
+**/captures/
+**/loot/
+targets.txt
+*.pcap
+*.pcapng
+*.creds
+*.hashes
+*.nmap
+*.gnmap
+*.xml.gz
+
+# Anything explicitly marked
+*.confidential.*
+*.private.*
+*.secrets.*

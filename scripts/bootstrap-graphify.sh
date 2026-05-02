@@ -40,10 +40,12 @@ mkdir -p "$DASHBOARD_DATA"
 classify_project() {
   local name="$1"
   case "$name" in
-    graphify|obsidian-wiki) echo "upstream-readonly" ;;
-    career)                 echo "career" ;;
-    Mobile)                 echo "ios-swift" ;;
-    *)                      echo "default" ;;
+    graphify|obsidian-wiki)   echo "upstream-readonly" ;;
+    _archive)                 echo "skip" ;;
+    security)                 echo "security" ;;
+    career)                   echo "career" ;;
+    Mobile)                   echo "ios-swift" ;;
+    *)                        echo "default" ;;
   esac
 }
 
@@ -101,6 +103,10 @@ for entry in "$PROJECTS_ROOT"/*; do
     continue
   fi
   kind=$(classify_project "$name")
+  if [ "$kind" = "skip" ]; then
+    PLAN_ROWS+=("SKIP|$name|skip-classified (_archive)|0|-")
+    continue
+  fi
   files=$(estimate_files "$entry")
   total_files=$((total_files + files))
   already="no"

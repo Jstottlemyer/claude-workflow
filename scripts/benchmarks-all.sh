@@ -16,19 +16,22 @@ echo "--- $(date -u +%Y-%m-%dT%H:%M:%SZ) benchmarks-all start ---"
 
 classify_project() {
   case "$1" in
-    graphify|obsidian-wiki) echo "upstream-readonly" ;;
-    career)                 echo "career" ;;
-    Mobile)                 echo "ios-swift" ;;
-    *)                      echo "default" ;;
+    graphify|obsidian-wiki)   echo "upstream-readonly" ;;
+    _archive)                 echo "skip" ;;
+    security)                 echo "security" ;;
+    career)                   echo "career" ;;
+    Mobile)                   echo "ios-swift" ;;
+    *)                        echo "default" ;;
   esac
 }
 
 for entry in "$PROJECTS_ROOT"/*; do
   [ -d "$entry" ] || continue
   name=$(basename "$entry")
-  # Skip upstream-readonly and dirs without graphify-out
+  # Skip upstream-readonly, skip-marked, and dirs without graphify-out
   kind=$(classify_project "$name")
   [ "$kind" = "upstream-readonly" ] && continue
+  [ "$kind" = "skip" ] && continue
   [ -f "$entry/graphify-out/graph.json" ] || continue
 
   echo "[$name] running benchmark"
