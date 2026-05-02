@@ -149,12 +149,13 @@ $(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")${GAPS_
   # Clear stderr log before each attempt so failure.md shows the latest errors.
   > "$STDERR_LOG"
 
+  # PIPESTATUS[1] is claude's exit (PIPESTATUS[0] is printf, which is always 0).
   CLAUDE_EXIT=0
   printf '%s' "$BUILD_PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
     --dangerously-skip-permissions \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
     --add-dir "$PROJECT_DIR" \
-    2>"$STDERR_LOG" | tee -a "$ARTIFACT_DIR/build-log.md" || CLAUDE_EXIT=${PIPESTATUS[0]}
+    2>"$STDERR_LOG" | tee -a "$ARTIFACT_DIR/build-log.md" || CLAUDE_EXIT=${PIPESTATUS[1]}
 
   if [ "$CLAUDE_EXIT" -ne 0 ]; then
     echo "[autorun] build: claude -p exited $CLAUDE_EXIT on attempt $ATTEMPT"
@@ -168,8 +169,11 @@ $(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")${GAPS_
   TESTS_PASSED=1
   TEST_CMD="${TEST_CMD:-}"
   if [ -n "$TEST_CMD" ]; then
-    echo "[autorun] build: running test_cmd: $TEST_CMD"
-    if eval "$TEST_CMD"; then
+    echo "[autorun] build: running test_cmd in $PROJECT_DIR: $TEST_CMD"
+    # NOTE: TEST_CMD is arbitrary shell from queue/autorun.config.json — by
+    # design (e.g. `npm test`, `pytest`). Run it inside the project dir so
+    # adopters' tests aren't accidentally executed against the engine repo.
+    if (cd "$PROJECT_DIR" && eval "$TEST_CMD"); then
       echo "[autorun] build: tests PASSED"
       TESTS_PASSED=1
     else
@@ -194,6 +198,12 @@ $(cat "$ARTIFACT_DIR/check.md" 2>/dev/null || echo "(no check.md found)")${GAPS_
   fi
 
   if [ "$TESTS_PASSED" -eq 1 ] && [ "$COMPLIANCE_PASSED" -eq 1 ]; then
+    # Re-check STOP after a successful wave — catches the race where STOP
+    # was created mid-wave; otherwise run.sh would proceed to PR creation.
+    if [ -f "$QUEUE_DIR/STOP" ]; then
+      echo "[autorun] build: STOP file detected after successful wave — halting before PR creation"
+      exit 3
+    fi
     BUILD_SUCCESS=1
     break
   fi

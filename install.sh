@@ -143,9 +143,29 @@ find "$REPO_DIR/scripts/autorun" -type f \( -name "*.sh" -o -name "autorun" \) -
 mkdir -p "$HOME/.local/bin"
 ln -sf "$REPO_DIR/scripts/autorun/autorun" "$HOME/.local/bin/autorun"
 echo "  LINKED: autorun -> $HOME/.local/bin/autorun"
-mkdir -p "$REPO_DIR/queue"
-if [ ! -f "$REPO_DIR/queue/.gitignore" ]; then
-    cat > "$REPO_DIR/queue/.gitignore" << 'GITIGNORE'
+# Owner vs adopter detection: OWNER=1 means install.sh ran from inside the
+# MonsterFlow engine repo itself. Anything else is an adopter installing
+# the engine into their own project. Basing this on PWD vs REPO_DIR (not
+# basename) is robust to clones named "MonsterFlow" but used as engine.
+OWNER=0
+if [[ "$PWD" == "$REPO_DIR" ]]; then
+    OWNER=1
+fi
+
+ADOPTER_ROOT=""
+if [[ "$OWNER" -eq 0 && -d "$PWD/.git" ]]; then
+    ADOPTER_ROOT="$PWD"
+fi
+
+# Create queue/ + .gitignore in BOTH the engine repo and the adopter project.
+# autorun runs from $PROJECT_DIR (defaults to $PWD), so adopter projects need
+# their own queue/.gitignore — otherwise specs, configs, run logs, and PR
+# URLs leak into commits despite docs claiming "queue/ is gitignored."
+write_queue_gitignore() {
+    local target_dir="$1"
+    mkdir -p "$target_dir"
+    if [ ! -f "$target_dir/.gitignore" ]; then
+        cat > "$target_dir/.gitignore" << 'GITIGNORE'
 # autorun queue — transient artifacts, never commit
 autorun.config.json
 */
@@ -156,24 +176,24 @@ run.log
 *.spec.md
 *.prompt.txt
 GITIGNORE
-    echo "  CREATED: queue/.gitignore"
+        echo "  CREATED: $target_dir/.gitignore"
+    fi
+}
+
+write_queue_gitignore "$REPO_DIR/queue"
+if [ -n "$ADOPTER_ROOT" ]; then
+    write_queue_gitignore "$ADOPTER_ROOT/queue"
 fi
 
 # --- Persona Metrics: gitignore default-flip for adopters ---
-# Adopter installs (any project NOT named 'MonsterFlow') default to opt-in-to-commit
-# for persona-metrics artifacts. MonsterFlow's own repo overrides via name detection.
-# Set PERSONA_METRICS_GITIGNORE=0 to override the adopter default and commit metrics.
+# Owner (working ON MonsterFlow) → commit metrics (dogfood pattern).
+# Adopter (using MonsterFlow) → gitignore metrics (may contain sensitive review prose).
+# Override via PERSONA_METRICS_GITIGNORE=0 (commit) or =1 (gitignore).
 PERSONA_METRICS_GITIGNORE_DEFAULT=1
-if [[ "$(basename "$REPO_DIR")" == "MonsterFlow" ]]; then
-    PERSONA_METRICS_GITIGNORE_DEFAULT=0  # this repo's own dogfood pattern: commit metrics
+if [[ "$OWNER" -eq 1 ]]; then
+    PERSONA_METRICS_GITIGNORE_DEFAULT=0
 fi
 PERSONA_METRICS_GITIGNORE="${PERSONA_METRICS_GITIGNORE:-$PERSONA_METRICS_GITIGNORE_DEFAULT}"
-
-# Find an adopter project root: cwd if it has a .git dir AND isn't this repo
-ADOPTER_ROOT=""
-if [[ "$PWD" != "$REPO_DIR" && -d "$PWD/.git" ]]; then
-    ADOPTER_ROOT="$PWD"
-fi
 
 if [[ "$PERSONA_METRICS_GITIGNORE" == "1" && -n "$ADOPTER_ROOT" ]]; then
     GITIGNORE="$ADOPTER_ROOT/.gitignore"

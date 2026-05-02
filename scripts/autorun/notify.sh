@@ -69,7 +69,12 @@ fi
 # Method 2: osascript desktop banner (macOS only)
 if command -v osascript >/dev/null 2>&1; then
   BANNER_MSG="$(head -3 "$BODY_FILE" | tr '\n' ' ' | cut -c1-200)"
-  osascript -e "display notification \"$BANNER_MSG\" with title \"$SUBJECT\"" \
+  # Escape backslashes and double-quotes for AppleScript string literals.
+  # Without this, quotes/backslashes in spec text could break the command or
+  # inject AppleScript syntax.
+  BANNER_ESC="$(printf '%s' "$BANNER_MSG" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
+  SUBJECT_ESC="$(printf '%s' "$SUBJECT"    | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g')"
+  osascript -e "display notification \"$BANNER_ESC\" with title \"$SUBJECT_ESC\"" \
     && NOTIFIED=1 \
     || echo "[autorun] notify: osascript failed"
 fi

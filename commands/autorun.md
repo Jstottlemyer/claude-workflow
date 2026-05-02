@@ -106,9 +106,10 @@ Each queue item runs through these stages in order:
 - Findings merged into `queue/<slug>/review-findings.md`
 - **Gate:** ≥ `spec_review_fatal_threshold` (default 2) agents emit `Verdict: FAIL` → item halted, `failure.md` written, next item
 
-### Stage 2 — Risk Analysis (parallel with Stage 1)
+### Stage 2 — Risk Analysis (sequential, after Stage 1)
 - Lightweight risk agent reads spec + review findings
 - Output: `queue/<slug>/risk-findings.md`
+- Non-fatal: a risk-analysis failure does not halt the item
 - Merged into `review-findings.md` before plan stage
 
 ### Stage 3 — Plan
@@ -226,16 +227,17 @@ tmux new-session -d -s autorun 'autorun start'
 ### Option 2 — launchd
 See `QUICKSTART.md` for a full launchd plist example. Key points:
 - Use a LaunchAgent (not LaunchDaemon) so it runs as your user
-- `run.sh` sources `~/.zshenv.local` at startup for credentials
+- The launchd plist (or your tmux invocation) is responsible for sourcing `~/.zshenv.local` before invoking `autorun start` — `run.sh` does NOT source it itself.
 
 ---
 
 ## Security Notes
 
 - **`AUTORUN_GH_TOKEN`** — keep in `~/.zshenv.local` (chmod 600); use a fine-grained PAT scoped to `autorun/*` branches only (create PR + merge, nothing else)
-- **`queue/` is gitignored** — specs, config, and run artifacts never committed
+- **`queue/` is gitignored** — `install.sh` writes `queue/.gitignore` into both the engine repo and the adopter project (cwd if it has a `.git` dir). Specs, config, run logs, and PR URLs stay local.
 - **`queue/run.log`** — JSON-lines forensic trail written per wave: `{timestamp, slug, stage, exit_code}`
-- **Credentials** — `run.sh` sources `~/.zshenv.local` at startup; all subprocesses inherit `ANTHROPIC_API_KEY`, `GH_TOKEN`, and Codex auth
+- **Credentials** — `defaults.sh` explicitly **unsets `ANTHROPIC_API_KEY`** so `claude -p` falls back to OAuth (the claude.ai subscription, not the API console balance). `GH_TOKEN` and Codex auth are inherited from the parent shell's environment.
+- **`test_cmd`** — arbitrary shell from `queue/autorun.config.json`, executed inside `$PROJECT_DIR`. Treat your config like an executable: don't paste an unreviewed `test_cmd` from elsewhere.
 
 ---
 

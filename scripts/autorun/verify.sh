@@ -53,6 +53,17 @@ if [ -z "$CURRENT_SHA" ] || [ "$CURRENT_SHA" = "$PRE_BUILD_SHA" ]; then
   exit 1
 fi
 
+# Branch invariant: build agent must remain on autorun/$SLUG. If they
+# checked out another branch and committed there, HEAD has moved but the
+# eventual `git push origin autorun/$SLUG` will publish stale work.
+EXPECTED_BRANCH="autorun/$SLUG"
+CURRENT_BRANCH="$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")"
+if [ "$CURRENT_BRANCH" != "$EXPECTED_BRANCH" ]; then
+  echo "[autorun] verify: FAIL — agent on '$CURRENT_BRANCH', expected '$EXPECTED_BRANCH'"
+  printf 'VERDICT: INCOMPLETE — build agent committed to wrong branch (%s != %s)\n' "$CURRENT_BRANCH" "$EXPECTED_BRANCH" > "$ARTIFACT_DIR/verify-gaps.md"
+  exit 1
+fi
+
 # Cap diff to avoid overflowing the context window
 GIT_DIFF="$(git -C "$PROJECT_DIR" diff "$PRE_BUILD_SHA" HEAD -- . 2>/dev/null | head -3000 || echo "(diff unavailable)")"
 DIFF_LINE_COUNT="$(printf '%s\n' "$GIT_DIFF" | wc -l | tr -d ' ')"
@@ -104,11 +115,14 @@ VERDICT: INCOMPLETE — <N> requirement(s) not met"
 VERIFY_STDERR="$(mktemp "${TMPDIR:-/tmp}/autorun-verify-XXXXXX.log")"
 trap 'rm -f "$VERIFY_STDERR"' EXIT
 
+# Capture claude's exit code (PIPESTATUS[1]) at failure time.
+# `|| true` would reset PIPESTATUS to reflect `true`'s exit, so we must
+# capture inside the `||` branch where PIPESTATUS still reflects the pipeline.
+VERIFY_EXIT=0
 printf '%s' "$VERIFY_PROMPT" | timeout "${TIMEOUT_VERIFY:-600}" claude -p \
   --dangerously-skip-permissions \
   --system-prompt "You are a strict spec compliance verifier. Be precise and concise. Do not implement anything — only report what is and is not present in the diff." \
-  2>"$VERIFY_STDERR" | tee "$ARTIFACT_DIR/verify-gaps.md" || true
-VERIFY_EXIT=${PIPESTATUS[1]}
+  2>"$VERIFY_STDERR" | tee "$ARTIFACT_DIR/verify-gaps.md" || VERIFY_EXIT=${PIPESTATUS[1]}
 
 # 124 = timeout, 127 = command not found — true infrastructure errors; treat as inconclusive
 if [ "$VERIFY_EXIT" -eq 124 ] || [ "$VERIFY_EXIT" -eq 127 ]; then

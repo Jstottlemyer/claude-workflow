@@ -172,6 +172,16 @@ run_item() {
         return 0
     fi
 
+    # spec-review.sh can exit 0 without producing review-findings.md when
+    # neither review.md nor raw persona files are written. Treat that as
+    # failure — otherwise risk-analysis appends to a never-created file
+    # and planning proceeds without spec-review evidence.
+    if [ ! -f "$ARTIFACT_DIR/review-findings.md" ]; then
+        echo "[autorun] $SLUG: spec-review exited 0 but review-findings.md missing — treating as failure"
+        write_failure_item "spec-review" "review-findings.md not produced"
+        return 0
+    fi
+
     # -------------------------------------------------------------------------
     # Stage 1b: risk-analysis (non-fatal)
     # -------------------------------------------------------------------------
@@ -274,6 +284,12 @@ run_item() {
     fi
 
     # --- Stage 5: Create PR ---
+    # Re-check STOP before PR creation as a safety net (build.sh also re-checks
+    # after a successful wave, but a STOP racing with branch push should still halt).
+    if [ -f "$QUEUE_DIR/STOP" ]; then
+        echo "[autorun] $SLUG: STOP file detected before PR creation — halting"
+        return 3
+    fi
     update_stage "pr-creation"
     write_state "pr-creation"
 
@@ -290,9 +306,15 @@ run_item() {
     WAVE_COUNT="$(grep -c "^## Wave" "$ARTIFACT_DIR/build-log.md" 2>/dev/null || echo "unknown")"
     TEST_CMD_DISPLAY="${TEST_CMD:-(empty — skipped)}"
 
+    # Resolve owner/repo for --repo. `gh repo view` handles both HTTPS and SSH
+    # remotes; fall back to regex-stripping for both URL forms if gh is unavailable.
+    PR_REPO="$(cd "$PROJECT_DIR" && gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null \
+        || git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null \
+           | sed -E 's|^git@github\.com:([^/]+/[^/]+)\.git$|\1|; s|^https://github\.com/([^/]+/[^/]+)\.git$|\1|; s|^https://github\.com/([^/]+/[^/]+)$|\1|')"
+
     STAGE_EXIT=0
     PR_URL="$(gh pr create \
-        --repo "$(git -C "$PROJECT_DIR" remote get-url origin 2>/dev/null | sed 's|https://github.com/||;s|.git$||')" \
+        --repo "$PR_REPO" \
         --title "autorun: $SLUG" \
         --body "$(cat <<PRBODY
 ## Summary
@@ -318,10 +340,13 @@ PRBODY
         echo "[autorun] $SLUG: PR created: $PR_URL"
         log_run "$SLUG" "pr-creation" 0
     else
-        echo "[autorun] $SLUG: WARN — PR creation failed (exit $STAGE_EXIT): $PR_URL"
+        echo "[autorun] $SLUG: PR creation failed (exit $STAGE_EXIT): $PR_URL"
         log_run "$SLUG" "pr-creation" 1
-        # Non-fatal: continue to Codex review if PR URL is somehow still available
-        # Otherwise the Codex step will be skipped (no pr-url.txt)
+        # Without a PR URL, neither Codex review nor merge can run. Mark the item
+        # failed so it doesn't sit in limbo (no failure.md, no run-summary.md)
+        # forever — the next run would otherwise re-process it indefinitely.
+        write_failure_item "pr-creation" "PR creation failed (exit $STAGE_EXIT)"
+        return 0
     fi
 
     # --- Stage 6: Codex review (if available) ---
@@ -431,11 +456,11 @@ $(grep '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null)"
         echo "[autorun] $SLUG: fix commit produced — re-running tests"
         log_run "$SLUG" "fix-attempt" 0
 
-        # Re-run test_cmd after fix
+        # Re-run test_cmd after fix (in PROJECT_DIR — same as build.sh)
         FIX_TEST_PASSED=1
         if [ -n "${TEST_CMD:-}" ]; then
             TEST_EXIT=0
-            eval "$TEST_CMD" 2>/dev/null || TEST_EXIT=$?
+            (cd "$PROJECT_DIR" && eval "$TEST_CMD") 2>/dev/null || TEST_EXIT=$?
             if [ "$TEST_EXIT" -ne 0 ]; then
                 FIX_TEST_PASSED=0
                 echo "[autorun] $SLUG: tests failed after fix — closing PR"
@@ -504,8 +529,17 @@ $(grep '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null)"
     gh pr merge "$PR_URL_MERGE" --squash --auto 2>/dev/null || MERGE_EXIT=$?
 
     if [ "$MERGE_EXIT" -eq 0 ]; then
-        echo "[autorun] $SLUG: squash merged: $PR_URL_MERGE"
-        log_run "$SLUG" "merge" 0
+        # `gh pr merge --auto` exits 0 when auto-merge is *enabled*, which may
+        # not mean the PR is actually merged yet (it merges when checks pass).
+        # Query state so run-summary.md reflects reality.
+        MERGE_STATE="$(gh pr view "$PR_URL_MERGE" --json state -q .state 2>/dev/null || echo "UNKNOWN")"
+        if [ "$MERGE_STATE" = "MERGED" ]; then
+            echo "[autorun] $SLUG: squash merged: $PR_URL_MERGE"
+            log_run "$SLUG" "merge" 0
+        else
+            echo "[autorun] $SLUG: auto-merge enabled (state=$MERGE_STATE) — will merge when checks pass: $PR_URL_MERGE"
+            log_run "$SLUG" "merge-auto-enabled" 0
+        fi
     else
         echo "[autorun] $SLUG: WARN — merge failed (exit $MERGE_EXIT) — PR left open for manual review"
         log_run "$SLUG" "merge" "$MERGE_EXIT"
@@ -545,6 +579,13 @@ for SPEC_FILE in "$QUEUE_DIR"/*.spec.md; do
     [ -f "$SPEC_FILE" ] || continue  # glob miss (no .spec.md files)
 
     SLUG="$(basename "$SPEC_FILE" .spec.md)"
+
+    # Validate slug per documented regex (commands/autorun.md:61).
+    # Unsafe slugs produce invalid branch names and quoting hazards in `python3 -c`.
+    if [[ ! "$SLUG" =~ ^[a-z0-9][a-z0-9-]{0,63}$ ]]; then
+        echo "[autorun] WARN: skipping '$SLUG.spec.md' — slug must match ^[a-z0-9][a-z0-9-]{0,63}\$"
+        continue
+    fi
 
     # Check STOP file between items
     if [ -f "$QUEUE_DIR/STOP" ]; then

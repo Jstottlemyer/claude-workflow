@@ -4,6 +4,7 @@
   "spec_review_fatal_threshold": 2,
   "build_max_retries": 3,
   "test_cmd": "",
-  "timeout_stage": 300,
-  "timeout_codex": 120
+  "timeout_stage": 1800,
+  "timeout_codex": 120,
+  "timeout_verify": 600
 }
