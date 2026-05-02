@@ -381,7 +381,7 @@
     <p class="tagline">
       A structured planning, multi-agent review, and execution-discipline pipeline for
       <a href="https://claude.com/claude-code">Claude Code</a>.
-      Ships <strong>37 agent personas</strong> — 28 always-available pipeline agents plus 9 domain agents.
+      Ships <strong>40 agents</strong> — 29 always-available pipeline personas, 9 domain personas, plus 2 focused Claude Code subagents.
       Each phase calls only the slice it needs. One <code>/wrap</code> at the end compiles what you learned into durable memory.
     </p>
     <div class="cta">
@@ -515,7 +515,7 @@ flowchart LR
       </pre>
     </div>
     <p class="lede" style="margin-top:24px"><strong style="color:var(--accent-2)">Compile, don't retrieve.</strong> Capture is cheap during the session (<code>"capture this: X"</code> → <code>_raw/</code>). Distillation happens once at <code>/wrap</code>. Reads at the start of the next session are free — the wiki is already structured, the graph is already built, memory is already loaded.</p>
-    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Measured weekly.</strong> Graph-driven queries on real codebases land <strong style="color:var(--accent-2)">~10–20× fewer tokens</strong> than full-corpus reads — 14.2× on a 1.5K-node codebase, 16.4× on a 2.2K-node one. <code>scripts/benchmark-json.sh</code> writes data to <code>dashboard/data/&lt;project&gt;.jsonl</code>; open <a href="../dashboard/index.html"><code>dashboard/index.html</code></a> to see your own (from a clone, run <code>open ~/Projects/MonsterFlow/dashboard/index.html</code>).</p>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Measured weekly.</strong> Graph-driven queries on real codebases land <strong style="color:var(--accent-2)">~10–20× fewer tokens</strong> than full-corpus reads — 14.2× on a 1.5K-node codebase, 16.4× on a 2.2K-node one. <code>scripts/benchmark-json.sh</code> writes data to <code>dashboard/data/&lt;project&gt;.jsonl</code>; see the <a href="dashboard.html">example dashboard</a> for what it looks like, then run <code>open ~/Projects/MonsterFlow/dashboard/index.html</code> from a clone to see your own data.</p>
   </div>
 </section>
 

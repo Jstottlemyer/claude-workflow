@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MonsterFlow — Graphify Dashboard (example)</title>
+<meta name="description" content="Example MonsterFlow graphify dashboard — synthesized data showing what your own dashboard looks like once you've run /wrap a few times across projects.">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #262a33;
+    --fg: #e6e6e6;
+    --muted: #9aa0a6;
+    --accent: #4ec9b0;
+    --warn: #e5c07b;
+    --bad: #e06c75;
+    --good: #98c379;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+  /* Banner clearly identifies this as an example so visitors don't think
+     they're looking at someone's actual project metrics. */
+  .banner {
+    background: #2a2616;
+    color: var(--warn);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 24px;
+    font-size: 13px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .banner strong { color: #fff; }
+  .banner code { background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 4px; font-size: 12px; }
+  header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 16px; }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  header .muted { color: var(--muted); font-size: 12px; }
+  header .home { margin-left: auto; }
+  nav { padding: 8px 24px; border-bottom: 1px solid var(--border); display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button {
+    background: transparent; color: var(--muted); border: 1px solid transparent;
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  }
+  nav button:hover { color: var(--fg); }
+  nav button.active { background: var(--panel); color: var(--fg); border-color: var(--border); }
+  main { padding: 24px; display: grid; gap: 16px;
+         grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .card h2 { margin: 0 0 12px 0; font-size: 13px; color: var(--muted); font-weight: 500;
+             text-transform: uppercase; letter-spacing: 0.04em; }
+  .card canvas { max-width: 100%; }
+  .card.wide { grid-column: 1 / -1; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 500; }
+  tbody tr:hover { background: #1d2129; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+  .badge.green { background: #1e3a2a; color: var(--good); }
+  .badge.yellow { background: #3a331a; color: var(--warn); }
+  .badge.red { background: #3a1e24; color: var(--bad); }
+  .empty { color: var(--muted); font-style: italic; padding: 12px; }
+  #error { display: none; background: #3a1e24; color: var(--bad); padding: 12px 24px;
+           border-bottom: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<div class="banner">
+  <strong>EXAMPLE DATA</strong>
+  <span>This is a synthesized preview of two fictional projects. Your real dashboard runs locally — clone the repo and run <code>open ~/Projects/MonsterFlow/dashboard/index.html</code>.</span>
+</div>
+<header>
+  <h1>Graphify Dashboard</h1>
+  <span class="muted" id="last-updated">loading…</span>
+  <span class="home"><a href="./">← back to MonsterFlow</a></span>
+</header>
+<div id="error"></div>
+<nav id="tabs"><button class="active" data-project="__all">All projects</button></nav>
+<main id="main"></main>
+
+<script>
+// Synthesized example data for two fictional projects. Numbers chosen to
+// show plausible growth curves (graph nodes/edges climbing, token reduction
+// improving as the graph stabilizes, wiki pages accumulating from /wrap).
+// No real project info is exposed here — see ../dashboard/data-bundle.js
+// (gitignored) for the real local-only equivalent.
+window.__GRAPHIFY_DATA = {
+  "example-app": [
+    { ts: "2026-04-15T14:22:00Z", event: "bootstrap", project: "example-app",
+      graph: { nodes: 120, edges: 180, communities: 8, god_nodes_top3: ["app/page.tsx", "lib/auth.ts", "components/Layout.tsx"] },
+      benchmark: { corpus_tokens: 8400, avg_query_tokens: 2100, reduction_ratio: 4.0, stale_days: 0 },
+      wiki: { pages_total: 0, pages_ingested_this_session: 0, raw_pending: 0 },
+      session: { duration_min: 0, commits: 0, spec_created: false, plan_executed: false } },
+    { ts: "2026-04-16T18:45:00Z", event: "wrap", project: "example-app",
+      graph: { nodes: 125, edges: 192, communities: 8, god_nodes_top3: ["app/page.tsx", "lib/auth.ts", "components/Layout.tsx"] },
+      benchmark: { corpus_tokens: 8800, avg_query_tokens: 2050, reduction_ratio: 4.3, stale_days: 0 },
+      wiki: { pages_total: 2, pages_ingested_this_session: 2, raw_pending: 0 },
+      session: { duration_min: 78, commits: 4, spec_created: true, plan_executed: false } },
+    { ts: "2026-04-19T22:10:00Z", event: "wrap", project: "example-app",
+      graph: { nodes: 140, edges: 218, communities: 9, god_nodes_top3: ["app/page.tsx", "lib/auth.ts", "lib/db.ts"] },
+      benchmark: { corpus_tokens: 9500, avg_query_tokens: 1400, reduction_ratio: 6.8, stale_days: 0 },
+      wiki: { pages_total: 5, pages_ingested_this_session: 3, raw_pending: 1 },
+      session: { duration_min: 92, commits: 6, spec_created: false, plan_executed: true } },
+    { ts: "2026-04-22T16:30:00Z", event: "wrap", project: "example-app",
+      graph: { nodes: 165, edges: 261, communities: 11, god_nodes_top3: ["lib/auth.ts", "app/page.tsx", "lib/db.ts"] },
+      benchmark: { corpus_tokens: 10800, avg_query_tokens: 1270, reduction_ratio: 8.5, stale_days: 0 },
+      wiki: { pages_total: 9, pages_ingested_this_session: 4, raw_pending: 0 },
+      session: { duration_min: 64, commits: 3, spec_created: false, plan_executed: false } },
+    { ts: "2026-04-25T20:15:00Z", event: "wrap", project: "example-app",
+      graph: { nodes: 190, edges: 308, communities: 12, god_nodes_top3: ["lib/auth.ts", "lib/db.ts", "app/api/route.ts"] },
+      benchmark: { corpus_tokens: 12200, avg_query_tokens: 1090, reduction_ratio: 11.2, stale_days: 0 },
+      wiki: { pages_total: 14, pages_ingested_this_session: 5, raw_pending: 2 },
+      session: { duration_min: 105, commits: 8, spec_created: true, plan_executed: true } },
+    { ts: "2026-04-28T19:40:00Z", event: "wrap", project: "example-app",
+      graph: { nodes: 215, edges: 352, communities: 13, god_nodes_top3: ["lib/db.ts", "lib/auth.ts", "app/api/route.ts"] },
+      benchmark: { corpus_tokens: 13800, avg_query_tokens: 1020, reduction_ratio: 13.5, stale_days: 0 },
+      wiki: { pages_total: 18, pages_ingested_this_session: 4, raw_pending: 1 },
+      session: { duration_min: 82, commits: 5, spec_created: false, plan_executed: true } },
+    { ts: "2026-05-01T17:25:00Z", event: "wrap", project: "example-app",
+      graph: { nodes: 245, edges: 401, communities: 15, god_nodes_top3: ["lib/db.ts", "app/api/route.ts", "lib/auth.ts"] },
+      benchmark: { corpus_tokens: 15400, avg_query_tokens: 970, reduction_ratio: 15.8, stale_days: 0 },
+      wiki: { pages_total: 24, pages_ingested_this_session: 6, raw_pending: 0 },
+      session: { duration_min: 71, commits: 4, spec_created: false, plan_executed: false } }
+  ],
+  "demo-cli": [
+    { ts: "2026-04-14T10:05:00Z", event: "bootstrap", project: "demo-cli",
+      graph: { nodes: 45, edges: 72, communities: 4, god_nodes_top3: ["bin/cli.sh", "lib/parser.sh", "tests/integration.bats"] },
+      benchmark: { corpus_tokens: 3200, avg_query_tokens: 1100, reduction_ratio: 2.9, stale_days: 0 },
+      wiki: { pages_total: 0, pages_ingested_this_session: 0, raw_pending: 0 },
+      session: { duration_min: 0, commits: 0, spec_created: false, plan_executed: false } },
+    { ts: "2026-04-17T15:30:00Z", event: "wrap", project: "demo-cli",
+      graph: { nodes: 52, edges: 84, communities: 4, god_nodes_top3: ["bin/cli.sh", "lib/parser.sh", "lib/format.sh"] },
+      benchmark: { corpus_tokens: 3700, avg_query_tokens: 970, reduction_ratio: 3.8, stale_days: 0 },
+      wiki: { pages_total: 1, pages_ingested_this_session: 1, raw_pending: 0 },
+      session: { duration_min: 45, commits: 3, spec_created: true, plan_executed: false } },
+    { ts: "2026-04-21T13:50:00Z", event: "wrap", project: "demo-cli",
+      graph: { nodes: 68, edges: 112, communities: 5, god_nodes_top3: ["bin/cli.sh", "lib/parser.sh", "lib/format.sh"] },
+      benchmark: { corpus_tokens: 4400, avg_query_tokens: 820, reduction_ratio: 5.4, stale_days: 0 },
+      wiki: { pages_total: 3, pages_ingested_this_session: 2, raw_pending: 0 },
+      session: { duration_min: 58, commits: 4, spec_created: false, plan_executed: true } },
+    { ts: "2026-04-24T21:15:00Z", event: "wrap", project: "demo-cli",
+      graph: { nodes: 82, edges: 138, communities: 6, god_nodes_top3: ["lib/parser.sh", "bin/cli.sh", "tests/integration.bats"] },
+      benchmark: { corpus_tokens: 5100, avg_query_tokens: 710, reduction_ratio: 7.2, stale_days: 0 },
+      wiki: { pages_total: 5, pages_ingested_this_session: 2, raw_pending: 1 },
+      session: { duration_min: 67, commits: 5, spec_created: false, plan_executed: false } },
+    { ts: "2026-04-27T19:00:00Z", event: "wrap", project: "demo-cli",
+      graph: { nodes: 95, edges: 162, communities: 6, god_nodes_top3: ["lib/parser.sh", "bin/cli.sh", "lib/format.sh"] },
+      benchmark: { corpus_tokens: 5900, avg_query_tokens: 650, reduction_ratio: 9.1, stale_days: 0 },
+      wiki: { pages_total: 8, pages_ingested_this_session: 3, raw_pending: 0 },
+      session: { duration_min: 53, commits: 3, spec_created: true, plan_executed: true } },
+    { ts: "2026-04-30T18:20:00Z", event: "wrap", project: "demo-cli",
+      graph: { nodes: 108, edges: 184, communities: 7, god_nodes_top3: ["lib/parser.sh", "lib/format.sh", "bin/cli.sh"] },
+      benchmark: { corpus_tokens: 6500, avg_query_tokens: 620, reduction_ratio: 10.5, stale_days: 0 },
+      wiki: { pages_total: 11, pages_ingested_this_session: 3, raw_pending: 1 },
+      session: { duration_min: 49, commits: 4, spec_created: false, plan_executed: false } }
+  ]
+};
+</script>
+
+<script>
+// Inlined from dashboard/dashboard.js — kept in sync by hand.
+// One change vs the source: the per-project "graph.html" link in the
+// summary table is replaced with a non-clickable note since file://
+// paths are meaningless for public-page visitors.
+
+const state = {
+  projects: {},
+  active: "__all",
+  charts: {},
+};
+
+function loadFromBundle() {
+  const bundle = window.__GRAPHIFY_DATA;
+  if (!bundle || typeof bundle !== "object") {
+    const e = document.getElementById("error");
+    e.style.display = "block";
+    e.textContent = "No data bundle found.";
+    return;
+  }
+  for (const [slug, records] of Object.entries(bundle)) {
+    if (Array.isArray(records) && records.length) state.projects[slug] = records;
+  }
+  renderTabs();
+  renderActive();
+  renderLastUpdated();
+}
+
+function renderLastUpdated() {
+  const all = Object.values(state.projects).flat();
+  if (!all.length) {
+    document.getElementById("last-updated").textContent = "no data";
+    return;
+  }
+  const latest = all.map(r => r.ts).sort().pop();
+  document.getElementById("last-updated").textContent = `last event: ${latest}`;
+}
+
+function renderTabs() {
+  const tabs = document.getElementById("tabs");
+  tabs.innerHTML = "";
+  const all = document.createElement("button");
+  all.textContent = "All projects";
+  all.dataset.project = "__all";
+  if (state.active === "__all") all.classList.add("active");
+  all.onclick = () => setActive("__all");
+  tabs.appendChild(all);
+  for (const slug of Object.keys(state.projects).sort()) {
+    const b = document.createElement("button");
+    b.textContent = slug;
+    b.dataset.project = slug;
+    if (state.active === slug) b.classList.add("active");
+    b.onclick = () => setActive(slug);
+    tabs.appendChild(b);
+  }
+}
+
+function setActive(slug) {
+  state.active = slug;
+  document.querySelectorAll("#tabs button").forEach(b => {
+    b.classList.toggle("active", b.dataset.project === slug);
+  });
+  renderActive();
+}
+
+function destroyCharts() {
+  for (const c of Object.values(state.charts)) { try { c.destroy(); } catch {} }
+  state.charts = {};
+}
+
+function renderActive() {
+  destroyCharts();
+  const main = document.getElementById("main");
+  main.innerHTML = "";
+  const recs = state.active === "__all"
+    ? Object.values(state.projects).flat().sort((a,b) => a.ts < b.ts ? -1 : 1)
+    : state.projects[state.active] || [];
+  if (!recs.length) {
+    main.innerHTML = '<div class="card wide"><div class="empty">No data for this project.</div></div>';
+    return;
+  }
+  addLineCard(main, "nodes", "Nodes", recs, r => r.graph?.nodes);
+  addLineCard(main, "edges", "Edges", recs, r => r.graph?.edges);
+  addLineCard(main, "communities", "Communities", recs, r => r.graph?.communities);
+  addLineCard(main, "reduction", "Token reduction (x)", recs, r => r.benchmark?.reduction_ratio);
+  addLineCard(main, "wikiPages", "Wiki pages (total)", recs, r => r.wiki?.pages_total);
+  addSessionsCard(main, recs);
+  addSummaryTable(main, recs);
+}
+
+function formatTs(ts) {
+  const d = new Date(ts);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${mm}/${dd} ${hh}:${mi}`;
+}
+
+function addLineCard(main, id, title, recs, extract) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `<h2>${title}</h2><canvas id="chart-${id}"></canvas>`;
+  main.appendChild(card);
+  const ctx = card.querySelector("canvas").getContext("2d");
+  const grouped = groupByProject(recs);
+  const allTs = [...new Set(recs.map(r => r.ts))].sort();
+  const labels = allTs.map(formatTs);
+  const datasets = grouped.map(([proj, rs]) => {
+    const byTs = Object.fromEntries(rs.map(r => [r.ts, extract(r)]));
+    return {
+      label: proj,
+      data: allTs.map(t => byTs[t] ?? null),
+      borderWidth: 2,
+      tension: 0.2,
+      pointRadius: 3,
+      spanGaps: true,
+    };
+  });
+  state.charts[id] = new Chart(ctx, {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      animation: false,
+      plugins: { legend: { display: datasets.length > 1, labels: { color: "#9aa0a6" } } },
+      scales: {
+        x: { ticks: { color: "#9aa0a6", maxRotation: 0, autoSkip: true }, grid: { color: "#262a33" } },
+        y: { ticks: { color: "#9aa0a6" }, grid: { color: "#262a33" }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+function addSessionsCard(main, recs) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `<h2>Sessions per week</h2><canvas id="chart-sessions"></canvas>`;
+  main.appendChild(card);
+  const wraps = recs.filter(r => r.event === "wrap");
+  const byWeek = {};
+  for (const r of wraps) {
+    const d = new Date(r.ts);
+    const y = d.getUTCFullYear();
+    const oneJan = new Date(Date.UTC(y, 0, 1));
+    const week = Math.ceil((((d - oneJan) / 86400000) + oneJan.getUTCDay() + 1) / 7);
+    const key = `${y}-W${String(week).padStart(2,"0")}`;
+    byWeek[key] = (byWeek[key] || 0) + 1;
+  }
+  const labels = Object.keys(byWeek).sort();
+  state.charts.sessions = new Chart(card.querySelector("canvas").getContext("2d"), {
+    type: "bar",
+    data: { labels, datasets: [{ label: "wraps", data: labels.map(k => byWeek[k]),
+                                  backgroundColor: "#4ec9b0" }] },
+    options: {
+      responsive: true, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#9aa0a6" }, grid: { color: "#262a33" } },
+        y: { ticks: { color: "#9aa0a6" }, grid: { color: "#262a33" }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+function groupByProject(recs) {
+  const g = {};
+  for (const r of recs) {
+    const k = r.project || "(unknown)";
+    (g[k] = g[k] || []).push(r);
+  }
+  for (const k of Object.keys(g)) g[k].sort((a,b) => a.ts < b.ts ? -1 : 1);
+  return Object.entries(g);
+}
+
+function addSummaryTable(main, recs) {
+  const card = document.createElement("div");
+  card.className = "card wide";
+  card.innerHTML = `<h2>Projects</h2>
+    <table><thead><tr>
+      <th>Project</th><th>Last event</th><th>Nodes</th><th>Edges</th>
+      <th>Communities</th><th>Reduction</th><th>Top god nodes</th><th>Graph</th>
+    </tr></thead><tbody></tbody></table>`;
+  main.appendChild(card);
+  const tbody = card.querySelector("tbody");
+  const byProj = groupByProject(recs);
+  for (const [proj, rs] of byProj) {
+    const last = rs[rs.length - 1];
+    const d = new Date(last.ts);
+    const ageDays = Math.floor((Date.now() - d.getTime()) / 86400000);
+    const badge = ageDays < 7 ? "green" : ageDays < 30 ? "yellow" : "red";
+    const top3 = (last.graph?.god_nodes_top3 || []).join(", ") || "—";
+    tbody.insertAdjacentHTML("beforeend", `
+      <tr>
+        <td>${proj}</td>
+        <td><span class="badge ${badge}">${ageDays}d ago</span></td>
+        <td>${last.graph?.nodes ?? "—"}</td>
+        <td>${last.graph?.edges ?? "—"}</td>
+        <td>${last.graph?.communities ?? "—"}</td>
+        <td>${last.benchmark?.reduction_ratio ? last.benchmark.reduction_ratio.toFixed(1) + "x" : "—"}</td>
+        <td>${top3}</td>
+        <td><span class="muted">local clone only</span></td>
+      </tr>`);
+  }
+}
+
+try {
+  loadFromBundle();
+} catch (err) {
+  const e = document.getElementById("error");
+  e.style.display = "block";
+  e.textContent = `Error rendering dashboard: ${err}`;
+}
+</script>
+</body>
+</html>

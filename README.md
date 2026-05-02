@@ -212,7 +212,7 @@ flowchart LR
 
 ## Agent Roster (40 total)
 
-The repo ships **38 pipeline personas + 2 focused subagents = 40 agents**:
+The repo ships **40 agents = 38 personas (29 pipeline + 9 domain) + 2 focused subagents**:
 
 - **29 always-available pipeline personas** — dispatched by `/spec-review`, `/plan`, `/check`, `/build` in parallel slices.
 - **9 domain personas** — loaded conditionally at `/kickoff` based on project signals.
