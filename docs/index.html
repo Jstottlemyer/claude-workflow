@@ -80,6 +80,45 @@
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
+  /* First-person aside callout — used in the "Why this exists" section
+     to carry the LinkedIn-post voice (honest uncertainty, real-project
+     grounding, anti-hype self-positioning) into the page without changing
+     the rest of the polished narrative. Distinct from .lede so it reads
+     as a personal note, not as section copy. */
+  .aside {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 28px 32px;
+    background: var(--bg-2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent-2);
+    border-radius: 12px;
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--fg);
+  }
+  .aside p { margin: 0 0 14px; }
+  .aside p:last-child { margin-bottom: 0; }
+  .aside strong { color: var(--accent-2); font-weight: 600; }
+  .aside .aside-attr {
+    color: var(--muted);
+    font-size: 14px;
+    font-style: italic;
+    margin-top: 8px;
+  }
+
+  /* Hook line — sits between the H1 and the tagline. Carries the
+     "what's actually different about this" hook from the LinkedIn post:
+     review IS measured, not just performed. Slightly larger and more
+     foreground than the tagline so it reads as the second beat. */
+  .hero-hook {
+    font-size: 22px;
+    line-height: 1.4;
+    color: var(--fg);
+    font-weight: 500;
+    max-width: 720px;
+    margin: -4px auto 22px;
+  }
   .tagline {
     font-size: 20px;
     color: var(--muted);
@@ -364,6 +403,7 @@
   <div class="nav-inner">
     <a href="#" class="brand"><span class="monogram monogram-sm">MF</span> MonsterFlow</a>
     <div class="nav-links">
+      <a href="#why" class="hide-mobile">Why</a>
       <a href="#pipeline">Pipeline</a>
       <a href="#self-learning" class="hide-mobile">Self-learning</a>
       <a href="#commands">Commands</a>
@@ -378,10 +418,11 @@
     <div class="monogram monogram-lg">MF</div>
     <span class="eyebrow">8-command pipeline · Claude Code · v0.3.0</span>
     <h1>You say WHAT.<br>Claude handles HOW.</h1>
+    <p class="hero-hook">Multi-agent review at every gate. And then the system measures whether those reviews are worth anything.</p>
     <p class="tagline">
       A structured planning, multi-agent review, and execution-discipline pipeline for
       <a href="https://claude.com/claude-code">Claude Code</a>.
-      Ships <strong>40 agents</strong> — 29 always-available pipeline personas, 9 domain personas, plus 2 focused Claude Code subagents.
+      Ships <strong>40 reviewers</strong> — 29 always-available pipeline personas, 9 domain personas, plus 2 focused Claude Code subagents.
       Each phase calls only the slice it needs. One <code>/wrap</code> at the end compiles what you learned into durable memory.
     </p>
     <div class="cta">
@@ -391,6 +432,26 @@
     <p class="cta-secondary">Or jump to <a href="#pipeline">the pipeline ↓</a></p>
   </div>
 </header>
+
+<section id="why" class="narrative">
+  <div class="wrap">
+    <div class="aside">
+      <p>
+        <strong>Why this exists.</strong> I'm a returning programmer building this as a personal tooling layer
+        while working on iOS games and running a paving business in San Jose. The pipeline has been useful
+        on real projects — a children's iOS game, a contractor quoting tool, this very repo's overnight builds.
+        The measurement layer is newer and I'm still watching whether the signals are meaningful or just noise
+        I'm pattern-matching into.
+      </p>
+      <p>
+        What I do know: 40 reviewers who never get tired, never skip the security section because they're
+        running late, and whose participation is logged and measured — has changed how I think about what
+        review is for.
+      </p>
+      <p class="aside-attr">— Justin · MIT-licensed, genuinely experimental</p>
+    </div>
+  </div>
+</section>
 
 <section id="pipeline" class="narrative">
   <div class="wrap">
