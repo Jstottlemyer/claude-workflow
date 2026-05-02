@@ -3,8 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Claude Workflow Pipeline</title>
-<meta name="description" content="An 8-command pipeline for Claude Code that adds structured planning, multi-agent review, and execution discipline to any project.">
+<title>MonsterFlow — structured pipeline for Claude Code</title>
+<meta name="description" content="MonsterFlow is an 8-command pipeline for Claude Code that adds structured planning, multi-agent review, and execution discipline to any project.">
+<meta property="og:title" content="MonsterFlow — structured pipeline for Claude Code">
+<meta property="og:description" content="An 8-command pipeline for Claude Code: structured planning, multi-agent review, execution discipline. 37 personas, persona-metrics measurement loop, autonomous overnight pipeline.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://jstottlemyer.github.io/MonsterFlow/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -132,6 +137,27 @@
   }
   pre.install .prompt { color: var(--muted); user-select: none; }
 
+  /* Copy-to-clipboard button on install snippets. JS at bottom of body
+     wires every .copy-btn to copy the .install-snippet sibling's textContent. */
+  .install-wrap { position: relative; }
+  .copy-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    color: var(--muted);
+    background: var(--bg-3);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .copy-btn:hover { color: var(--fg); border-color: var(--accent); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green); }
+
   .mermaid-frame {
     background: var(--bg-2);
     border: 1px solid var(--line);
@@ -141,6 +167,14 @@
   }
 .mermaid { display: flex; justify-content: center; min-width: max-content; }
 
+  /* Wrap tables and the ASCII flow card so long content scrolls horizontally
+     within its container instead of pushing the document past viewport width. */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+  pre.flow { overflow-x: auto; }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -148,6 +182,7 @@
     border: 1px solid var(--line);
     border-radius: 12px;
     overflow: hidden;
+    min-width: 520px;
   }
   th, td {
     text-align: left;
@@ -387,7 +422,7 @@ flowchart TD
   <div class="wrap">
     <h2>Commands</h2>
     <p class="lede">Each command writes a persistent artifact under <code>docs/specs/&lt;feature&gt;/</code>.</p>
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Command</th><th>What it does</th><th>Agents</th></tr></thead>
       <tbody>
         <tr><td><code>/kickoff</code></td><td>One-time project init — scans repo, drafts constitution, picks agent roster</td><td>—</td></tr>
@@ -400,7 +435,7 @@ flowchart TD
         <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
         <tr><td><code>/wrap</code></td><td>Session wrap-up — three automatic insight phases feed one triage gate (CLAUDE.md · Memory · hooks · skills), then git loose ends. Variants: <code>quick</code> (fast, skips insights) · <code>full</code> (forces soft-skip phases)</td><td>—</td></tr>
       </tbody>
-    </table>
+    </table></div>
   </div>
 </section>
 
@@ -410,16 +445,16 @@ flowchart TD
     <p class="lede">The pipeline ships in this repo (<code>v0.2.0</code>). Everything else is third-party — installed at latest from its source. No version pinning required for normal use.</p>
 
     <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Required</p>
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Tool</th><th>Why</th><th>How to get it</th></tr></thead>
       <tbody>
         <tr><td><strong>Claude Code CLI</strong></td><td>The harness this pipeline runs in</td><td><a href="https://claude.com/claude-code">claude.com/claude-code</a></td></tr>
         <tr><td><strong>Python ≥ 3.9</strong></td><td>Used by <code>session-cost.py</code>, persona-metrics scripts, benchmarks</td><td><code>brew install python</code></td></tr>
       </tbody>
-    </table>
+    </table></div>
 
     <p class="lede" style="margin-top:32px;color:var(--fg);font-weight:600">Plugins</p>
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Tier</th><th>Plugin</th><th>Purpose</th></tr></thead>
       <tbody>
         <tr><td>Always-on</td><td><code>superpowers</code></td><td>Execution discipline — TDD, debugging, verification, code review</td></tr>
@@ -427,11 +462,11 @@ flowchart TD
         <tr><td>On-demand</td><td><code>firecrawl</code> · <code>code-review</code> · <code>ralph-loop</code> · <code>playwright</code></td><td>Research · GitHub PR review · micro-iteration · browser automation</td></tr>
         <tr><td>Periodic</td><td><code>claude-md-management</code> · <code>skill-creator</code> · <code>claude-code-setup</code></td><td>Meta-tooling — audit CLAUDE.md, build new skills, recommend automations</td></tr>
       </tbody>
-    </table>
-    <pre class="install" style="margin-top:16px"><span class="prompt">$ </span>claude plugins install superpowers context7</pre>
+    </table></div>
+    <div class="install-wrap" style="margin-top:16px"><button class="copy-btn" data-copy="claude plugins install superpowers context7">Copy</button><pre class="install"><span class="prompt">$ </span>claude plugins install superpowers context7</pre></div>
 
     <p class="lede" style="margin-top:32px;color:var(--fg);font-weight:600">Optional integrations</p>
-    <table>
+    <div class="table-wrap"><table>
       <thead><tr><th>Integration</th><th>Why</th><th>Install</th></tr></thead>
       <tbody>
         <tr>
@@ -455,7 +490,7 @@ flowchart TD
           <td><code>brew install gh &amp;&amp; gh auth login</code></td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
   </div>
 </section>
 
@@ -463,8 +498,9 @@ flowchart TD
   <div class="wrap">
     <h2>Install</h2>
     <p class="lede">Clone, run the installer, then open any project and type <code>/kickoff</code>.</p>
-    <pre class="install"><span class="prompt">$ </span>git clone https://github.com/Jstottlemyer/MonsterFlow.git ~/Projects/MonsterFlow
-<span class="prompt">$ </span>cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh</pre>
+    <div class="install-wrap"><button class="copy-btn" data-copy="git clone https://github.com/Jstottlemyer/MonsterFlow.git ~/Projects/MonsterFlow
+cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh">Copy</button><pre class="install"><span class="prompt">$ </span>git clone https://github.com/Jstottlemyer/MonsterFlow.git ~/Projects/MonsterFlow
+<span class="prompt">$ </span>cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh</pre></div>
     <p class="lede" style="margin-top:24px">The installer symlinks commands, personas, templates, and settings into <code>~/.claude/</code>, then offers to install plugins.</p>
   </div>
 </section>
@@ -611,6 +647,25 @@ flowchart TD
       fontSize: '14px'
     },
     flowchart: { curve: 'basis', padding: 18, nodeSpacing: 38, rankSpacing: 50 }
+  });
+
+  // Copy-to-clipboard wiring for install snippets.
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy') || '';
+      navigator.clipboard.writeText(text).then(function () {
+        var orig = btn.textContent;
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.textContent = orig;
+          btn.classList.remove('copied');
+        }, 1600);
+      }).catch(function () {
+        btn.textContent = 'Copy failed';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1600);
+      });
+    });
   });
 </script>
 </body>
