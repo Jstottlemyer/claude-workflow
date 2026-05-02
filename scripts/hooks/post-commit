@@ -8,7 +8,7 @@
 # Bump rules (first match wins):
 #   - subject starts with "chore: bump version to"  → SKIP (recursion guard)
 #   - subject starts with "Merge " / "Revert "      → SKIP
-#   - body or subject contains "[skip-bump]"        → SKIP
+#   - body or subject contains "[skip-auto-bump]"        → SKIP
 #   - branch != main                                → SKIP (main-only auto-bump)
 #   - in rebase / cherry-pick / merge-in-progress   → SKIP
 #   - subject contains "BREAKING CHANGE" or `<type>!:` → MAJOR
@@ -47,7 +47,7 @@ case "$SUBJECT" in
   "Merge "*|"Revert "*)        exit 0 ;;
 esac
 case "$FULL_MSG" in
-  *"[skip-bump]"*) exit 0 ;;
+  *"[skip-auto-bump]"*) exit 0 ;;
 esac
 
 # Determine bump level.
