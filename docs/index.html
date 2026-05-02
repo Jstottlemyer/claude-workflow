@@ -6,7 +6,7 @@
 <title>MonsterFlow — structured pipeline for Claude Code</title>
 <meta name="description" content="MonsterFlow is an 8-command pipeline for Claude Code that adds structured planning, multi-agent review, and execution discipline to any project.">
 <meta property="og:title" content="MonsterFlow — structured pipeline for Claude Code">
-<meta property="og:description" content="An 8-command pipeline for Claude Code: structured planning, multi-agent review, execution discipline. 37 personas, persona-metrics measurement loop, autonomous overnight pipeline.">
+<meta property="og:description" content="An 8-command pipeline for Claude Code: structured planning, multi-agent review, execution discipline. 37 personas + 2 focused subagents, persona-metrics measurement loop, autonomous overnight pipeline.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://jstottlemyer.github.io/MonsterFlow/">
 <meta name="twitter:card" content="summary_large_image">
@@ -627,8 +627,8 @@ cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh">Copy</button><pre class="inst
 
 <section id="agents">
   <div class="wrap">
-    <h2>Agent roster <span style="color:var(--muted);font-weight:400">— 37 personas</span></h2>
-    <p class="lede">28 always-available pipeline agents + 9 domain agents. A session calls only the slice for the current phase — never all 37 at once.</p>
+    <h2>Agent roster <span style="color:var(--muted);font-weight:400">— 39 total (37 personas + 2 subagents)</span></h2>
+    <p class="lede">28 always-available pipeline personas + 9 domain personas + 2 focused Claude Code subagents (<code>autorun-shell-reviewer</code>, <code>persona-metrics-validator</code>). A session calls only the slice for the current phase — never all 39 at once.</p>
     <div class="grid">
       <div class="card">
         <h3>Review · <code>/spec-review</code> <span class="count">6</span></h3>

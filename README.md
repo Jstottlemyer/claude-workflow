@@ -205,10 +205,15 @@ flowchart LR
 
 </details>
 
-## Agent Roster (37 personas)
+## Agent Roster (39 total)
 
-The repo ships **37 personas**: 28 always-available pipeline agents + 9 domain agents.
-A single session calls **only the subset relevant to the current phase** — never all 37 at once. Each `/spec-review`, `/plan`, `/check`, or `/build` invokes its own slice.
+The repo ships **37 pipeline personas + 2 focused subagents = 39 agents**:
+
+- **28 always-available pipeline personas** — dispatched by `/spec-review`, `/plan`, `/check`, `/build` in parallel slices.
+- **9 domain personas** — loaded conditionally at `/kickoff` based on project signals.
+- **2 Claude Code subagents** — invoked directly via `Agent(subagent_type: ...)`. See the [Subagents](#subagents-focused-reviewers) section below.
+
+A single session calls **only the subset relevant to the current phase** — never all 39 at once. Each `/spec-review`, `/plan`, `/check`, or `/build` invokes its own slice.
 
 ### Pipeline agents (28) — always available
 
