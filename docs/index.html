@@ -48,6 +48,10 @@
       radial-gradient(circle at 50% 100%, rgba(244,114,182,0.06), transparent 50%);
   }
   code, pre, .mono { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+  /* Inline code can contain long unbreakable strings (file paths, URLs)
+     that overflow the viewport on mobile. Allow wrapping anywhere within
+     them so the document width stays bounded by the viewport. */
+  p code { overflow-wrap: anywhere; word-break: break-word; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
 
