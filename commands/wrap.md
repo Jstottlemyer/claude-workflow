@@ -157,6 +157,8 @@ For each persona, compute:
 
 **Lenient JSONL parsing:** malformed rows are skipped with a one-line warning (`[persona-metrics] skipped 1 malformed row in <feature>/<stage>/findings.jsonl`); the rollup proceeds.
 
+**Deeper validation when drift looks weird:** if Phase 1c surfaces unexpected drift (a persona suddenly load-bearing at 0%, all features showing stale-survival warnings, etc.), invoke the `persona-metrics-validator` subagent for a full schema + foreign-key + `artifact_hash` audit across `docs/specs/*/{spec-review,plan,check}/`. The subagent is read-only and reports per-file issues. Do not invoke it on every wrap — only when drift output is suspect.
+
 ### Emit drift triage candidates
 
 After rendering the drift table, emit a `[TRIAGE MEMORY]` line for every persona whose `load_bearing_rate` or `silent_rate` changed by ≥ 5pp (the same deadband used for arrows). These feed Phase 2's triage queue for roster-review decisions:

@@ -20,6 +20,12 @@ All notable changes to `MonsterFlow` are documented here.
 
 ### Added
 
+- *(none yet — next release)*
+
+## [0.3.0] — Automation infrastructure + autorun hardening — 2026-05-01
+
+### Added
+
 - **Automation infrastructure: hooks, subagents, skills, test suite** (2026-05-01):
   - **PostToolUse hooks** (`scripts/post-edit-shellcheck.sh`, `scripts/post-edit-json-validate.sh`) wired into `settings/settings.json`. Advisory-only — emit `systemMessage` on findings, never block edits. Catch the PIPESTATUS / quoting / JSON syntax bugs that the recent autorun reviews surfaced *before* commit time.
   - **Subagents** at `.claude/agents/`:
