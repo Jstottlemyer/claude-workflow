@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(gh:*)",
+      "Bash(gh auth:*)",
+      "Bash(gh repo:*)",
       "Bash(git:*)",
       "Bash(sips:*)",
       "Bash(lsof:*)",
@@ -24,6 +25,7 @@
     ],
     "defaultMode": "auto"
   },
+  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {
