@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MonsterFlow — social card (1200×630)</title>
+<style>
+  /* Render this page at exactly 1200×630 viewport then screenshot.
+     macOS: open this file, fit window to .card, then Cmd-Shift-4 the .card.
+     Or use playwright headless: page.setViewportSize({width:1200, height:630})
+     then page.screenshot({path:'social-card.png'}). */
+  html, body { margin: 0; padding: 0; background: #1a1a22; }
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+  .card {
+    width: 1200px;
+    height: 630px;
+    box-sizing: border-box;
+    padding: 64px 72px;
+    background: #0a0a0f;
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(124,156,255,0.18), transparent 45%),
+      radial-gradient(circle at 80% 100%, rgba(94,234,212,0.12), transparent 50%);
+    color: #e7e9ee;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+  .top {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .monogram {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #7c9cff 0%, #5eead4 100%);
+    color: #0a0a0f;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .brand {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    color: #9aa0ad;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-left: 6px;
+  }
+  .quote {
+    font-size: 78px;
+    line-height: 1.04;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    background: linear-gradient(120deg, #7c9cff 0%, #5eead4 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
+  }
+  .quote-attr {
+    color: #9aa0ad;
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 18px;
+    letter-spacing: 0.02em;
+  }
+  .stats {
+    display: flex;
+    gap: 32px;
+    padding-top: 28px;
+    border-top: 1px solid #232532;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+  .stat .num {
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .stat .label {
+    font-size: 13px;
+    color: #9aa0ad;
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+  }
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    color: #9aa0ad;
+    font-size: 14px;
+  }
+  .footer .repo {
+    color: #5eead4;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 15px;
+  }
+  .footer .license {
+    font-weight: 600;
+    color: #c4b5fd;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <div class="monogram">MF</div>
+    <div class="brand">MonsterFlow<span class="brand-sub">structured pipeline · Claude Code</span></div>
+  </div>
+
+  <div>
+    <p class="quote">"I don't ship code<br>anymore. I ship outcomes."</p>
+    <p class="quote-attr">— a friend, recently</p>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="num">40</span><span class="label">reviewers across 5 gates</span></div>
+    <div class="stat"><span class="num">10–20×</span><span class="label">fewer query tokens</span></div>
+    <div class="stat"><span class="num">∞</span><span class="label">overnight pipeline runs</span></div>
+    <div class="stat"><span class="num">📐</span><span class="label">measures itself</span></div>
+  </div>
+
+  <div class="footer">
+    <span class="repo">github.com/Jstottlemyer/MonsterFlow</span>
+    <span class="license">MIT · genuinely experimental</span>
+  </div>
+</div>
+</body>
+</html>
