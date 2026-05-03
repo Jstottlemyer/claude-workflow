@@ -557,6 +557,16 @@ After Phase 3 (and 3b if applicable) are resolved, require explicit confirmation
 
 Do not print any "wrap complete" or session-closed message until the user confirms. If they say "no" or name something to handle first, assist with that item and re-ask.
 
+### Closing line (after confirmation):
+
+Once the user confirms wrap-complete, print exactly one closing line so the dashboard is one click away — most terminals (iTerm2, Ghostty, cmux) render `file://` URLs as clickable links:
+
+```
+Dashboard: file://<HOME>/Projects/MonsterFlow/dashboard/index.html  (Graphify | Judge — toggle in the header)
+```
+
+Replace `<HOME>` with the actual expanded `$HOME` path (e.g., `/Users/<user>`) before printing — `~` does not expand inside `file://` URLs, so a literal tilde would break the click-through. This is the final line of the wrap. Skip silently if the dashboard file does not exist (older workflow installs without it).
+
 ---
 
 ## Phase 3b: Dependency Install Audit (conditional, folded into Phase 3 gate when applicable)

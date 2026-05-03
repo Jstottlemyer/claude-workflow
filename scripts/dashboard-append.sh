@@ -155,3 +155,8 @@ PY
 # both whenever any event lands.
 "$WORKFLOW_ROOT/scripts/dashboard-bundle.sh" >/dev/null 2>&1 || true
 "$WORKFLOW_ROOT/scripts/judge-dashboard-bundle.sh" >/dev/null 2>&1 || true
+
+# Print a clickable launch link when run interactively (most terminals
+# render file:// URLs as clickable). Hook callers redirect stdout to
+# /dev/null, so this stays silent there.
+echo "Dashboard: file://$WORKFLOW_ROOT/dashboard/index.html  (Graphify | Judge)"
