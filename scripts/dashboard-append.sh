@@ -149,6 +149,9 @@ with open(out, "a") as f:
 print(f"appended to {out}")
 PY
 
-# Rebuild the bundle so the dashboard reflects the new record immediately
+# Rebuild bundles so the dashboard reflects the new record immediately
 # without needing a local http server (file:// fetch is blocked by CORS).
+# Both modes (Graphify + Judge) share the same dashboard page, so refresh
+# both whenever any event lands.
 "$WORKFLOW_ROOT/scripts/dashboard-bundle.sh" >/dev/null 2>&1 || true
+"$WORKFLOW_ROOT/scripts/judge-dashboard-bundle.sh" >/dev/null 2>&1 || true

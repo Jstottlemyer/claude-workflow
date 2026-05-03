@@ -13,5 +13,6 @@ dashboard/data/*.jsonl
 dashboard/data/*.log
 dashboard/data/.*
 dashboard/data-bundle.js
+dashboard/judge-bundle.js
 
 .playwright-mcp/

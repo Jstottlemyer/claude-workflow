@@ -227,6 +227,14 @@ function projectPath(slug) {
   return `/Users/YOUR_USERNAME/Projects/${name}`;
 }
 
+// Public entry — called by index.html when toggling back to Graphify mode.
+window.__renderGraphifyView = function () {
+  destroyCharts();
+  document.getElementById("main").innerHTML = "";
+  document.getElementById("tabs").innerHTML = "";
+  loadFromBundle();
+};
+
 try {
   loadFromBundle();
 } catch (err) {
