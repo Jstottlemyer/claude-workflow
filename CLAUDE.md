@@ -23,6 +23,10 @@ Two focused Claude Code subagents ship with this repo. Neither is auto-scheduled
 
 Tests for both subagents' frontmatter live at `tests/test-agents.sh`. Run `bash tests/run-tests.sh agents` to validate.
 
+## Backlog
+
+Unscheduled ideas live in [BACKLOG.md](BACKLOG.md). Add new items there, not in this file. Promote an item to a real spec via `/spec` when you're ready to work on it.
+
 ## graphify
 
 This project has a graphify knowledge graph at graphify-out/.
