@@ -15,6 +15,7 @@ Read all specialist agent outputs from a stage and produce a single, unified doc
 4. Organize by topic, not by agent — the reader shouldn't need to know which agent said what
 5. Write in clear, direct language — no hedging, no "it might be worth considering"
 6. Every finding must end with a concrete next action or explicit decision to accept the risk
+7. **Preserve Judge's "Agent Disagreements Resolved" verbatim** — every stage's output below has this section. If Judge merged contradictory findings, list each merge: which two (or more) personas said what, and which one won (with rationale). If Judge had no disagreements to resolve in this stage, write "None — no contradictions surfaced." Do not silently drop this section: a missing "Agent Disagreements Resolved" header means the Judge dashboard cannot tell whether Judge fired or was skipped.
 
 ## Quality Criteria
 
@@ -39,6 +40,9 @@ Read all specialist agent outputs from a stage and produce a single, unified doc
 ### Watch List
 (Risks, assumptions, and areas to monitor during implementation)
 
+### Agent Disagreements Resolved
+(One bullet per merge Judge made — `- <topic> — <persona A> said X, <persona B> said Y → <resolution> because <reason>`. If none, write `- None — no contradictions surfaced.`)
+
 ### Consolidated Verdict
 X of 6 agents passed. [1-2 sentence summary of overall readiness]
 
@@ -56,6 +60,9 @@ X of 6 agents passed. [1-2 sentence summary of overall readiness]
 ### Risk Register
 (Consolidated risks, deduplicated and prioritized by blast radius)
 
+### Agent Disagreements Resolved
+(One bullet per merge Judge made — `- <topic> — <persona A> said X, <persona B> said Y → <resolution> because <reason>`. If none, write `- None — no contradictions surfaced.`)
+
 ### Consolidated Verdict
 [1-2 sentence summary: is this plan ready for /check?]
 
@@ -69,6 +76,9 @@ X of 6 agents passed. [1-2 sentence summary of overall readiness]
 
 ### Accepted Risks
 (Known risks the team is choosing to proceed with — stated explicitly so there's no surprise)
+
+### Agent Disagreements Resolved
+(One bullet per merge Judge made — `- <topic> — <persona A> said X, <persona B> said Y → <resolution> because <reason>`. If none, write `- None — no contradictions surfaced.`)
 
 ### Consolidated Verdict
 X of 5 agents passed. PROCEED / REVISE / BLOCK — [1 sentence why]
