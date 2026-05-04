@@ -1,13 +1,15 @@
 #!/bin/bash
+# scripts/autorun/spec-review.sh
+#
+# Parallel spec-review: one claude -p per persona, all launched concurrently.
+# No --add-dir: spec content is passed inline, keeping each call small and fast.
+# Merges raw persona outputs into review-findings.md after all personas complete.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-$REPO_DIR}"
 source "$REPO_DIR/scripts/autorun/defaults.sh"
 
-# ---------------------------------------------------------------------------
-# Validate required env vars (set by run.sh before sourcing this script)
-# ---------------------------------------------------------------------------
 : "${SLUG:?SLUG must be set by run.sh}"
 : "${QUEUE_DIR:?QUEUE_DIR must be set by run.sh}"
 : "${ARTIFACT_DIR:?ARTIFACT_DIR must be set by run.sh}"
@@ -15,219 +17,150 @@ source "$REPO_DIR/scripts/autorun/defaults.sh"
 
 mkdir -p "$ARTIFACT_DIR"
 
+REVIEW_DIR="$PROJECT_DIR/docs/specs/$SLUG/spec-review"
+RAW_DIR="$REVIEW_DIR/raw"
+mkdir -p "$RAW_DIR"
+
 # ---------------------------------------------------------------------------
-# AUTORUN_DRY_RUN stub mode
+# DRY RUN stub
 # ---------------------------------------------------------------------------
 if [ "${AUTORUN_DRY_RUN:-0}" = "1" ]; then
-  echo "[autorun] spec-review: DRY RUN mode — skipping claude -p invocation"
-
-  REVIEW_DIR="$PROJECT_DIR/docs/specs/$SLUG/spec-review"
-  mkdir -p "$REVIEW_DIR"
-
+  echo "[autorun] spec-review: DRY RUN — writing stub artifacts"
   cat > "$ARTIFACT_DIR/review-findings.md" <<'EOF'
 # Spec Review Findings (DRY RUN)
 **Verdict:** PASS WITH NOTES
 **Note:** Dry-run stub.
 EOF
-
-  cat > "$REVIEW_DIR/run.json" <<'EOF'
-{"status": "ok", "mode": "dry_run"}
-EOF
-
-  echo "[autorun] spec-review: dry-run artifacts written; exiting 0"
+  mkdir -p "$REVIEW_DIR"
+  echo '{"status":"ok","mode":"dry_run"}' > "$REVIEW_DIR/run.json"
   exit 0
 fi
 
-# ---------------------------------------------------------------------------
-# Autonomy directive (injected via --system-prompt, NOT in the user prompt)
-# ---------------------------------------------------------------------------
 AUTONOMY_DIRECTIVE="You are running in fully autonomous overnight mode. At every decision point, pick the safest reversible option and execute. If you find yourself about to write \"Should I\", \"Do you want\", \"Which approach\", \"Before I proceed\", \"Approve to proceed\" — stop. Delete the sentence. Make the call. Log your reasoning in the end-of-run summary. Do not ask for approval. Do not pause for user input. Proceed to writing all artifacts now."
 
-# ---------------------------------------------------------------------------
-# Build the user-message prompt
-# ---------------------------------------------------------------------------
-PROMPT="$(cat "$REPO_DIR/commands/spec-review.md")
+SPEC_CONTENT="$(cat "$SPEC_FILE")"
 
----
-AUTORUN_CONTEXT:
-- SLUG: $SLUG
-- SPEC_FILE: $SPEC_FILE
-- AUTORUN: 1
-- MODE: headless autonomous — do not emit any approval prompts or pause for user input
-- After completing the review, write all artifacts to their normal locations, then stop. Do not wait for approval.
+# Discover personas from disk — never hardcode names so adopter forks stay safe
+PERSONA_FILES=()
+while IFS= read -r -d '' f; do
+  PERSONA_FILES+=("$f")
+done < <(find "$REPO_DIR/personas/review" -name '*.md' -print0 | sort -z)
 
-$(cat "$SPEC_FILE")"
-
-# ---------------------------------------------------------------------------
-# Invoke claude -p with timeout; capture stderr for approval-gate detection
-# ---------------------------------------------------------------------------
-STDERR_LOG="$(mktemp "${TMPDIR:-/tmp}/autorun-spec-review-XXXXXX.log")"
-trap 'rm -f "$STDERR_LOG"' EXIT
-
-echo "[autorun] spec-review: starting claude -p (timeout=${TIMEOUT_STAGE}s, slug=$SLUG)"
-
-CLAUDE_EXIT=0
-printf '%s' "$PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
-    --dangerously-skip-permissions \
-    --system-prompt "$AUTONOMY_DIRECTIVE" \
-    --add-dir "$PROJECT_DIR" \
-    2>"$STDERR_LOG" || CLAUDE_EXIT=$?
-
-if [ "$CLAUDE_EXIT" -ne 0 ]; then
-  echo "[autorun] spec-review FAILED (claude -p exit $CLAUDE_EXIT)"
-  echo "[autorun] spec-review: last 50 lines of stderr:"
-  tail -n 50 "$STDERR_LOG" | sed 's/^/  /'
+if [ "${#PERSONA_FILES[@]}" -eq 0 ]; then
+  echo "[autorun] spec-review: ERROR — no persona files found in personas/review/" >&2
   exit 1
 fi
 
-echo "[autorun] spec-review: claude -p exited 0"
+echo "[autorun] spec-review: launching ${#PERSONA_FILES[@]} personas in parallel (timeout=${TIMEOUT_PERSONA}s each)"
 
 # ---------------------------------------------------------------------------
-# Test 2: Approval-gate detection
-# Check both stderr log and any stdout that was captured in the process.
-# Since we piped stdout to our parent (run.sh) and stderr to STDERR_LOG,
-# we check STDERR_LOG. The command-level approval prompt may appear in
-# combined output — check the log we have.
+# Launch all personas concurrently
 # ---------------------------------------------------------------------------
-if grep -qi "Approve to proceed" "$STDERR_LOG" 2>/dev/null; then
-  echo "[autorun] WARN: approval gate detected in stderr output — autonomy directive may not have suppressed it"
-fi
+PIDS=()
+NAMES=()
+
+for persona_file in "${PERSONA_FILES[@]}"; do
+  persona="$(basename "$persona_file" .md)"
+  NAMES+=("$persona")
+
+  USER_PROMPT="$(cat "$persona_file")
+
+---
+
+Review the following spec from your perspective above. Output your findings using your standard format (Critical Gaps / Important Considerations / Observations / Verdict).
+
+## Spec
+
+$SPEC_CONTENT"
+
+  printf '%s' "$USER_PROMPT" | timeout "$TIMEOUT_PERSONA" claude -p \
+    --dangerously-skip-permissions \
+    --system-prompt "$AUTONOMY_DIRECTIVE" \
+    > "$RAW_DIR/$persona.md" \
+    2>"$RAW_DIR/$persona.err" &
+
+  PIDS+=($!)
+  echo "[autorun] spec-review: launched $persona (pid=${PIDS[-1]})"
+done
 
 # ---------------------------------------------------------------------------
-# Test 3: Verify per-persona raw files exist
+# Wait for all — collect exit codes
 # ---------------------------------------------------------------------------
-RAW_DIR="$PROJECT_DIR/docs/specs/$SLUG/spec-review/raw"
-echo "[autorun] spec-review: checking per-persona raw files in $RAW_DIR"
-
-EXPECTED_PERSONAS=(requirements gaps ambiguity feasibility scope stakeholders)
-MISSING_PERSONAS=()
-FOUND_PERSONAS=()
-
-for persona in "${EXPECTED_PERSONAS[@]}"; do
-  if [ -f "$RAW_DIR/${persona}.md" ]; then
-    FOUND_PERSONAS+=("$persona")
+FAILED=()
+for i in "${!PIDS[@]}"; do
+  pid="${PIDS[$i]}"
+  persona="${NAMES[$i]}"
+  exit_code=0
+  wait "$pid" || exit_code=$?
+  if [ "$exit_code" -eq 0 ]; then
+    lines="$(wc -l < "$RAW_DIR/$persona.md" 2>/dev/null || echo 0)"
+    echo "[autorun] spec-review: $persona done (${lines} lines)"
   else
-    MISSING_PERSONAS+=("$persona")
+    echo "[autorun] spec-review: $persona FAILED (exit $exit_code)"
+    FAILED+=("$persona")
+    if [ -s "$RAW_DIR/$persona.err" ]; then
+      echo "[autorun] spec-review: $persona stderr:" && tail -5 "$RAW_DIR/$persona.err" | sed 's/^/  /'
+    fi
   fi
 done
 
-echo "[autorun] spec-review: persona raw files found: ${#FOUND_PERSONAS[@]}/6 (${FOUND_PERSONAS[*]:-none})"
-if [ "${#MISSING_PERSONAS[@]}" -gt 0 ]; then
-  echo "[autorun] spec-review: WARN — missing persona raw files: ${MISSING_PERSONAS[*]}"
+if [ "${#FAILED[@]}" -gt 0 ]; then
+  echo "[autorun] spec-review: WARN — ${#FAILED[@]} persona(s) failed: ${FAILED[*]}"
+fi
+
+# Abort if all personas failed
+if [ "${#FAILED[@]}" -eq "${#PIDS[@]}" ]; then
+  echo "[autorun] spec-review: ERROR — all personas failed; cannot produce review" >&2
+  exit 1
 fi
 
 # ---------------------------------------------------------------------------
-# Test 4: Verify findings.jsonl exists
+# Merge raw outputs → review.md
 # ---------------------------------------------------------------------------
-FINDINGS_FILE="$PROJECT_DIR/docs/specs/$SLUG/spec-review/findings.jsonl"
-if [ -f "$FINDINGS_FILE" ]; then
-  echo "[autorun] spec-review: findings.jsonl present ($(wc -l < "$FINDINGS_FILE") lines)"
-else
-  echo "[autorun] spec-review: WARN — findings.jsonl not found at $FINDINGS_FILE"
-fi
+REVIEW_MD="$REVIEW_DIR/review.md"
+{
+  echo "# Spec Review — $SLUG"
+  echo ""
+  echo "**Reviewed:** $(date +%Y-%m-%d)"
+  echo "**Reviewers:** ${NAMES[*]}"
+  echo ""
+  for persona in "${NAMES[@]}"; do
+    raw_file="$RAW_DIR/$persona.md"
+    [ -f "$raw_file" ] || continue
+    echo "---"
+    echo ""
+    echo "## $persona"
+    echo ""
+    cat "$raw_file"
+    echo ""
+  done
+} > "$REVIEW_MD"
+
+cp "$REVIEW_MD" "$ARTIFACT_DIR/review-findings.md"
+echo "[autorun] spec-review: review-findings.md written ($(wc -l < "$ARTIFACT_DIR/review-findings.md") lines)"
 
 # ---------------------------------------------------------------------------
-# Test 5: Verify run.json exists and has status "ok"
-# ---------------------------------------------------------------------------
-RUN_JSON="$PROJECT_DIR/docs/specs/$SLUG/spec-review/run.json"
-if [ ! -f "$RUN_JSON" ]; then
-  echo "[autorun] spec-review: WARN — run.json not found at $RUN_JSON"
-else
-  RUN_STATUS="$(python3 -c "import json; d=json.load(open('$RUN_JSON')); print(d.get('status',''))" 2>/dev/null || echo "")"
-  if [ "$RUN_STATUS" = "ok" ]; then
-    echo "[autorun] spec-review: run.json status=ok"
-  else
-    echo "[autorun] spec-review: WARN — run.json status='$RUN_STATUS' (expected 'ok')"
-  fi
-fi
-
-# ---------------------------------------------------------------------------
-# Threshold gate: count FAIL verdicts in findings.jsonl
-# If >= SPEC_REVIEW_FATAL_THRESHOLD, write artifact and exit 2
+# Gate: count Verdict: FAIL across all raw persona files
 # ---------------------------------------------------------------------------
 FAIL_COUNT=0
-if [ -f "$FINDINGS_FILE" ]; then
-  FAIL_COUNT="$(python3 -c "
-import json, sys
-count = 0
-try:
-    with open('$FINDINGS_FILE') as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                row = json.loads(line)
-                if str(row.get('verdict', '')).upper() == 'FAIL':
-                    count += 1
-            except Exception:
-                pass
-except Exception:
-    pass
-print(count)
-" 2>/dev/null || echo "0")"
-fi
+for persona in "${NAMES[@]}"; do
+  raw_file="$RAW_DIR/$persona.md"
+  [ -f "$raw_file" ] || continue
+  if grep -qi "^Verdict: FAIL" "$raw_file" 2>/dev/null; then
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    echo "[autorun] spec-review: FAIL verdict from $persona"
+  fi
+done
 
 echo "[autorun] spec-review: FAIL verdict count=$FAIL_COUNT (threshold=$SPEC_REVIEW_FATAL_THRESHOLD)"
 
+echo '{"status":"ok","personas":'"${#NAMES[@]}"',"failed":'"${#FAILED[@]}"',"fail_verdicts":'"$FAIL_COUNT"'}' \
+  > "$REVIEW_DIR/run.json"
+
 if [ "$FAIL_COUNT" -ge "$SPEC_REVIEW_FATAL_THRESHOLD" ]; then
-  echo "[autorun] spec-review: threshold exceeded ($FAIL_COUNT >= $SPEC_REVIEW_FATAL_THRESHOLD) — writing findings and exiting 2"
-  # Write findings artifact before halting
-  _write_findings_artifact() {
-    local review_md="$PROJECT_DIR/docs/specs/$SLUG/review.md"
-    if [ -f "$review_md" ]; then
-      cp "$review_md" "$ARTIFACT_DIR/review-findings.md"
-      echo "[autorun] spec-review: wrote review-findings.md from review.md"
-    elif [ -d "$RAW_DIR" ]; then
-      {
-        echo "# Spec Review Findings (concatenated raw personas)"
-        echo ""
-        echo "**THRESHOLD EXCEEDED: $FAIL_COUNT FAIL verdicts (threshold=$SPEC_REVIEW_FATAL_THRESHOLD)**"
-        echo ""
-        for f in "$RAW_DIR"/*.md; do
-          [ -f "$f" ] || continue
-          echo "---"
-          echo "## $(basename "$f" .md)"
-          echo ""
-          cat "$f"
-          echo ""
-        done
-      } > "$ARTIFACT_DIR/review-findings.md"
-      echo "[autorun] spec-review: wrote review-findings.md from raw persona files"
-    else
-      echo "# Spec Review Findings" > "$ARTIFACT_DIR/review-findings.md"
-      echo "" >> "$ARTIFACT_DIR/review-findings.md"
-      echo "**THRESHOLD EXCEEDED: $FAIL_COUNT FAIL verdicts (threshold=$SPEC_REVIEW_FATAL_THRESHOLD)**" >> "$ARTIFACT_DIR/review-findings.md"
-      echo "[autorun] spec-review: wrote minimal review-findings.md (no source artifacts found)"
-    fi
-  }
-  _write_findings_artifact
+  echo "[autorun] spec-review: threshold exceeded — halting item"
   exit 2
 fi
 
-# ---------------------------------------------------------------------------
-# Context handoff: write review-findings.md to ARTIFACT_DIR
-# ---------------------------------------------------------------------------
-REVIEW_MD="$PROJECT_DIR/docs/specs/$SLUG/review.md"
-if [ -f "$REVIEW_MD" ]; then
-  cp "$REVIEW_MD" "$ARTIFACT_DIR/review-findings.md"
-  echo "[autorun] spec-review: wrote review-findings.md from review.md"
-elif [ -d "$RAW_DIR" ] && [ -n "$(ls "$RAW_DIR"/*.md 2>/dev/null)" ]; then
-  {
-    echo "# Spec Review Findings (concatenated raw personas)"
-    echo ""
-    for f in "$RAW_DIR"/*.md; do
-      [ -f "$f" ] || continue
-      echo "---"
-      echo "## $(basename "$f" .md)"
-      echo ""
-      cat "$f"
-      echo ""
-    done
-  } > "$ARTIFACT_DIR/review-findings.md"
-  echo "[autorun] spec-review: wrote review-findings.md from raw persona files (review.md not found)"
-else
-  echo "[autorun] spec-review: WARN — neither review.md nor raw persona files found; review-findings.md not written"
-fi
-
 echo "[autorun] spec-review: complete"
+exit 0

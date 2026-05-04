@@ -1,13 +1,15 @@
 #!/bin/bash
+# scripts/autorun/check.sh
+#
+# Parallel check: one claude -p per checkpoint persona, all launched concurrently.
+# Phase 1: 5 parallel reviewer calls (no --add-dir; plan+spec passed inline).
+# Phase 2: 1 synthesis call that reads raw reviewer outputs → final check.md + GO/NO-GO.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-$REPO_DIR}"
 source "$REPO_DIR/scripts/autorun/defaults.sh"
 
-# ---------------------------------------------------------------------------
-# Validate required env vars (set by run.sh before calling this script)
-# ---------------------------------------------------------------------------
 : "${SLUG:?SLUG must be set by run.sh}"
 : "${QUEUE_DIR:?QUEUE_DIR must be set by run.sh}"
 : "${ARTIFACT_DIR:?ARTIFACT_DIR must be set by run.sh}"
@@ -15,119 +17,170 @@ source "$REPO_DIR/scripts/autorun/defaults.sh"
 
 mkdir -p "$ARTIFACT_DIR"
 
+CHECK_DIR="$PROJECT_DIR/docs/specs/$SLUG/check"
+RAW_DIR="$CHECK_DIR/raw"
+mkdir -p "$RAW_DIR"
+
 # ---------------------------------------------------------------------------
-# Dependency: plan.md must exist (written by plan.sh)
+# Dependency: plan.md must exist
 # ---------------------------------------------------------------------------
 if [ ! -f "$ARTIFACT_DIR/plan.md" ]; then
-  echo "[autorun] check: ERROR — $ARTIFACT_DIR/plan.md not found"
-  echo "[autorun] check: plan.sh must complete successfully before calling check.sh"
+  echo "[autorun] check: ERROR — $ARTIFACT_DIR/plan.md not found" >&2
   exit 1
 fi
 
 # ---------------------------------------------------------------------------
-# AUTORUN_DRY_RUN stub mode
+# DRY RUN stub
 # ---------------------------------------------------------------------------
 if [ "${AUTORUN_DRY_RUN:-0}" = "1" ]; then
-  echo "[autorun] check: DRY RUN mode — skipping claude -p invocation"
-
+  echo "[autorun] check: DRY RUN — writing stub artifact"
   cat > "$ARTIFACT_DIR/check.md" <<'EOF'
 # Check (DRY RUN)
 Overall Verdict: GO WITH FIXES
 **Note:** Dry-run stub.
 EOF
-
-  echo "[autorun] check: dry-run artifact written; exiting 0"
   exit 0
 fi
 
-# ---------------------------------------------------------------------------
-# Autonomy directive (injected via --system-prompt)
-# ---------------------------------------------------------------------------
-AUTONOMY_DIRECTIVE="You are running in fully autonomous overnight mode. Run the plan checkpoint now. Write check.md to docs/specs/$SLUG/check.md and stop. Do not ask for approval or emit approval prompts."
+AUTONOMY_DIRECTIVE="You are running in fully autonomous overnight mode. At every decision point, pick the safest reversible option and execute. Do not ask for approval. Do not pause for user input. Proceed immediately."
+
+SPEC_CONTENT="$(cat "$SPEC_FILE")"
+PLAN_CONTENT="$(cat "$ARTIFACT_DIR/plan.md")"
+
+# Discover check personas from disk
+PERSONA_FILES=()
+while IFS= read -r -d '' f; do
+  PERSONA_FILES+=("$f")
+done < <(find "$REPO_DIR/personas/check" -name '*.md' -print0 | sort -z)
+
+if [ "${#PERSONA_FILES[@]}" -eq 0 ]; then
+  echo "[autorun] check: ERROR — no persona files found in personas/check/" >&2
+  exit 1
+fi
+
+echo "[autorun] check: Phase 1 — launching ${#PERSONA_FILES[@]} reviewers in parallel (timeout=${TIMEOUT_PERSONA}s each)"
 
 # ---------------------------------------------------------------------------
-# Build the user-message prompt
+# Phase 1: parallel reviewer calls
 # ---------------------------------------------------------------------------
-PROMPT="$(cat "$REPO_DIR/commands/check.md")
+PIDS=()
+NAMES=()
+
+for persona_file in "${PERSONA_FILES[@]}"; do
+  persona="$(basename "$persona_file" .md)"
+  NAMES+=("$persona")
+
+  USER_PROMPT="$(cat "$persona_file")
 
 ---
-AUTORUN_CONTEXT:
-- SLUG: $SLUG
-- SPEC_FILE: $SPEC_FILE
-- PLAN_FILE: $ARTIFACT_DIR/plan.md
-- REVIEW_FINDINGS_FILE: $ARTIFACT_DIR/review-findings.md
-- AUTORUN: 1
-- MODE: headless autonomous — run the checkpoint review, write check.md, then stop. Do not ask for approval.
+
+Review the following implementation plan from your perspective above. Output your findings (Must Fix / Should Fix / Notes / Verdict: PASS|PASS WITH NOTES|FAIL).
 
 ## Spec
-$(cat "$SPEC_FILE")
+
+$SPEC_CONTENT
 
 ## Plan
-$(cat "$ARTIFACT_DIR/plan.md")
 
-## Review Findings
-$(cat "$ARTIFACT_DIR/review-findings.md")"
+$PLAN_CONTENT"
 
-# ---------------------------------------------------------------------------
-# Invoke claude -p with timeout; capture stderr for diagnostics
-# ---------------------------------------------------------------------------
-STDERR_LOG="$(mktemp "${TMPDIR:-/tmp}/autorun-check-XXXXXX.log")"
-STDOUT_LOG="$(mktemp "${TMPDIR:-/tmp}/autorun-check-stdout-XXXXXX.log")"
-trap 'rm -f "$STDERR_LOG" "$STDOUT_LOG"' EXIT
-
-echo "[autorun] check: starting claude -p (timeout=${TIMEOUT_STAGE}s, slug=$SLUG)"
-
-CLAUDE_EXIT=0
-printf '%s' "$PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
+  printf '%s' "$USER_PROMPT" | timeout "$TIMEOUT_PERSONA" claude -p \
     --dangerously-skip-permissions \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
-    --add-dir "$PROJECT_DIR" \
-    >"$STDOUT_LOG" \
-    2>"$STDERR_LOG" || CLAUDE_EXIT=$?
+    > "$RAW_DIR/$persona.md" \
+    2>"$RAW_DIR/$persona.err" &
 
-if [ "$CLAUDE_EXIT" -ne 0 ]; then
-  echo "[autorun] check: FAILED (claude -p exit $CLAUDE_EXIT)"
-  echo "[autorun] check: last 50 lines of stderr:"
-  tail -n 50 "$STDERR_LOG" | sed 's/^/  /'
-  exit 1
-fi
+  PIDS+=($!)
+  echo "[autorun] check: launched $persona (pid=${PIDS[-1]})"
+done
 
-echo "[autorun] check: claude -p exited 0"
-
-# ---------------------------------------------------------------------------
-# Artifact verification: check docs/specs/$SLUG/check.md first,
-# then fall back to stdout capture
-# ---------------------------------------------------------------------------
-CHECK_CANONICAL="$PROJECT_DIR/docs/specs/$SLUG/check.md"
-
-if [ -f "$CHECK_CANONICAL" ]; then
-  cp "$CHECK_CANONICAL" "$ARTIFACT_DIR/check.md"
-  echo "[autorun] check: check.md copied from $CHECK_CANONICAL"
-else
-  echo "[autorun] check: WARN — $CHECK_CANONICAL not found; capturing stdout as check content"
-  if [ -s "$STDOUT_LOG" ]; then
-    cp "$STDOUT_LOG" "$ARTIFACT_DIR/check.md"
-    echo "[autorun] check: check.md written from stdout capture ($(wc -l < "$ARTIFACT_DIR/check.md") lines)"
+FAILED=()
+for i in "${!PIDS[@]}"; do
+  pid="${PIDS[$i]}"
+  persona="${NAMES[$i]}"
+  exit_code=0
+  wait "$pid" || exit_code=$?
+  if [ "$exit_code" -eq 0 ]; then
+    lines="$(wc -l < "$RAW_DIR/$persona.md" 2>/dev/null || echo 0)"
+    echo "[autorun] check: $persona done (${lines} lines)"
   else
-    echo "[autorun] check: ERROR — stdout was also empty; check.md not written"
-    exit 1
+    echo "[autorun] check: $persona FAILED (exit $exit_code)"
+    FAILED+=("$persona")
   fi
-fi
+done
 
-# Final verification
-if [ ! -f "$ARTIFACT_DIR/check.md" ]; then
-  echo "[autorun] check: ERROR — $ARTIFACT_DIR/check.md was not written"
+if [ "${#FAILED[@]}" -eq "${#PIDS[@]}" ]; then
+  echo "[autorun] check: ERROR — all reviewers failed" >&2
   exit 1
 fi
 
-echo "[autorun] check: $ARTIFACT_DIR/check.md written ($(wc -l < "$ARTIFACT_DIR/check.md") lines)"
+# ---------------------------------------------------------------------------
+# Phase 2: synthesis — read all reviewer outputs → final check.md + verdict
+# ---------------------------------------------------------------------------
+echo "[autorun] check: Phase 2 — synthesizing reviewer outputs into check.md"
+
+RAW_COMBINED=""
+for persona in "${NAMES[@]}"; do
+  raw_file="$RAW_DIR/$persona.md"
+  [ -f "$raw_file" ] || continue
+  RAW_COMBINED="$RAW_COMBINED
+---
+## $persona reviewer
+
+$(cat "$raw_file")
+"
+done
+
+SYNTHESIS_PROMPT="You are the synthesis step of a plan checkpoint review. You have received outputs from ${#NAMES[@]} specialist reviewers. Your job:
+
+1. Identify Must-Fix items that appeared in multiple reviews (convergence signal).
+2. Produce a final Overall Verdict: GO | GO WITH FIXES | NO-GO.
+   - GO: no Must-Fix items, minor notes only.
+   - GO WITH FIXES: Must-Fix items exist but are surgical edits, not architectural rework.
+   - NO-GO: fundamental architecture is wrong or a blocker cannot be resolved by edits alone.
+3. Write a consolidated check.md with: Overall Verdict, Reviewer Verdicts table, Must Fix list (sourced reviewers), Should Fix list, and Decision Path.
+
+Be terse. This is a headless synthesis — no ceremony, no approval prompts. Write the artifact.
+
+## Reviewer Outputs
+
+$RAW_COMBINED"
+
+STDOUT_LOG="$(mktemp "${TMPDIR:-/tmp}/autorun-check-synth-XXXXXX.log")"
+STDERR_LOG="$(mktemp "${TMPDIR:-/tmp}/autorun-check-synth-err-XXXXXX.log")"
+trap 'rm -f "$STDOUT_LOG" "$STDERR_LOG"' EXIT
+
+SYNTH_EXIT=0
+printf '%s' "$SYNTHESIS_PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
+  --dangerously-skip-permissions \
+  --system-prompt "$AUTONOMY_DIRECTIVE" \
+  > "$STDOUT_LOG" \
+  2>"$STDERR_LOG" || SYNTH_EXIT=$?
+
+if [ "$SYNTH_EXIT" -ne 0 ]; then
+  echo "[autorun] check: synthesis FAILED (exit $SYNTH_EXIT)" >&2
+  tail -20 "$STDERR_LOG" | sed 's/^/  /'
+  exit 1
+fi
+
+# Copy synthesis output → check.md (canonical location + artifact dir)
+CHECK_CANONICAL="$PROJECT_DIR/docs/specs/$SLUG/check.md"
+if [ -s "$STDOUT_LOG" ]; then
+  cp "$STDOUT_LOG" "$CHECK_CANONICAL"
+  cp "$STDOUT_LOG" "$ARTIFACT_DIR/check.md"
+  echo "[autorun] check: check.md written ($(wc -l < "$ARTIFACT_DIR/check.md") lines)"
+else
+  echo "[autorun] check: ERROR — synthesis produced empty output" >&2
+  exit 1
+fi
 
 # ---------------------------------------------------------------------------
-# NO-GO gate — exit 2 signals run.sh to halt this item and write failure.md
+# NO-GO gate
 # ---------------------------------------------------------------------------
 if grep -qi "NO-GO\|NO GO" "$ARTIFACT_DIR/check.md" 2>/dev/null; then
   echo "[autorun] check: NO-GO verdict — halting item"
   exit 2
 fi
 
-echo "[autorun] check: complete"
+echo "[autorun] check: complete (GO or GO WITH FIXES)"
+exit 0

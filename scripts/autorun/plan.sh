@@ -71,12 +71,12 @@ STDOUT_LOG="$(mktemp "${TMPDIR:-/tmp}/autorun-plan-stdout-XXXXXX.log")"
 trap 'rm -f "$STDERR_LOG" "$STDOUT_LOG"' EXIT
 
 echo "[autorun] plan: starting claude -p (timeout=${TIMEOUT_STAGE}s, slug=$SLUG)"
+# No --add-dir: spec + review-findings are passed inline; removing 400-file context load
 
 CLAUDE_EXIT=0
 printf '%s' "$PROMPT" | timeout "$TIMEOUT_STAGE" claude -p \
     --dangerously-skip-permissions \
     --system-prompt "$AUTONOMY_DIRECTIVE" \
-    --add-dir "$PROJECT_DIR" \
     >"$STDOUT_LOG" \
     2>"$STDERR_LOG" || CLAUDE_EXIT=$?
 
