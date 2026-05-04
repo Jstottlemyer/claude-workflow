@@ -1,0 +1,59 @@
+#!/usr/bin/env expect
+# tests/fixtures/expect/onboard-tty.exp
+#
+# TTY-simulation harness for scripts/onboard.sh — used by tests/test-install.sh
+# case 7a to confirm the graphify "Index ~/Projects/" prompt fires when stdin
+# is a real TTY. Sends `n\n` to decline, then waits for the panel close.
+#
+# Usage:
+#   expect tests/fixtures/expect/onboard-tty.exp <repo-dir>
+#
+# Exit 0 on prompt detected + clean panel close; non-zero otherwise.
+
+set timeout 15
+set repo_dir [lindex $argv 0]
+
+if {$repo_dir eq ""} {
+    puts stderr "usage: onboard-tty.exp <repo-dir>"
+    exit 2
+}
+
+# Spawn onboard.sh under a real PTY. Env vars (HOME, PATH, etc.) are inherited
+# from the calling test-install.sh setup_test() context.
+spawn bash $repo_dir/scripts/onboard.sh
+
+set saw_graphify 0
+
+# Loop: handle each interactive offer as it appears, until EOF or panel close.
+# Onboard may emit graphify offer, then gh-auth offer (if gh is on PATH and
+# unauthenticated), then close the panel. Decline both with `n`.
+while {1} {
+    expect {
+        -re "Index ~/Projects/.*\\\[y/N\\\]:" {
+            set saw_graphify 1
+            send "n\r"
+        }
+        -re "Authenticate gh CLI now\\?.*\\\[y/N\\\]:" {
+            send "n\r"
+        }
+        -re "╰" {
+            break
+        }
+        eof {
+            break
+        }
+        timeout {
+            puts stderr "TIMEOUT waiting for prompt or panel close"
+            exit 1
+        }
+    }
+}
+
+if {$saw_graphify == 0} {
+    puts stderr "FAIL: graphify offer (Index ~/Projects/) was never seen"
+    exit 1
+}
+
+# Drain remaining output to EOF (best-effort)
+catch {expect eof}
+exit 0
