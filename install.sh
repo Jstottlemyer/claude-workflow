@@ -41,6 +41,12 @@ parse_flags() {
     fi
 
     export NO_INSTALL INSTALL_THEME_FORCED NO_THEME NON_INTERACTIVE NO_ONBOARD FORCE_ONBOARD
+    # Codex impl review caught: scripts/onboard.sh + W4 tests read
+    # MONSTERFLOW_*-prefixed names per documented env contract.
+    # Mirror the internal names to the prefixed ones so child processes see both.
+    export MONSTERFLOW_NON_INTERACTIVE="$NON_INTERACTIVE"
+    export MONSTERFLOW_FORCE_ONBOARD="$FORCE_ONBOARD"
+    export MONSTERFLOW_NO_ONBOARD="$NO_ONBOARD"
 }
 
 print_help() {
@@ -260,7 +266,15 @@ do_install_missing() {
             return 0
         fi
     fi
-    if ! HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --file="$REPO_DIR/Brewfile" install; then
+    # Codex impl review #4: CMUX_DEMOTE wiring — on macOS <14, generate a
+    # filtered Brewfile without the cmux cask line and pass that to brew.
+    BREWFILE_FOR_INSTALL="$REPO_DIR/Brewfile"
+    if [ "${CMUX_DEMOTE:-0}" = "1" ]; then
+        BREWFILE_FOR_INSTALL="$INSTALL_SCRATCH/Brewfile.no-cmux"
+        grep -v '^cask "cmux"' "$REPO_DIR/Brewfile" > "$BREWFILE_FOR_INSTALL"
+        echo "  (cmux skipped: requires macOS ≥14, detected $MACOS_VER)" >&2
+    fi
+    if ! HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --file="$BREWFILE_FOR_INSTALL" install; then
         echo "⚠ brew bundle failed for some formulas." >&2
         echo "  Common causes: network, broken bottle, locked Cellar." >&2
         echo "  Fix and re-run install.sh. Symlinks were skipped." >&2
@@ -281,7 +295,9 @@ link_file() {
         echo "  BACKUP: $dst → $bak_ts"
         mv "$dst" "$bak_ts"
     fi
-    ln -sf "$src" "$dst"
+    # -n: treat existing symlink-to-directory as a file, replace it
+    # (Codex impl review caught: bare -sf would link INTO the target dir)
+    ln -sfn "$src" "$dst"
     echo "  LINKED: $dst → $src"
 }
 
