@@ -4,6 +4,8 @@ Ideas not yet scheduled. Newest at the top. Each item: one-liner, **Why:**, **Si
 
 Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready to work on it; delete from here once it lands.
 
+> **2026-05-04:** install.sh rewrite shipped (v0.5.0) — see CHANGELOG.md.
+
 ---
 
 ## Token economics (cross-cutting)
@@ -40,32 +42,6 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
   - **Tightly related to:** "Account-type agent scaling" below — the data this produces tells us the right Pro roster size, so investigate first.
   - **Entry points:** `dashboard/`, `scripts/judge-dashboard-bundle.py` (extend run.json read to pull token counts if Anthropic SDK exposes them), `commands/wrap.md` (Phase 1 already records cost via `session-cost.py` — extend), `settings/settings.json` `enabledPlugins`.
   - **Size:** M–L (instrumentation + dashboard tab + decision framework).
-
-## Onboarding
-
-- **Opinionated, idempotent install.sh that leaves the user able to actually use MonsterFlow** — current `install.sh` is a *checker* (lists what's missing, asks "Continue anyway?", then symlinks files). It does not install anything. New adopters end up with a working symlink graph but no `gh`, no `shellcheck`, no `jq`, no PATH entry, no clue what to run next. Pivot to: detect → install (idempotent) → verify → onboard.
-  - **Why:** the friction between "ran install.sh" and "actually used the pipeline" is the dominant adopter drop-off. Tools listed under RECOMMENDED degrade silently — the user doesn't know they're degraded until something doesn't work. We want the post-install state to be *demonstrably working*, with the user knowing the next three commands to type.
-  - **Auto-install REQUIRED + RECOMMENDED, idempotently:**
-    - For each missing tool, check `brew list <tool> >/dev/null 2>&1` first; install only if absent. Same shape as the existing `has_cmd` check, just one layer down.
-    - Brew bundle approach: write a `Brewfile` and run `brew bundle --file=$REPO_DIR/Brewfile` — brew handles idempotency natively and the file is the manifest.
-    - Skip auto-install if `--no-install` flag passed (CI / restricted environments).
-    - Don't auto-install OPTIONAL (codex) — keep it user-driven.
-  - **Auto-detect pip vs pip3:** add a `python_pip()` helper that prefers `pip3`, falls back to `pip`, errors with a clear "neither found, brew install python" if both absent. Use it everywhere (currently `bootstrap-graphify.sh` and venv-installs hardcode `pip3`, but that's per global CLAUDE.md preference — verify across all scripts). Mirrors the `has_cmd` helper pattern already in install.sh.
-  - **Onboarding flow at end of install.sh:**
-    - Run `scripts/doctor.sh` to verify everything is wired (already exists, just call it).
-    - Print a "what to do next" panel: 3-5 numbered commands the user can copy-paste to do their first run, e.g. `1. cd into a project   2. /flow to see the workflow card   3. /spec to start your first feature   4. open ~/Projects/MonsterFlow/dashboard/index.html`.
-    - Optionally offer to run `bootstrap-graphify.sh` against `~/Projects/` (with confirmation prompt) so the dashboard has data on first open.
-    - Offer to run `gh auth login` if `gh` is installed but not authenticated (`gh auth status` check).
-    - Surface the codex opt-in as a single line: "Want adversarial review? Run `/codex:setup` after install."
-  - **Idempotency hard rules** (keep this list as the test plan when implementing):
-    - Running install.sh twice in a row produces the same output, no errors, no duplicate symlinks, no duplicated PATH lines in `.zshrc`.
-    - Running on a fully-installed system: prints "everything already in place" and exits 0 in <2s.
-    - Running on a fresh macOS: installs git/python/gh/shellcheck/jq/tmux via brew, links files, runs doctor, prints onboarding panel.
-    - Re-running after a `brew uninstall jq`: detects, re-installs, doesn't touch unrelated state.
-  - **Out of scope for v1:** Linux support (the `brew` assumption is macOS-only; Linux can wait until there's a real Linux adopter).
-  - **Entry points:** `install.sh` (rewrite the prereq + install section), new `Brewfile`, possibly new `scripts/onboard.sh` for the post-install panel, `scripts/doctor.sh` (already exists).
-  - **Size:** M (mostly mechanical, but the idempotency test plan is the real work — needs a clean-VM smoke test or a shell test harness).
-  - **Testing requirement:** must add a `tests/test-install.sh` that runs the four idempotency cases above against a temp $HOME so we don't regress.
 
 ## Pipeline
 

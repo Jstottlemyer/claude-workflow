@@ -33,6 +33,8 @@ The installer symlinks everything from this repo into `~/.claude/`. It backs up 
 
 The installer will also offer to install required plugins (`superpowers`, `context7`) and recommended ones (`firecrawl`, `code-review`, `ralph-loop`, `playwright`). Say yes unless you have a reason not to.
 
+See [`install.sh` flags & env vars](#installsh-flags--env-vars) below if you need to script around it (CI, restricted environments, theme opt-in/out).
+
 ## 2b. Enable Codex multi-model reviews (optional)
 
 The pipeline can call Codex as an adversarial reviewer at `/spec-review`, `/check`, and `/build`. It silently skips if Codex isn't set up — nothing breaks.
@@ -191,6 +193,31 @@ If entries are regular files (not symlinks), re-run `./install.sh`.
 **Want to experiment without breaking your main install** — clone to a different path and just edit files locally without running `install.sh`. Use your own CLAUDE.md to point to your sandbox.
 
 **Plugin install failed** — plugins require Claude Code CLI auth and a working Anthropic account. Run `claude plugins install superpowers context7` directly; see error output.
+
+## `install.sh` flags & env vars
+
+`install.sh` is opinionated and idempotent — re-runs are safe. The flag surface exists for CI, restricted environments, and adopters who want to opt out of the theme layer.
+
+**Flags:**
+
+| Flag | Effect |
+|---|---|
+| `--help`, `-h` | Print usage and exit 0 (no I/O beyond stdout) |
+| `--no-install` | Skip detection + brew install entirely; just symlink. CI escape hatch |
+| `--install-theme` | Force theme install (overrides default-N for adopters) |
+| `--no-theme` | Skip theme install (wins over `--install-theme`) |
+| `--non-interactive` | Suppress all prompts. Auto-detected when stdin is not a TTY |
+| `--no-onboard` | Suppress the post-install onboard panel |
+| `--force-onboard` | Run the onboard panel even under `--non-interactive` |
+
+Unknown flags exit with code 2 (distinct from REQUIRED-missing exit 1) so CI can tell user-error from environmental failure.
+
+**Env vars adopters might want:**
+
+| Env var | Effect |
+|---|---|
+| `MONSTERFLOW_OWNER=1` / `=0` | Force owner (1) or adopter (0) mode. Owner mode opts into theme by default and disables the metrics-gitignore default. Without it, the script auto-detects via `$PWD == repo dir` |
+| `PERSONA_METRICS_GITIGNORE=1` / `=0` | Override the metrics-gitignore default. `=1` forces opt-in-to-commit (adopter default). `=0` allows commit (MonsterFlow's own repo default). See README "Persona Metrics" for what gets gitignored |
 
 ## Going deeper
 

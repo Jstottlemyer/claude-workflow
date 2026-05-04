@@ -9,6 +9,8 @@ An 8-command pipeline for [Claude Code](https://claude.com/claude-code) that add
 git clone https://github.com/Jstottlemyer/MonsterFlow.git ~/Projects/MonsterFlow && cd ~/Projects/MonsterFlow && ./install.sh
 ```
 
+> **macOS only; requires [Homebrew](https://brew.sh).** Linux invocations hard-fail with a clear message; the installer uses `brew bundle` to provision the rest. See [QUICKSTART.md](QUICKSTART.md) for the full flag surface.
+
 Then open any project and type `/kickoff` to initialize, or `/flow` to see the reference card.
 
 **License:** MIT — see [LICENSE](LICENSE).

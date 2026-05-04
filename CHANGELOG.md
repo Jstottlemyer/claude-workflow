@@ -2,6 +2,30 @@
 
 All notable changes to `MonsterFlow` are documented here.
 
+## [0.5.0] — install.sh rewrite (opinionated, idempotent, owner/adopter-aware) — 2026-05-04
+
+Migration bullets below are the source of truth surfaced by `install.sh`'s upgrade-detect banner (`print_upgrade_message`); diff-clean across both surfaces.
+
+### Changed
+
+- install.sh now installs brew tools for you (was: warn-only)
+- cmux added to RECOMMENDED; tmux moved to OPTIONAL
+
+### Added
+
+- Optional shell theme (~/.tmux.conf, cmux config, prompt colors)
+- New flags: --no-install, --no-theme, --non-interactive, --no-onboard
+
+### Removed
+
+- macOS-only (Linux guard added)
+
+### Notes
+
+- Full flag surface (incl. `--help`, `--install-theme`, `--force-onboard`) and env-var contract (`MONSTERFLOW_OWNER`, `PERSONA_METRICS_GITIGNORE`) documented in [QUICKSTART.md](QUICKSTART.md#installsh-flags--env-vars).
+- Upgrade detection: prior MonsterFlow (or pre-rebrand `claude-workflow`) installs are detected via the `commands/spec.md` symlink target and offered an upgrade prompt with the bullets above.
+- Spec / plan / check artifacts: `docs/specs/install-rewrite/`.
+
 ## [0.2.0] — Persona Metrics measurement layer
 
 ### Added
