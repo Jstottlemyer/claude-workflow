@@ -101,17 +101,63 @@ VERSION="$(cat "$REPO_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unkn
 # the <3s repeat-run budget when brew is invoked.
 export HOMEBREW_NO_AUTO_UPDATE=1
 
+# SIGINT trap + scratch dir (W2 task 2.2): scoped scratch so cleanup_partial
+# can rm -rf without nuking attacker-staged files. All atomic writes use
+# $INSTALL_SCRATCH/<name>.tmp then mv -f to final.
+INSTALL_SCRATCH="$(mktemp -d -t monsterflow-install)"
+cleanup_partial() {
+    rm -rf "$INSTALL_SCRATCH"
+    echo "" >&2
+    echo "⚠ install.sh interrupted; partial state cleaned up." >&2
+    echo "  Re-run when ready." >&2
+    exit 130
+}
+trap cleanup_partial INT TERM
+
 echo "=== Claude Workflow Pipeline Installer — v${VERSION} ==="
 echo ""
 echo "Repo:   $REPO_DIR"
 echo "Target: $CLAUDE_DIR"
 echo ""
 
+# --- Migration detect (W2 task 2.3) ---
+# Detect prior MonsterFlow (or pre-rebrand claude-workflow) install via the
+# spec.md symlink target. Runs before any symlink mutation so opt-out cleanly
+# bails. Pulls version from $VERSION (already loaded above).
+PRIOR_INSTALL=0
+if [ -L "$CLAUDE_DIR/commands/spec.md" ]; then
+    PRIOR_TARGET="$(readlink "$CLAUDE_DIR/commands/spec.md")"
+    case "$PRIOR_TARGET" in
+        */MonsterFlow/*|*/claude-workflow/*) PRIOR_INSTALL=1 ;;
+    esac
+fi
+if [ "$PRIOR_INSTALL" = "1" ]; then
+    echo "⬆ Detected prior MonsterFlow install — upgrading to v${VERSION}."
+    cat <<UPGRADE
+  What's new in v${VERSION}:
+    - install.sh now installs brew tools for you (was: warn-only)
+    - Optional shell theme (~/.tmux.conf, cmux config, prompt colors)
+    - New flags: --no-install, --no-theme, --non-interactive, --no-onboard
+    - cmux added to RECOMMENDED; tmux moved to OPTIONAL
+    - macOS-only (Linux guard added)
+UPGRADE
+    if [ "$NON_INTERACTIVE" = "0" ]; then
+        read -rp "Proceed with upgrade? [Y/n]: " UPGRADE_CONFIRM
+        [[ "$UPGRADE_CONFIRM" =~ ^[Nn]$ ]] && exit 0
+    fi
+    echo ""
+fi
+
 # --- Prerequisites (warn only, don't block) ---
 # bash scripts don't inherit zsh's PATH from .zshrc, so brew-installed
 # tools at /opt/homebrew/bin (Apple Silicon) or /usr/local/bin (Intel)
 # may not be found by `command -v`. Check both.
 has_cmd() {
+    # Test hook (D11): when set, ONLY check stub dir — bypass real PATH/brew dirs.
+    # In production MONSTERFLOW_HASCMD_OVERRIDE is unset → behaves as today.
+    if [ -n "${MONSTERFLOW_HASCMD_OVERRIDE:-}" ]; then
+        [ -x "$MONSTERFLOW_HASCMD_OVERRIDE/$1" ] && return 0 || return 1
+    fi
     command -v "$1" >/dev/null 2>&1 \
         || [ -x "/opt/homebrew/bin/$1" ] \
         || [ -x "/usr/local/bin/$1" ]
@@ -128,6 +174,8 @@ OPTIONAL_MISSING=()
 has_cmd git     || REQUIRED_MISSING+=("git — install Xcode CLI tools (xcode-select --install) or brew install git")
 has_cmd claude  || REQUIRED_MISSING+=("claude (Claude Code CLI) — https://claude.com/claude-code")
 has_cmd python3 || REQUIRED_MISSING+=("python3 — brew install python")
+has_cmd brew    || REQUIRED_MISSING+=("brew (Homebrew) — install from https://brew.sh:
+      /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\"")
 
 # Python version check (≥ 3.9 — older versions miss f-string and walrus features used in scripts)
 if has_cmd python3; then
@@ -171,22 +219,67 @@ if [ ${#OPTIONAL_MISSING[@]} -gt 0 ]; then
     echo ""
 fi
 
-if [ ${#REQUIRED_MISSING[@]} -gt 0 ] || [ ${#RECOMMENDED_MISSING[@]} -gt 0 ]; then
-    read -rp "Continue anyway? [Y/n]: " CONTINUE
-    if [[ "$CONTINUE" =~ ^[Nn]$ ]]; then
-        echo "Install missing tools, then re-run this script."
-        exit 0
+# --- Install missing brew tools (W2 task 2.6 — NEW brew-bundle install stage) ---
+# Tier-split decline behavior (2.7): REQUIRED missing → hard-stop unless --no-install;
+# RECOMMENDED missing → offer install; decline = loud notice + continue.
+do_install_missing() {
+    if [ "$NO_INSTALL" = "1" ]; then
+        echo "Skipped install per --no-install."
+        return 0
+    fi
+    # If REQUIRED missing, hard-stop UNLESS --no-install (handled above)
+    if [ "${#REQUIRED_MISSING[@]}" -ne 0 ]; then
+        echo "Install the REQUIRED tools above and re-run install.sh." >&2
+        exit 1
+    fi
+    # If only RECOMMENDED missing, offer install
+    if [ "${#RECOMMENDED_MISSING[@]}" -eq 0 ]; then
+        return 0
     fi
     echo ""
-fi
+    echo "About to install via Homebrew (uses Brewfile at repo root):"
+    awk '/^brew "/||/^cask "/{print "  -",$0}' "$REPO_DIR/Brewfile"
+    echo ""
+    echo "Resolved transitive set:"
+    BREW_FORMULAS=$(awk -F'"' '/^brew "/{print $2}' "$REPO_DIR/Brewfile")
+    BREW_CASKS=$(awk -F'"' '/^cask "/{print $2}' "$REPO_DIR/Brewfile")
+    # shellcheck disable=SC2086  # word-splitting intentional: pass list to brew deps
+    [ -n "$BREW_FORMULAS" ] && brew deps --include-build --formula $BREW_FORMULAS 2>/dev/null | sed 's/^/    /' | head -30 || true
+    if [ -n "$BREW_CASKS" ]; then
+        for c in $BREW_CASKS; do
+            brew deps --cask "$c" 2>/dev/null | sed "s/^/    [cask:$c] /" || true
+        done
+    fi
+    echo ""
+    if [ "$NON_INTERACTIVE" = "0" ]; then
+        read -rp "Proceed? [Y/n]: " CONFIRM
+        if [[ "$CONFIRM" =~ ^[Nn]$ ]]; then
+            echo "⚠ Continuing without [${RECOMMENDED_MISSING[*]}]." >&2
+            echo "  Features will silently no-op (PR ops, shellcheck hook, etc.)." >&2
+            echo "  Re-run install.sh anytime to install." >&2
+            return 0
+        fi
+    fi
+    if ! HOMEBREW_NO_AUTO_UPDATE=1 brew bundle --file="$REPO_DIR/Brewfile" install; then
+        echo "⚠ brew bundle failed for some formulas." >&2
+        echo "  Common causes: network, broken bottle, locked Cellar." >&2
+        echo "  Fix and re-run install.sh. Symlinks were skipped." >&2
+        exit 1
+    fi
+    echo "✓ brew bundle complete"
+}
+do_install_missing
 
 # --- Helper ---
 link_file() {
     local src="$1"
     local dst="$2"
     if [ -e "$dst" ] && [ ! -L "$dst" ]; then
-        echo "  BACKUP: $dst → ${dst}.bak"
-        mv "$dst" "${dst}.bak"
+        # S7 fix: timestamped backup so re-runs don't overwrite a prior .bak
+        local bak_ts
+        bak_ts="${dst}.bak.$(date +%Y%m%d%H%M%S)"
+        echo "  BACKUP: $dst → $bak_ts"
+        mv "$dst" "$bak_ts"
     fi
     ln -sf "$src" "$dst"
     echo "  LINKED: $dst → $src"
@@ -280,15 +373,21 @@ find "$REPO_DIR/scripts/autorun" -type f \( -name "*.sh" -o -name "autorun" \) -
 mkdir -p "$HOME/.local/bin"
 ln -sf "$REPO_DIR/scripts/autorun/autorun" "$HOME/.local/bin/autorun"
 echo "  LINKED: autorun -> $HOME/.local/bin/autorun"
-# Owner vs adopter detection: OWNER=1 means install.sh ran from inside the
-# MonsterFlow engine repo itself. Anything else is an adopter installing
-# the engine into their own project. Basing this on PWD vs REPO_DIR (not
-# basename) is robust to clones named "MonsterFlow" but used as engine.
-OWNER=0
-if [[ "$PWD" == "$REPO_DIR" ]]; then
-    OWNER=1
-fi
-
+# Owner vs adopter detection (D4 augmented helper, W2 task 2.5):
+# Env override > PWD primary check > script_dir == git_root secondary confirmation.
+# Preserves existing defensive `PWD == REPO_DIR` semantics; secondary check
+# catches symlinked-repo edge cases where PWD coincidentally matches REPO_DIR
+# by string but the script actually lives elsewhere.
+detect_owner() {
+    if [ "${MONSTERFLOW_OWNER:-}" = "1" ]; then echo 1; return; fi
+    if [ "${MONSTERFLOW_OWNER:-}" = "0" ]; then echo 0; return; fi
+    if [ "$PWD" != "$REPO_DIR" ]; then echo 0; return; fi
+    local script_dir git_root
+    script_dir="$(cd "$(dirname "$0")" && pwd -P)"
+    git_root="$(git -C "$script_dir" rev-parse --show-toplevel 2>/dev/null || true)"
+    [ -n "$git_root" ] && [ "$script_dir" = "$git_root" ] && echo 1 || echo 0
+}
+OWNER="$(detect_owner)"
 ADOPTER_ROOT=""
 if [[ "$OWNER" -eq 0 && -d "$PWD/.git" ]]; then
     ADOPTER_ROOT="$PWD"
@@ -370,11 +469,65 @@ if [[ "$PERSONA_METRICS_GITIGNORE" == "1" && -n "$ADOPTER_ROOT" ]]; then
     fi
 fi
 
+# --- Theme install (W2 task 2.8) ---
+# Decisions: --no-theme wins; else owner=auto-on, adopter under non-interactive=skip,
+# adopter interactive=prompt-default-N. --install-theme forces install.
+do_theme_install() {
+    [ "$NO_THEME" = "1" ] && return 0
+
+    local DO_THEME
+    if [ "$INSTALL_THEME_FORCED" = "1" ]; then
+        DO_THEME=1
+    elif [ "$OWNER" = "1" ]; then
+        DO_THEME=1   # owner: no prompt
+    elif [ "$NON_INTERACTIVE" = "1" ]; then
+        DO_THEME=0   # non-interactive adopter: skip
+    else
+        local THEME_CONFIRM
+        read -rp "Install MonsterFlow shell theme (cmux + tmux + zsh prompt)? [y/N]: " THEME_CONFIRM
+        [[ "$THEME_CONFIRM" =~ ^[Yy]$ ]] && DO_THEME=1 || DO_THEME=0
+    fi
+    [ "$DO_THEME" = "0" ] && return 0
+
+    echo ""
+    echo "Installing MonsterFlow shell theme..."
+    mkdir -p "$HOME/.config/cmux"
+    link_file "$REPO_DIR/config/cmux.json" "$HOME/.config/cmux/cmux.json"
+    link_file "$REPO_DIR/config/tmux.conf" "$HOME/.tmux.conf"
+
+    # POSIX single-quote escaping for safe .zshrc append (D6/B4 fix).
+    # posix_quote returns a fully-quoted string (incl. surrounding '…');
+    # use it bare in the heredoc — do NOT add more quotes.
+    posix_quote() {
+        local s="$1"
+        printf "'%s'" "${s//\'/\'\\\'\'}"
+    }
+    local ZSHRC_PATH ZSHRC THEME_BLOCK_BEGIN THEME_BLOCK_END
+    ZSHRC_PATH="$(posix_quote "$REPO_DIR/config/zsh-prompt-colors.zsh")"
+    ZSHRC="$HOME/.zshrc"
+    THEME_BLOCK_BEGIN="# BEGIN MonsterFlow theme"
+    THEME_BLOCK_END="# END MonsterFlow theme"
+    if [ ! -f "$ZSHRC" ] || ! grep -qF "$THEME_BLOCK_BEGIN" "$ZSHRC"; then
+        touch "$ZSHRC"
+        {
+            echo ""
+            echo "$THEME_BLOCK_BEGIN"
+            echo "[ -f $ZSHRC_PATH ] && source $ZSHRC_PATH"
+            echo "$THEME_BLOCK_END"
+        } >> "$ZSHRC"
+        echo "  APPENDED: ~/.zshrc theme block (sentinel-bracketed)"
+    fi
+}
+do_theme_install
+
 # --- CLAUDE.md baseline ---
 echo ""
 GLOBAL_CLAUDE="$HOME/CLAUDE.md"
 if [ ! -f "$GLOBAL_CLAUDE" ]; then
-    read -rp "No ~/CLAUDE.md found. Copy baseline template? [Y/n]: " COPY_CLAUDE
+    COPY_CLAUDE="Y"   # safe default under non-interactive: copy baseline
+    if [ "$NON_INTERACTIVE" = "0" ]; then
+        read -rp "No ~/CLAUDE.md found. Copy baseline template? [Y/n]: " COPY_CLAUDE
+    fi
     if [[ ! "$COPY_CLAUDE" =~ ^[Nn]$ ]]; then
         cp "$REPO_DIR/templates/CLAUDE.md" "$GLOBAL_CLAUDE"
         echo "  Copied templates/CLAUDE.md → ~/CLAUDE.md"
@@ -396,25 +549,44 @@ if [ -x "$REPO_DIR/scripts/install-hooks.sh" ] && [ -d "$REPO_DIR/.git/hooks" ];
 fi
 
 # --- Plugin installation ---
+# W2 task 2.9 + 2.9b: skip prompt under non-interactive (safe default = N);
+# short-circuit entirely under MONSTERFLOW_INSTALL_TEST=1 to prevent test
+# harness recursion (tests invoke install.sh; without this guard the inner
+# `claude plugins install` call would either hang or hit the network).
 echo ""
-read -rp "Install required plugins now? [y/N]: " INSTALL_PLUGINS
-if [[ "$INSTALL_PLUGINS" =~ ^[Yy]$ ]]; then
-    echo "Installing required plugins..."
-    claude plugins install superpowers context7 || echo "  Plugin install requires Claude Code CLI"
+if [ "${MONSTERFLOW_INSTALL_TEST:-0}" = "1" ]; then
+    echo "Plugin install: (skipped under MONSTERFLOW_INSTALL_TEST=1)"
+elif [ "$NON_INTERACTIVE" = "1" ]; then
+    echo "Plugin install: (skipped under --non-interactive; run install.sh interactively to install plugins)"
+else
+    read -rp "Install required plugins now? [y/N]: " INSTALL_PLUGINS
+    if [[ "$INSTALL_PLUGINS" =~ ^[Yy]$ ]]; then
+        echo "Installing required plugins..."
+        claude plugins install superpowers context7 || echo "  Plugin install requires Claude Code CLI"
 
-    read -rp "Also install recommended plugins? [y/N]: " INSTALL_REC
-    if [[ "$INSTALL_REC" =~ ^[Yy]$ ]]; then
-        claude plugins install firecrawl code-review ralph-loop playwright || echo "  Some plugins may have failed"
+        read -rp "Also install recommended plugins? [y/N]: " INSTALL_REC
+        if [[ "$INSTALL_REC" =~ ^[Yy]$ ]]; then
+            claude plugins install firecrawl code-review ralph-loop playwright || echo "  Some plugins may have failed"
+        fi
     fi
 fi
 
 # --- Validate install via test suite ---
+# W2 task 2.9b: short-circuit under MONSTERFLOW_INSTALL_TEST=1 — second site
+# critical to prevent fork-bomb (tests/run-tests.sh runs tests/test-install.sh
+# which spawns install.sh; without this guard we'd recurse infinitely).
 if [ -x "$REPO_DIR/tests/run-tests.sh" ]; then
     echo ""
-    read -rp "Run test suite to validate install? [Y/n]: " RUN_TESTS
-    if [[ ! "$RUN_TESTS" =~ ^[Nn]$ ]]; then
-        echo ""
-        bash "$REPO_DIR/tests/run-tests.sh" || echo "⚠ some tests failed — investigate via 'bash tests/run-tests.sh'"
+    if [ "${MONSTERFLOW_INSTALL_TEST:-0}" = "1" ]; then
+        echo "Test suite: (skipped under MONSTERFLOW_INSTALL_TEST=1)"
+    elif [ "$NON_INTERACTIVE" = "1" ]; then
+        echo "Test suite: (skipped under --non-interactive; run 'bash tests/run-tests.sh' to validate)"
+    else
+        read -rp "Run test suite to validate install? [Y/n]: " RUN_TESTS
+        if [[ ! "$RUN_TESTS" =~ ^[Nn]$ ]]; then
+            echo ""
+            bash "$REPO_DIR/tests/run-tests.sh" || echo "⚠ some tests failed — investigate via 'bash tests/run-tests.sh'"
+        fi
     fi
 fi
 
@@ -444,4 +616,18 @@ echo "  4. See QUICKSTART.md if this is your first time"
 echo "  5. Auto-bump rules: feat:→minor · fix:/docs:/etc.→patch · type!: or BREAKING CHANGE:→major"
 echo "  6. If anything looks off, run ./scripts/doctor.sh to file a diagnostic"
 echo ""
+
+# --- Onboard panel (W2 task 2.10, last stage) ---
+# Run scripts/onboard.sh if present (W3 authors it in parallel; [ -x ] guard
+# handles the not-yet-shipped case). Skipped under --no-onboard or when
+# non-interactive without --force-onboard.
+if [ "$NO_ONBOARD" != "1" ] && { [ "$NON_INTERACTIVE" = "0" ] || [ "$FORCE_ONBOARD" = "1" ]; }; then
+    if [ -x "$REPO_DIR/scripts/onboard.sh" ]; then
+        echo ""
+        bash "$REPO_DIR/scripts/onboard.sh" || {
+            echo "⚠ onboard.sh exited non-zero; re-run anytime via bash scripts/onboard.sh" >&2
+        }
+    fi
+fi
+
 echo "Run /flow in Claude Code to see the workflow reference card."
