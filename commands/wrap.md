@@ -358,7 +358,7 @@ Apply changes to `scripts/screenshot-rules.json`.
 - Arguments include "quick"
 - `~/.obsidian-wiki/config` does not exist (obsidian-wiki is opt-in by vault-config presence)
 
-Read `~/.obsidian-wiki/config` to get `OBSIDIAN_VAULT_PATH`. This phase has two independent steps — each runs only if its own trigger is met, and each gets its own approval gate.
+Read `~/.obsidian-wiki/config` to get `OBSIDIAN_VAULT_PATH`. **Critical:** when reading the path via `cut`/`sed`/etc., the leading `~` is a literal byte — bash does NOT expand it inside `"$VAR"`. Always normalize before any write: `VAULT="${VAULT/#\~/$HOME}"`. Without this, `mkdir -p "$VAULT/_raw"` creates a literal `~/Documents/...` directory tree in cwd. (Bitten in /wrap once — see memory `feedback_tilde_expansion_in_bash_config_reads.md`.) This phase has two independent steps — each runs only if its own trigger is met, and each gets its own approval gate.
 
 ### Step 1 — Flush raw captures
 
