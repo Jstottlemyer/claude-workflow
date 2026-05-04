@@ -1,0 +1,6 @@
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "check", "persona": "completeness", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 5, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "check", "persona": "sequencing", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 6, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "check", "persona": "risk", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 8, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "check", "persona": "scope-discipline", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 5, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "check", "persona": "testability", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 4, "verdict": "FAIL"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "check", "persona": "codex-adversary", "model": "gpt-5", "status": "ok", "findings_emitted": 12, "verdict": "ADVERSARIAL"}

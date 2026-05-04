@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "prompt_version": "findings-emit@1.0",
+  "snapshot_prompt_version": "snapshot@1.0",
+  "run_id": "ef5f37bb-c2ab-4afa-872f-79b724151b94",
+  "stage": "check",
+  "feature": "install-rewrite",
+  "created_at": "2026-05-04T06:28:43Z",
+  "status": "ok",
+  "warnings": [],
+  "artifact_path": "docs/specs/install-rewrite/plan.md",
+  "artifact_hash": "9424fb4dab01b497d846a84f0abd8508bc4929bd7766d9becc7c9f9f0b6a0cd8",
+  "snapshot_path": "docs/specs/install-rewrite/check/source.plan.md",
+  "personas_dispatched": ["completeness", "sequencing", "risk", "scope-discipline", "testability"],
+  "codex_adversary_ran": true,
+  "findings_count": 20,
+  "verdicts": {
+    "completeness": "PASS WITH NOTES",
+    "sequencing": "PASS WITH NOTES",
+    "risk": "PASS WITH NOTES",
+    "scope-discipline": "PASS WITH NOTES",
+    "testability": "FAIL"
+  },
+  "overall_verdict": "NO-GO"
+}
