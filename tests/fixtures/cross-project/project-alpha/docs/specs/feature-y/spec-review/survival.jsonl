@@ -1,0 +1,2 @@
+{"schema_version":1,"prompt_version":"survival-classifier@1.0","finding_id":"sr-c0c0c0c0c0","outcome":"addressed","evidence":"Plan §Out of Scope explicitly defers notification preferences to the user-settings feature.","confidence":"high","artifact_hash":"sha256:fixture-alpha-fy-plan-v1"}
+{"schema_version":1,"prompt_version":"survival-classifier@1.0","finding_id":"sr-d1d1d1d1d1","outcome":"not_addressed","evidence":"no change","confidence":"medium","artifact_hash":"sha256:fixture-alpha-fy-plan-v1"}

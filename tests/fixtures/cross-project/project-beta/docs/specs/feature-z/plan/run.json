@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "run_id": "66666666-6666-4666-8666-666666666666",
+  "command": "/plan",
+  "prompt_version": "findings-emit@1.0",
+  "model_versions": {
+    "reviewer-default": "claude-opus-4-7"
+  },
+  "artifact_hash": "sha256:fixture-beta-fz-plan-v1",
+  "created_at": "2026-04-23T13:18:00Z",
+  "output_paths": [
+    "plan/findings.jsonl",
+    "plan/participation.jsonl"
+  ],
+  "status": "ok",
+  "warnings": []
+}

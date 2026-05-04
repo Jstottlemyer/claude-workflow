@@ -1,0 +1,4 @@
+{"schema_version":1,"stage":"spec-review","persona":"scope-discipline","model":"claude-opus-4-7","findings_emitted":2,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"edge-cases","model":"claude-opus-4-7","findings_emitted":2,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"ambiguity","model":"claude-opus-4-7","findings_emitted":1,"status":"ok"}
+{"schema_version":1,"stage":"spec-review","persona":"stakeholders","model":"claude-opus-4-7","findings_emitted":0,"status":"ok"}

@@ -14,5 +14,32 @@ dashboard/data/*.log
 dashboard/data/.*
 dashboard/data-bundle.js
 dashboard/judge-bundle.js
+dashboard/data/persona-roster.js
+dashboard/data/persona-rankings-bundle.js
+__pycache__/
+*.pyc
 
 .playwright-mcp/
+
+# BEGIN persona-metrics (MonsterFlow)
+# Auto-added by install.sh — measurement artifacts may contain sensitive review prose.
+# Set PERSONA_METRICS_GITIGNORE=0 and re-run install.sh to commit metrics intentionally.
+docs/specs/*/spec-review/findings*.jsonl
+docs/specs/*/spec-review/participation.jsonl
+docs/specs/*/spec-review/survival.jsonl
+docs/specs/*/spec-review/run.json
+docs/specs/*/spec-review/raw/
+docs/specs/*/spec-review/source.spec.md
+docs/specs/*/plan/findings*.jsonl
+docs/specs/*/plan/participation.jsonl
+docs/specs/*/plan/survival.jsonl
+docs/specs/*/plan/run.json
+docs/specs/*/plan/raw/
+docs/specs/*/check/findings*.jsonl
+docs/specs/*/check/participation.jsonl
+docs/specs/*/check/survival.jsonl
+docs/specs/*/check/run.json
+docs/specs/*/check/raw/
+docs/specs/*/check/source.plan.md
+docs/specs/*/.persona-metrics-warned
+# END persona-metrics

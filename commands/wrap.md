@@ -170,6 +170,46 @@ After rendering the drift table, emit a `[TRIAGE MEMORY]` line for every persona
 
 Do not emit triage lines for personas below the deadband or in cold-start state.
 
+### Persona insights (token-economics — unconditional)
+
+Refresh per-persona cost + value rankings across all discovered MonsterFlow projects, then render a top/bottom-3 text section. Runs every `/wrap-insights` invocation **regardless of `graphify-out/` presence** (decision #19 — NOT piggybacked on the Phase 1 dashboard-append.sh block, which is graphify-conditional).
+
+```bash
+# --best-effort downgrades A1.5 mismatches to warnings (logged via safe_log).
+# Spike Q1 closed with tolerance-0 against one fixture; real-world data shows
+# routine cache-eviction drift. Production needs data; calibration tracked in
+# Risk Register entry.
+PERSONA_VALUE_BIN=~/Projects/MonsterFlow/scripts/compute-persona-value.py
+RANKINGS_FILE=~/Projects/MonsterFlow/dashboard/data/persona-rankings.jsonl
+RANKINGS_PRESENT_BEFORE=0
+[ -f "$RANKINGS_FILE" ] && RANKINGS_PRESENT_BEFORE=1
+
+if [ -f "$PERSONA_VALUE_BIN" ]; then
+  python3 "$PERSONA_VALUE_BIN" --best-effort 2>&1 || true
+fi
+
+# v3 trigger: invoke persona-metrics-validator subagent ONLY on first creation.
+# Drop a sentinel; the host agent reads it and decides whether to invoke.
+if [ "$RANKINGS_PRESENT_BEFORE" = "0" ] && [ -f "$RANKINGS_FILE" ]; then
+  touch ~/Projects/MonsterFlow/dashboard/data/.persona-validator-pending
+fi
+
+# Render the "Persona insights" sub-section (top + bottom 3 per gate × per
+# dimension; "(only N qualifying)" annotation when fewer than 3 with
+# runs_in_window>=3). Helper is a standalone script (NOT a python3 heredoc)
+# per memory feedback_hook_stdin_heredoc — heredocs occupy stdin and can
+# silently drop piped JSON.
+if [ -x ~/Projects/MonsterFlow/scripts/_render_persona_insights_text.py ] || \
+   [ -f ~/Projects/MonsterFlow/scripts/_render_persona_insights_text.py ]; then
+  python3 ~/Projects/MonsterFlow/scripts/_render_persona_insights_text.py \
+    --rankings "$RANKINGS_FILE" 2>/dev/null || true
+fi
+```
+
+**Paste the render-helper's stdout verbatim** as a fenced code block in your response, immediately after the persona drift block. If the helper prints nothing (cold-start: no rankings file, or empty file), skip the block silently — the dashboard's "no data yet" banner is the right surface for that case (spec edge-case e12).
+
+If `dashboard/data/.persona-validator-pending` exists after the invocation, this is the first time persona rankings have been generated on this machine. Invoke the `persona-metrics-validator` subagent for a one-time schema + foreign-key audit, then `rm` the sentinel. Do not re-invoke the validator on subsequent runs unless drift looks suspect (the trigger from the persona-drift block above still applies).
+
 ---
 
 ## Phase 2: Learning Triage (one approval gate)

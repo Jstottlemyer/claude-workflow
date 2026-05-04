@@ -1,0 +1,3 @@
+{"schema_version":1,"stage":"plan","persona":"requirements","model":"claude-opus-4-7","findings_emitted":2,"status":"ok"}
+{"schema_version":1,"stage":"plan","persona":"gaps","model":"claude-opus-4-7","findings_emitted":0,"status":"ok"}
+{"schema_version":1,"stage":"plan","persona":"feasibility","model":"claude-opus-4-7","findings_emitted":0,"status":"ok"}

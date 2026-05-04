@@ -60,6 +60,19 @@
   .empty { color: var(--muted); font-style: italic; padding: 12px; }
   #error { display: none; background: #3a1e24; color: var(--bad); padding: 12px 24px;
            border-bottom: 1px solid var(--border); }
+  /* Persona Insights — scaffolding (rules populated by persona-insights.js renderer). */
+  .persona-insights-table { }
+  .row-low-sample { opacity: 0.55; }
+  .banner-privacy     { border-left: 3px solid var(--warn);   padding: 8px; margin: 8px 0; }
+  .banner-stale       { border-left: 3px solid var(--bad);    padding: 8px; margin: 8px 0; }
+  .banner-empty-state { border-left: 3px solid var(--accent); padding: 8px; margin: 8px 0; }
+  .band-low  { color: var(--warn); }
+  .band-mid  { /* default fg */ }
+  .band-high { color: var(--good); }
+  .badge.silent      { background: #4a5568;       color: #cbd5e0; }
+  .badge.never-run   { background: var(--border); color: var(--muted); }
+  .badge.deleted     { background: var(--bad);    color: white; }
+  .badge.complete-value { /* silent — no rendering */ }
 </style>
 </head>
 <body>
@@ -69,6 +82,7 @@
   <div id="modes">
     <button class="active" data-mode="graphify">Graphify</button>
     <button data-mode="judge">Judge</button>
+    <button data-mode="personas">Persona Insights</button>
   </div>
 </header>
 <div id="error"></div>
@@ -82,14 +96,34 @@
 <script src="./judge-bundle.js" onerror="window.__JUDGE_BUNDLE_MISSING=true"></script>
 <script src="./dashboard.js"></script>
 <script src="./judge.js"></script>
+<!-- Persona Insights bundle (Phase 2 of token-economics). All three are optional —
+     a missing file flips __PERSONA_BUNDLES_LOADED=false so persona-insights.js can
+     render the empty-state banner gracefully (e.g., adopter on a fresh install). -->
+<script src="./data/persona-roster.js"           onerror="window.__PERSONA_BUNDLES_LOADED=false"></script>
+<script src="./data/persona-rankings-bundle.js"  onerror="window.__PERSONA_BUNDLES_LOADED=false"></script>
+<script src="./persona-insights.js"              onerror="window.__PERSONA_BUNDLES_LOADED=false"></script>
 <script>
-  // Top-level mode toggle: Graphify (default) | Judge.
+  // Top-level mode toggle: Graphify (default) | Judge | Persona Insights.
   // Each mode owns its own tabs, charts, and last-updated label.
   const modeButtons = document.querySelectorAll("#modes button");
   function activateMode(mode) {
     modeButtons.forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
     if (mode === "judge") {
       if (window.__renderJudgeView) window.__renderJudgeView();
+    } else if (mode === "personas") {
+      if (window.__renderPersonaInsightsView) {
+        window.__renderPersonaInsightsView();
+      } else {
+        // Stage 2B renderer not yet loaded — placeholder so the tab is testable now.
+        const main = document.getElementById("main");
+        const tabs = document.getElementById("tabs");
+        if (tabs) tabs.innerHTML = "";
+        if (main) {
+          main.innerHTML = '<div class="card wide"><div class="empty">' +
+            'Persona Insights renderer not yet loaded — Wave 2B pending.' +
+            '</div></div>';
+        }
+      }
     } else {
       if (window.__renderGraphifyView) {
         window.__renderGraphifyView();

@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/persona-rankings.allowlist.json",
+  "title": "Persona Rankings — allowlisted row schema (v1, spec v4.2)",
+  "description": "Authoritative allowlist for dashboard/data/persona-rankings.jsonl rows. additionalProperties: false at every level is the privacy gate enforced by tests/test-allowlist.sh (A10). Any field not listed here is rejected. Bump schema_version on breaking changes; do NOT add fields without a security PR. Spec: docs/specs/token-economics/spec.md (v4.2). Deltas: Δ1 dropped window_start_artifact_dir; Δ2 renamed last_seen → last_artifact_created_at (minute-truncated); Δ3 contributing_finding_ids are per-machine salted. M3 added cost_runs_in_window; M4 added the silent run_state plus silent_runs_count.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "persona",
+    "gate",
+    "runs_in_window",
+    "window_size",
+    "cost_runs_in_window",
+    "run_state_counts",
+    "total_emitted",
+    "total_judge_retained",
+    "total_downstream_survived",
+    "total_unique",
+    "silent_runs_count",
+    "total_tokens",
+    "judge_retention_ratio",
+    "downstream_survival_rate",
+    "uniqueness_rate",
+    "avg_tokens_per_invocation",
+    "last_artifact_created_at",
+    "persona_content_hash",
+    "contributing_finding_ids",
+    "truncated_count",
+    "insufficient_sample"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Forward-compat marker. v1 readers (dashboard) skip rows where schema_version > KNOWN_MAX."
+    },
+    "persona": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "description": "Persona slug as it appears in personas/<gate>/<name>.md (NFC-normalized, lowercase, hyphenated)."
+    },
+    "gate": {
+      "type": "string",
+      "enum": ["spec-review", "plan", "check"]
+    },
+    "runs_in_window": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 45,
+      "description": "Count of artifact directories contributing to the VALUE window. Per M3, cost_only rows do NOT count here."
+    },
+    "window_size": {
+      "type": "integer",
+      "const": 45
+    },
+    "cost_runs_in_window": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "M3: cost-window count (independent of value-window). Count of Agent dispatches contributing tokens. Includes cost_only rows."
+    },
+    "run_state_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "complete_value",
+        "silent",
+        "missing_survival",
+        "missing_findings",
+        "missing_raw",
+        "malformed",
+        "cost_only"
+      ],
+      "properties": {
+        "complete_value":   { "type": "integer", "minimum": 0 },
+        "silent":           { "type": "integer", "minimum": 0, "description": "M4: status:ok with findings_emitted:0 (ran successfully, raised nothing)." },
+        "missing_survival": { "type": "integer", "minimum": 0 },
+        "missing_findings": { "type": "integer", "minimum": 0 },
+        "missing_raw":      { "type": "integer", "minimum": 0 },
+        "malformed":        { "type": "integer", "minimum": 0 },
+        "cost_only":        { "type": "integer", "minimum": 0, "description": "Cost-window only; does NOT count toward runs_in_window per M3." }
+      },
+      "description": "Per-state counts. A2 verifies sum(complete_value+silent+missing_*+malformed) == runs_in_window and that cost_only contributes to cost_runs_in_window only."
+    },
+    "total_emitted": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sum of bullets in raw/<persona>.md across complete_value + silent + missing_survival rows."
+    },
+    "total_judge_retained": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sum of findings.jsonl rows where persona ∈ personas[]; counts complete_value + silent + missing_survival."
+    },
+    "total_downstream_survived": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sum of survival.jsonl rows with outcome == addressed; counts complete_value only."
+    },
+    "total_unique": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Sum of findings.jsonl rows where unique_to_persona == persona; counts complete_value + missing_survival."
+    },
+    "silent_runs_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "M4: count of silent runs (status:ok, findings_emitted:0). Informational; equals run_state_counts.silent."
+    },
+    "total_tokens": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "M3: sum across COST window (cost_runs_in_window dispatches), NOT value window."
+    },
+    "judge_retention_ratio": {
+      "type": ["number", "null"],
+      "minimum": 0.0,
+      "description": "total_judge_retained / total_emitted. null iff total_emitted == 0 (e10). Compression ratio, NOT survival or probability — Judge can split one raw bullet across multiple findings (ratio > 1.0) or merge bullets (ratio < 1.0). No upper bound; ratios > 1.0 are honest signal that this persona's bullets get split during clustering. Caught at /build by Wave 3 task 3.1 against MonsterFlow's own docs/specs."
+    },
+    "downstream_survival_rate": {
+      "type": ["number", "null"],
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "total_downstream_survived / total_judge_retained. null iff total_judge_retained == 0 (e11)."
+    },
+    "uniqueness_rate": {
+      "type": ["number", "null"],
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "total_unique / total_judge_retained. null iff total_judge_retained == 0 (e11)."
+    },
+    "avg_tokens_per_invocation": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "M3: total_tokens / cost_runs_in_window (cost-window denominator, NOT value-window). null iff cost_runs_in_window == 0."
+    },
+    "last_artifact_created_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:00Z$",
+      "description": "Δ2: minute-truncated ISO-8601 UTC. Sourced from MAX(run.json.created_at) of contributing artifact directories, rounded down to the minute (seconds always 00). NEVER file mtime. Excluded from idempotency diff."
+    },
+    "persona_content_hash": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "description": "CURRENT hash of personas/<gate>/<persona>.md (NFC + LF-normalized, then sha256). null iff persona file deleted (e7)."
+    },
+    "contributing_finding_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(sr|pl|ck)-[0-9a-f]{10,}$"
+      },
+      "maxItems": 50,
+      "description": "Δ3: per-machine SALTED finding IDs (sha256(salt || normalized_signature)[:10]) with gate prefix. Most-recent 50 by run.json.created_at, then sorted lexicographically before emit for idempotent diff. Surplus rolled into truncated_count. Cross-machine ID stability is NOT a v1 feature."
+    },
+    "truncated_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Count of contributing finding IDs beyond the 50-cap."
+    },
+    "insufficient_sample": {
+      "type": "boolean",
+      "description": "true iff runs_in_window < 3. Dashboard renders rate cells as '—'; row excluded from /wrap-insights top/bottom lists."
+    }
+  },
+  "additionalProperties": false
+}
