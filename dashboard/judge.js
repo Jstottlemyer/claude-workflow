@@ -160,9 +160,16 @@ function addVerdictTable(main, rows) {
   for (const r of sorted.slice(0, 40)) {
     const v = r.verdict || "—";
     const badge = verdictBadgeClass(r.verdict);
-    const compress = r.raw_finding_count
-      ? `${r.raw_finding_count} → ${r.findings.length}`
-      : `— → ${r.findings.length}`;
+    const finalCount = r.findings.length;
+    let compress;
+    if (r.raw_finding_count) {
+      const ratio = finalCount > 0
+        ? `${(r.raw_finding_count / finalCount).toFixed(1)}×`
+        : "∞";
+      compress = `${r.raw_finding_count} → ${finalCount} (${ratio})`;
+    } else {
+      compress = `— → ${finalCount}`;
+    }
     const when = r.timestamp ? formatJudgeTs(r.timestamp) : "—";
     const openLink = r.synth_path
       ? `<a href="file://${r.synth_path}">md</a>`

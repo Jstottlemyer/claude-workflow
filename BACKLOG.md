@@ -8,7 +8,21 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
 
 ## Token economics (cross-cutting)
 
-- **Holistic token-cost instrumentation + value-vs-benefit judging** — measure where MonsterFlow's token budget actually goes (per-gate agent fan-out, per-session plugin injection, per-command persona reads, per-/wrap insights), then make scope-trimming decisions on data instead of guesses. Surface results in the Judge dashboard so the cost-vs-finding-yield of each persona/plugin is visible over time.
+> **2026-05-04:** Per-persona instrumentation (cost + survival + uniqueness as separate columns) promoted to `docs/specs/token-economics/spec.md` (instrumentation-only after `/spec-review` round 1 narrowed scope). Per-plugin cost measurement and roster-scaling action stay here, both depending on the instrumentation spec landing first. Items #4 (Agent Teams) and #2 (Onboarding) remain unscheduled.
+
+- **Per-plugin cost measurement** — extend `scripts/session-cost.py` (or sister script) to attribute token spend by enabled plugin (superpowers, vercel, codex, context7, etc.). Required before "plugin scoping per gate" below has any data to act on.
+  - **Why:** External user feedback (2026-05-03) hypothesized superpowers' per-message skill-description injection is the dominant cost; instrumentation spec round-1 review verified there is no per-plugin marker in session JSONL and `attributionSkill` is per-message, not per-plugin. Methodology is genuinely undecided — needs design (baseline-vs-installed diffing? a logging shim around plugin loads? something else?).
+  - **Sequencing:** *do not start* until `token-economics/spec.md` Phase 0 spike completes — that spike answers whether MonsterFlow has per-subagent JSONL access at all, which is a precondition.
+  - **Entry points:** `scripts/session-cost.py`, `dashboard/data/plugin-costs.jsonl` (proposed sister artifact, not mixed with `persona-rankings.jsonl`).
+  - **Size:** M (methodology design dominates; instrumentation itself is small once the signal source is identified).
+
+- **Plugin scoping per gate (action half — depends on per-plugin cost measurement)** — once per-plugin cost data exists, decide which plugins to scope out of which gates (e.g., disable superpowers SessionStart skill for non-`/build` subagents). Pure cost-vs-value action that the data unlocks.
+  - **Why:** Friend on Pro plan diagnosed superpowers as the main rate-limit consumer; if data confirms, scoping superpowers to `/build`-time only would directly reduce Pro-tier spend. Per global CLAUDE.md, superpowers is already supposed to be `/build`-only; the harness doesn't currently enforce that per-gate.
+  - **Sequencing:** *do not start* until per-plugin cost measurement above has shipped ≥10 runs of data.
+  - **Entry points:** `settings/settings.json` `enabledPlugins`, possibly per-gate plugin overrides if Claude Code supports them (verify), `commands/{spec-review,plan,check}.md` if scoping is dispatch-time.
+  - **Size:** S–M (small if `enabledPlugins` is gate-scopable; medium if we have to wrap dispatch).
+
+- **Holistic token-cost instrumentation + value-vs-benefit judging** *(partially promoted → docs/specs/token-economics/spec.md — per-persona dimension only; per-plugin and per-/wrap dimensions remain here)* — measure where MonsterFlow's token budget actually goes, then make scope-trimming decisions on data instead of guesses. Per-persona half is now a real spec; per-plugin and per-`/wrap insights` cost dimensions still need their own specs (above and below).
   - **Why:** External user feedback (forwarded 2026-05-03) — friend on Claude $20 Pro plan ran two prompts in MonsterFlow and went from 3% → 60% of the rate-limit budget. Their own Claude session diagnosed the superpowers plugin as the main consumer ("injects all those skill descriptions on every message") and offered to disable superpowers + vercel + codex from `enabledPlugins`. So: (a) the cost is real and measurable, (b) the heaviest tax may be plugin auto-injection, not agent fan-out, (c) we currently have no way to *prove* which lever matters most. Without instrumentation we'll keep guessing wrong.
   - **What to investigate:**
     - Per-message system-prompt size by enabled plugin (superpowers, vercel, codex, context7, etc.) — measure once, compare against value each delivers in the pipeline.
@@ -55,7 +69,7 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
 
 ## Pipeline
 
-- **Account-type agent scaling** — auto-detect the active Claude account tier (Pro vs Max vs API) and scale agents-per-gate accordingly. Max/API can run the full 6+6+5 roster; Pro hits rate limits faster and should use a reduced roster (e.g. 3+3+3).
+- **Account-type agent scaling** *(deferred — depends on token-economics/spec.md instrumentation landing first; combined-spec attempt rolled back 2026-05-04 after `/spec-review` round 1 found 7 blockers)* — auto-detect the active Claude account tier (Pro vs Max vs API) and scale agents-per-gate accordingly. Max/API can run the full 6+6+5 roster; Pro hits rate limits faster and should use a reduced roster (e.g. 3+3+3). The `/spec-review` round-1 findings (`docs/specs/token-economics/spec-review/findings.jsonl`) inform this spec when it gets written: (a) tier-detection cascade must be designed against verified CLI surface, not guesses; (b) the resolver should ship in report-only mode first per Codex's recommendation; (c) summary↔ceiling defaults must be reconciled (Max≠full if ceiling<roster size); (d) value formula must include severity weighting and a divisor floor; (e) deterministic tie-break required.
   - **Why:** Pro accounts hit rate limits mid-gate and the run aborts, leaving partial artifacts. A budget-aware roster keeps the pipeline usable on Pro without forcing every adopter onto Max.
   - **External signal:** Pro user forwarded feedback 2026-05-03 — two prompts moved their rate-limit budget 3% → 60% in MonsterFlow flows. Their own Claude session pinpointed the superpowers plugin's per-message skill-description injection as the main consumer (see token-economics item above). Confirms Pro is the constrained tier worth designing for.
   - **Detection signal:** check `claude config` or env for account type, or expose a `PIPELINE_AGENT_BUDGET` override.
