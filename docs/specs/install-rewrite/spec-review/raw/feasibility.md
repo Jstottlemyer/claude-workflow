@@ -1,0 +1,45 @@
+# Feasibility Review — install-rewrite
+
+## Critical Gaps (must answer before building)
+
+- **`wiki-export` is a Claude Code skill, not a shell command — `scripts/onboard.sh` cannot invoke it.** Confirmed: `~/.claude/skills/wiki-export/` exists, `~/.local/bin/wiki-export` does not. Skills run inside the Claude Code agent loop (model decides to call `Skill` tool); they have no shell entry point. The spec line "wiki-export (skill)" + the onboard.sh outline `offer_wiki_indexing` (which the prompt says invokes `wiki-export`) is structurally infeasible as written. Three real options to pick from at /plan: **(a)** drop wiki indexing from onboard.sh entirely and only print "next time you're in Claude Code, run `/wiki-update` or trigger the wiki-export skill"; **(b)** factor the wiki-export logic into a `scripts/wiki-export.sh` that the skill ALSO invokes (single source of truth, callable from both); **(c)** have onboard.sh just `touch` a sentinel that a Claude Code session picks up and offers the skill on next launch. Pick one before /build — option (a) is lowest-effort and matches the existing memory note `feedback_insights_use_only.md` ("built-in slash commands are dispatched by the CLI harness from user input; wrapper commands can prompt for them but cannot call them").
+
+- **Acceptance case 3's "mock `has_cmd` to report all tools missing via PATH manipulation" doesn't actually mock `has_cmd`.** The existing `has_cmd()` (install.sh:21-25) has hard-coded fallbacks: `[ -x "/opt/homebrew/bin/$1" ] || [ -x "/usr/local/bin/$1" ]`. PATH manipulation alone won't make it report missing — on the dev machine those binaries exist at those paths regardless of `$PATH`. The test must either (a) override `has_cmd` itself by sourcing a stub before running install.sh (requires install.sh to allow override — currently doesn't), (b) run inside a container/chroot, or (c) accept that this test cannot run on the actual dev box and must be CI-only with a clean image. The spec hand-waves this with "PATH manipulation pointing to a tmp dir with no binaries" — that is technically wrong and the test will give false-pass on Justin's machine.
+
+- **`set -euo pipefail` + "install.sh catches the non-zero exit" of `brew bundle` requires explicit guarding.** With `set -e` active, `brew bundle install` returning non-zero will terminate install.sh immediately — there is no "catch path" to print the diagnostic message in Edge Cases. The implementation must wrap with `if ! brew bundle ...; then ... fi` or `brew bundle ... || HANDLE_ERR=$?` — spec should state which pattern. Same concern applies to the `gh auth status` line in onboard.sh (the `&&` short-circuit IS safe, but only because conditional context disables `set -e`; worth calling out).
+
+## Important Considerations
+
+- **Acceptance case 2's "<2 second" runtime is plausible but fragile.** `brew bundle check --file=Brewfile` on a fully-installed system runs in roughly 200-500ms on modern Apple Silicon (it shells out to `brew list --formula` and string-matches), but adding the existing 11 stages — `claude-md-merge.py` (Python startup ~150ms), the test-suite prompt, plugin install prompt, doctor.sh — easily pushes past 2s on cold disk. To make the bound real, spec needs to (a) confirm doctor.sh runs in onboard.sh AFTER the timing bar (not inside the install.sh fast path being timed), and (b) explicitly skip the `read -rp` test/plugin prompts on a no-changes detected re-run, otherwise they block forever and "wall-clock under 2 seconds" is unmeasurable in a non-interactive harness.
+
+- **Owner-vs-adopter detection via `PWD == REPO_DIR` breaks for owner workflow `~/Projects/MonsterFlow/install.sh` from another cwd.** The existing logic (install.sh:194-197) is correct ONLY if the owner always `cd ~/Projects/MonsterFlow && ./install.sh`. If Justin runs it from inside another project (which is plausible — re-running install after pulling updates from a tmux pane sitting in CosmicExplorer, say), `PWD != REPO_DIR` → owner is misclassified as adopter → theme prompt appears, persona-metrics gitignore default flips. The spec inherits this bug rather than fixing it. Fix: add a second check (`git -C "$REPO_DIR" remote get-url origin` matches `Jstottlemyer/MonsterFlow` AND `git config user.email == justin.h.stottlemyer@gmail.com`) or add an explicit `--owner` / `--adopter` flag for the disambiguation case. Flag-this-or-fix-this before /plan.
+
+- **`.zshrc` sentinel-bracketed append is safe for plain zsh and oh-my-zsh, mostly safe for prezto, but interacts poorly with `.zprofile`/`.zshenv` setups.** The sentinel pattern is sound, but there are three real-world issues the spec doesn't address: (1) some users put their PATH/source-block in `~/.zshenv` or `~/.zprofile` for login-shell vs interactive separation — appending to `~/.zshrc` won't fire for non-interactive subshells; (2) prezto's `init.zsh` re-sources files in a specific order, and a late append to `~/.zshrc` works but variables set in the prompt-colors file may be overwritten by prezto's prompt module loading after; (3) the user's own CLAUDE.md says secrets handling for `~/.zshenv.local` validates content (refuses PEM-looking content) — the spec should confirm we never `source` from the theme block and only set non-secret env vars to avoid colliding with that hardening. None are blockers; spec should add a one-line note: "Theme block only sets ZSH variables / sources files containing variable assignments — never sources secrets."
+
+- **`~/.config/cmux/cmux.json` path is unverified.** Spec asserts cmux respects `~/.config/cmux/cmux.json` but provides no citation. cmux is a relatively new tool (cask added in this spec); its config-file location convention should be verified via `cmux --help` or its docs (use context7) before /plan. If the actual path is `~/Library/Application Support/cmux/config.json` (typical macOS app convention), the symlink target is wrong and acceptance case 6 will mis-verify.
+
+- **Test harness needs to mock `brew bundle` itself, not just file contents.** Acceptance case 4 asserts `brew bundle install` is "invoked" — but the test runs against `HOME=$tmp` not against a brew-isolated environment. If the dev machine has `jq` installed system-wide, the test cannot actually `brew uninstall jq` (would touch the real machine) and cannot meaningfully assert `has_cmd jq` post-install (already true). The harness needs a `BREW_BIN` override or PATH-prepended fake-brew shim that records invocations. Spec should name which pattern.
+
+## Observations
+
+- **Brew tier promotion is clean and feasible** — adding `has_cmd brew || REQUIRED_MISSING+=(...)` is a one-line change to install.sh:35-37. No code path needed. Good call.
+
+- **`scripts/lib/python-pip.sh` integration is trivially feasible** — `source "$REPO_DIR/scripts/lib/python-pip.sh"` near the top of install.sh, then call `python_pip --which` if any pip-needing logic shows up. Currently install.sh only uses `python3` (no pip), so this is groundwork for follow-up sweeps (Open Question 2).
+
+- **Sentinel-bracketed `.zshrc` append pattern is proven** — the existing persona-metrics gitignore block (install.sh:242-278) is the same pattern; reuse is straightforward.
+
+- **`Brewfile` says `brew "tmux"` is RECOMMENDED**; spec says demote to OPTIONAL. The Brewfile must be updated in the same diff or acceptance case 4 will reinstall tmux. Spec calls this out (Data & State section) — good.
+
+- **`bootstrap-graphify.sh` is a real script** (verified in `/Users/jstottlemyer/Projects/MonsterFlow/scripts/`). onboard.sh invoking it is feasible; just thread the `--non-interactive` / consent prompt cleanly.
+
+- **The `*/` line in `write_queue_gitignore()` (install.sh:215) gitignores ALL subdirectories of `queue/`** — spec preserves this verbatim ("preserved verbatim"). Worth flagging in /plan that this is intentional but extreme: any queue subdirectory will be ignored. Not a regression introduced by this spec, just an inheritance worth knowing.
+
+- **Acceptance case 7's `grep -c "Index ~/Projects" output.txt` returning 1 vs 0** is a fine assertion but prone to wording drift — if the panel later changes the prompt copy, the test breaks silently. Pin the exact match string in the test, not the spec, but worth flagging.
+
+- **Box-drawing fallback to ASCII is sensible**; macOS Terminal and iTerm2 both render Unicode box-drawing fine, and cmux (Ghostty-based) does too. Non-blocking.
+
+- **The "additive surgery" claim is accurate** for the 354-line file. New stages bolt on cleanly between existing stages. Verbatim-preserved blocks (190-202, 208-225, 232-278, 280-292, 294-303) are well-bounded.
+
+## Verdict
+
+PASS WITH NOTES — buildable as described EXCEPT for the wiki-export skill-from-bash invocation (structurally infeasible, must pick a real alternative) and the `has_cmd` mock approach in the test harness (technically wrong as written); both should be resolved before /plan, and three smaller items (`set -e` + `brew bundle` catch, owner-detection PWD edge, cmux config path verification) want explicit answers in the plan.

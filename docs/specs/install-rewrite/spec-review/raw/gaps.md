@@ -1,0 +1,53 @@
+# Gaps Review — install-rewrite
+
+Review angle: **what hasn't been thought through yet** (per `~/.claude/personas/review/gaps.md`). Reviewed against general engineering judgment; no constitution. Citations reference line numbers in `source.spec.md`.
+
+## Critical Gaps (must answer before building)
+
+- **Migration path from existing v0.4.x install.sh users is completely unaddressed.** The spec describes fresh-Mac adopter and owner re-run flows (lines 90–185), but says nothing about an existing adopter who already ran `install.sh` from v0.4.2 and now pulls and re-runs it at v0.4.3/v0.5.0. Specifically: (a) they may have a `tmux` install they expect to keep but Brewfile no longer lists; (b) they may have manual `~/.tmux.conf` edits — what does the theme stage do when `~/.tmux.conf` already exists as a *regular file*, not a missing path or our symlink? The "owner-default-YES" path (line 253) presumably calls `ln -sf` and silently clobbers it. Spec needs an explicit answer for "non-empty target that is not our symlink": back up to `.bak`, prompt, or refuse. This is the user-data-loss risk in the spec.
+
+- **`.zshrc` sentinel append behavior on shells that aren't zsh / on multi-shell users is unspecified.** Line 253 says we append to `~/.zshrc`. What if the user is on bash (`~/.bashrc`), fish (`~/.config/fish/config.fish`), or has both? What if `~/.zshrc` doesn't exist yet (fresh macOS box where they haven't opened a Terminal)? Spec assumes zsh-only without stating it. At minimum: detect `$SHELL`, document the assumption, fail loudly if `~/.zshrc` is missing rather than creating one with surprise contents.
+
+- **Concurrent install.sh invocations are not addressed.** No lockfile, no `flock`, no PID guard. Two terminals, one cmux session running install.sh while a tmux pane reruns it (entirely plausible given Justin's tmux+cmux setup) → both racing on `~/.zshrc` sentinel append, both calling `brew bundle install`, both `ln -sf` against the same paths. The persona-metrics gitignore precedent (line 80) doesn't cover concurrent writes either; this spec inherits that gap and amplifies it because brew bundle takes 10+ seconds. Decide: lockfile at `/tmp/monsterflow-install.lock`, or document "do not run concurrently" and detect+abort.
+
+- **Mid-install Ctrl-C / SIGINT leaves partial state with no recovery story.** Spec acknowledges network failure mid-`brew bundle` (lines 324–325) but only for the brew sub-process exiting non-zero. What about: user hits Ctrl-C *between* stage 7 (theme symlink) and stage 12 (onboard)? `~/.zshrc` has the sentinel block but `config/zsh-prompt-colors.zsh` may have been linked but cmux.json not? No `trap` handler is mentioned. Need either: (a) idempotent re-run guarantee that recovers from any partial state, which the spec implicitly claims via case 1 but doesn't prove for non-clean exits; or (b) explicit `trap cleanup EXIT` semantics.
+
+- **Uninstall / rollback path is entirely missing.** Line 320–321 punts on theme uninstall ("out of scope — added if/when an adopter actually asks for it"), but the broader question is unaddressed: how does an adopter remove MonsterFlow cleanly? The sentinel-bracketed `~/.zshrc` block is removable in principle, but there's no `uninstall.sh`. For a one-liner installer that touches `~/.claude/`, `~/.config/cmux/`, `~/.tmux.conf`, `~/.zshrc`, `~/.local/share/MonsterFlow/`, and creates symlinks across 6+ subdirs of `~/.claude/`, "no uninstall" is a real adopter-experience gap — at minimum the spec should declare it explicitly (and link a backlog item) rather than leave it silent.
+
+## Important Considerations (should address but not blocking)
+
+- **macOS / bash version assumptions not stated.** Spec is "macOS-only" (line 51) but doesn't pin a minimum macOS version. Apple Silicon vs Intel branching (`/opt/homebrew` vs `/usr/local`) — `has_cmd` PATH augmenting (line 276) presumably handles it, but the spec doesn't say. macOS ships bash 3.2; if `install.sh` uses bash 4+ features (associative arrays, `${var,,}` lowercase) it will break. Pin the bash version assumption explicitly.
+
+- **`brew` install command in the REQUIRED panel (lines 100–106) is the canonical Homebrew installer URL.** Justin chose to *not* auto-curl-bash brew (line 52), but the spec's REQUIRED panel still prints the exact `curl ... | bash` one-liner. That's fine, but: what if Homebrew changes the installer URL or invocation between now and when an adopter runs this? No mechanism to keep that string fresh. Suggest: link to https://brew.sh/ and let adopter copy from there, rather than embedding the command in our script.
+
+- **`brew bundle` exit code semantics are unclear.** Line 312 says `brew bundle check --file=Brewfile` is run on a fully-installed system to skip the install stage. `brew bundle check` exits 0 if all formulas are present, non-zero otherwise — but its exact exit semantics for casks (cmux is a cask, line 200) and for "formula present but not in Brewfile" should be verified per the global CLAUDE.md "verify before shipping" rule. Spec says `brew bundle install` is "natively idempotent" (line 307); confirm with `brew bundle install --help` output before relying on it.
+
+- **`gh auth login` interactive flow inside `onboard.sh` may break automation.** Line 236: onboard offers `gh auth login` if `gh` is installed but unauthenticated. `gh auth login` is a TUI that takes over the terminal. If an adopter runs `install.sh` non-interactively (CI, autorun, `< /dev/null`), this hangs or crashes. Spec already has `--no-install`; it needs a `--no-onboard` or `onboard.sh --non-interactive` to skip TUI prompts.
+
+- **`scripts/onboard.sh` re-running independently after install completed is mentioned (line 217: "Independently re-runnable") but the lifecycle is fuzzy.** What's the contract — do the indexing kickoffs always re-prompt, or do they check the `~/.local/share/MonsterFlow/.last-graphify-run` sentinel (line 316)? Acceptance case 7 only tests detection-gating, not re-run-debouncing. State file location, format (timestamp? counter?), and TTL aren't specified.
+
+- **Test harness assumes mockability that may not hold.** Acceptance case 3 (line 341) mocks `has_cmd` via PATH manipulation — fine for binaries, but `has_cmd brew` triggers `brew bundle` execution downstream. Without also mocking `brew`, the test will either invoke real brew (touching the dev machine despite the temp-`$HOME`) or error out. Spec needs to specify how the test harness stubs out actual side-effecting commands (brew, git, claude, gh) — `PATH` manipulation alone isn't sufficient because brew bundle invokes real network and disk writes.
+
+- **No statement on what happens if the adopter has an existing `.claude/` config they don't want clobbered.** Existing `install.sh` lines preserved verbatim include "settings" symlinking (line 68 in source spec, "settings" mentioned in stage 5). If adopter has `~/.claude/settings.json` with custom hooks/permissions, our `ln -sf` overwrites it. The persona-metrics flip is sentinel-bracketed (good); is the broader settings install equally non-destructive? Spec assumes existing behavior is correct without re-litigating.
+
+- **`config/cmux.json` and `config/tmux.conf` content review is deferred to /plan (Open Question 3, line 356) but the security implication isn't called out.** If `tmux.conf` accidentally ships with `set -g default-command "$SHELL -i"` or any keybinding that pipes to a network endpoint, that's an attacker-relevant detail. The spec rightly mentions sanitizing absolute paths (line 356) but doesn't add "review for arbitrary command execution in default keybindings" — important for any config file that ships dotfile-like behavior.
+
+## Observations (non-blocking notes)
+
+- The "loud notice" decline behavior for RECOMMENDED (line 298) is good; consider also writing a per-tool sentinel (e.g., `~/.local/share/MonsterFlow/declined-recommended`) so subsequent `install.sh` runs don't re-prompt for the same declined tools. Otherwise the adopter who declined `gh` once gets nagged on every re-run. This is mentioned in passing for indexing (line 316) but not for the install stage.
+
+- Line 96 prints version `v0.4.3` in the example but Open Question 4 (line 357) flags this as a feat-bump → 0.5.0. Either way, hard-coding the version in install.sh banner output is fragile — wire it through the existing `VERSION` file (per memory entry "VERSION file + git tags") rather than a string literal. Worth confirming at /plan that the install banner reads `VERSION` at runtime.
+
+- The spec uses "MonsterFlow" in user-facing strings (lines 144, 253) and `claude-workflow` in others (script comments line 220). The 2026-05-01 rebrand memory (`project_monsterflow_rebrand.md`) suggests both names still float around. Worth a sweep for any remaining `claude-workflow` strings that adopters will see.
+
+- Acceptance case 2 (line 340) asserts "total wall-clock under 2 seconds" on a re-run. That's tight given `brew bundle check` itself can take 1–2s on cold disk. Worth measuring before locking in 2s as the test threshold; 5s might be more realistic. Per Justin's CLAUDE.md "verify before shipping" rule, run `time brew bundle check --file=Brewfile` on the dev machine before committing this acceptance value.
+
+- The "Want adversarial review? Run /codex:setup" line (line 237) is invoked from a bash script — but `/codex:setup` is a Claude Code slash command, not a shell command. Adopter won't paste it into their shell. Worth clarifying the framing in the panel: "(in a Claude Code session) /codex:setup" or similar. Same applies to `/flow`, `/spec` lines 147–149.
+
+- The onboard panel offers "open ~/Projects/MonsterFlow/dashboard/index.html" (line 150) but doesn't gate on that file existing. Adopters who haven't run `bootstrap-graphify.sh` won't have the dashboard generated yet, so the link 404s. Either gate the line, or auto-trigger graphify before printing it.
+
+- Spec doesn't mention what happens if `~/Projects/MonsterFlow` was cloned to a non-default path (e.g., `~/code/MonsterFlow`). The owner detection (line 80) compares `$PWD == $REPO_DIR` which should still work, but indexing offers and dashboard paths in the panel might hardcode `~/Projects/MonsterFlow`. Verify all user-visible paths derive from `$REPO_DIR`.
+
+## Verdict
+
+PASS WITH NOTES — solid additive-surgery scope and the existing-code-preserved-verbatim list is reassuring, but the migration path for v0.4.x users, the user-data-clobber risk on existing `~/.tmux.conf` / `~/.zshrc` files, and the missing rollback story are real critical gaps that should be answered (even if "we accept this risk and document it") before /plan locks the design.

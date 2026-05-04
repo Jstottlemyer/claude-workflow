@@ -1,0 +1,7 @@
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "spec-review", "persona": "requirements", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 7, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "spec-review", "persona": "gaps", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 5, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "spec-review", "persona": "ambiguity", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 5, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "spec-review", "persona": "feasibility", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 3, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "spec-review", "persona": "scope", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 3, "verdict": "FAIL"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "spec-review", "persona": "stakeholders", "model": "claude-opus-4-7", "status": "ok", "findings_emitted": 3, "verdict": "PASS WITH NOTES"}
+{"schema_version": 1, "prompt_version": "findings-emit@1.0", "stage": "spec-review", "persona": "codex-adversary", "model": "gpt-5", "status": "ok", "findings_emitted": 12, "verdict": "ADVERSARIAL"}

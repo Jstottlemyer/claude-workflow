@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "prompt_version": "findings-emit@1.0",
+  "snapshot_prompt_version": "snapshot@1.0",
+  "run_id": "2e09e0c5-c417-43e1-98e1-16b9ffe4e198",
+  "stage": "spec-review",
+  "feature": "install-rewrite",
+  "created_at": "2026-05-04T04:09:27Z",
+  "status": "ok",
+  "warnings": [],
+  "artifact_path": "docs/specs/install-rewrite/spec.md",
+  "artifact_hash": "1f36e2e927e063acb4d39e5a574aa0f8d444ab368ec98fd3b1492b5411c7ab30",
+  "snapshot_path": "docs/specs/install-rewrite/spec-review/source.spec.md",
+  "personas_dispatched": ["requirements", "gaps", "ambiguity", "feasibility", "scope", "stakeholders"],
+  "codex_adversary_ran": true,
+  "findings_count": 20,
+  "verdicts": {
+    "requirements": "PASS WITH NOTES",
+    "gaps": "PASS WITH NOTES",
+    "ambiguity": "PASS WITH NOTES",
+    "feasibility": "PASS WITH NOTES",
+    "scope": "FAIL",
+    "stakeholders": "PASS WITH NOTES"
+  }
+}
