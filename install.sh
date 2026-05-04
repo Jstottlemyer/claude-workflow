@@ -1,12 +1,105 @@
 #!/bin/bash
 set -euo pipefail
 
-# Claude Workflow Pipeline — Install Script
-# Symlinks pipeline files into the correct locations
+# === Block 0: Function Definitions (no execution yet) ===
+# These must be defined before they're called below.
 
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+parse_flags() {
+    # Parse argv into env vars. Defaults: all flags off.
+    SHOW_HELP=0
+    NO_INSTALL=0
+    INSTALL_THEME_FORCED=0   # --install-theme set
+    NO_THEME=0               # wins over --install-theme
+    NO_ONBOARD=0
+    FORCE_ONBOARD=0
+    NON_INTERACTIVE_FLAG=0   # explicit --non-interactive
+
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -h|--help)             SHOW_HELP=1 ;;
+            --no-install)          NO_INSTALL=1 ;;
+            --install-theme)       INSTALL_THEME_FORCED=1 ;;
+            --no-theme)            NO_THEME=1 ;;
+            --non-interactive)     NON_INTERACTIVE_FLAG=1 ;;
+            --no-onboard)          NO_ONBOARD=1 ;;
+            --force-onboard)       FORCE_ONBOARD=1 ;;
+            *)                     echo "Unknown flag: $1" >&2; echo "Run with --help for usage." >&2; exit 2 ;;
+        esac
+        shift
+    done
+
+    # Resolve --non-interactive (explicit flag wins; else auto-detect via [ -t 0 ];
+    # MONSTERFLOW_FORCE_INTERACTIVE=1 overrides auto-detect)
+    if [ "$NON_INTERACTIVE_FLAG" = "1" ]; then
+        NON_INTERACTIVE=1
+    elif [ "${MONSTERFLOW_FORCE_INTERACTIVE:-0}" = "1" ]; then
+        NON_INTERACTIVE=0
+    elif [ -t 0 ]; then
+        NON_INTERACTIVE=0
+    else
+        NON_INTERACTIVE=1
+    fi
+
+    export NO_INSTALL INSTALL_THEME_FORCED NO_THEME NON_INTERACTIVE NO_ONBOARD FORCE_ONBOARD
+}
+
+print_help() {
+    cat <<'HELP'
+MonsterFlow install.sh — Claude Workflow Pipeline installer
+
+Usage: ./install.sh [flags]
+
+Flags:
+  -h, --help              Show this help and exit (no I/O)
+  --no-install            Bypass ALL detection and enforcement (CI escape hatch)
+  --install-theme         Force theme install (overrides default-N for adopters)
+  --no-theme              Skip theme install (wins over --install-theme)
+  --non-interactive       Disable all prompts; auto-detected when stdin is not a TTY
+  --no-onboard            Suppress onboard panel
+  --force-onboard         Run onboard panel even under --non-interactive
+
+Env vars:
+  MONSTERFLOW_OWNER=1|0           Force owner/adopter mode (test ergonomics)
+  MONSTERFLOW_FORCE_INTERACTIVE=1 Override [ -t 0 ] auto-detect
+  MONSTERFLOW_INSTALL_TEST=1      Short-circuit plugin/test prompts (test harness only)
+  PERSONA_METRICS_GITIGNORE=1|0   Gitignore persona-metrics artifacts (1=adopter default)
+
+For details: docs/specs/install-rewrite/spec.md
+HELP
+}
+
+# === Block 1: Flag Parse (no I/O yet) ===
+parse_flags "$@"
+[ "$SHOW_HELP" = "1" ] && { print_help; exit 0; }
+
+# === Block 2: OS Guards (no repo I/O yet) ===
+if [ "$(uname)" != "Darwin" ]; then
+    echo "MonsterFlow install.sh is macOS-only." >&2
+    echo "Linux support tracked in BACKLOG.md as out-of-scope for v1." >&2
+    exit 1
+fi
+MACOS_VER="$(sw_vers -productVersion 2>/dev/null || echo 0)"
+MACOS_MAJOR="${MACOS_VER%%.*}"
+# cmux requires macOS >= 14; if older, demote cmux from RECOMMENDED to OPTIONAL
+CMUX_DEMOTE=0
+if [ "${MACOS_MAJOR:-0}" -lt 14 ] 2>/dev/null; then
+    CMUX_DEMOTE=1
+fi
+
+# === Block 3: Repo paths + banner (now safe to do I/O) ===
+# Use pwd -P to resolve symlinks consistently with owner-detect logic
+REPO_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 CLAUDE_DIR="$HOME/.claude"
 VERSION="$(cat "$REPO_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
+
+# Source the python_pip helper (W1 task 1.6)
+# python_pip auto-detects pip3 vs pip vs python3 -m pip; install.sh has zero pip
+# calls today but the source is forward-compat plumbing.
+[ -f "$REPO_DIR/scripts/lib/python-pip.sh" ] && . "$REPO_DIR/scripts/lib/python-pip.sh"
+
+# Set HOMEBREW_NO_AUTO_UPDATE for the rest of the script — non-negotiable for
+# the <3s repeat-run budget when brew is invoked.
+export HOMEBREW_NO_AUTO_UPDATE=1
 
 echo "=== Claude Workflow Pipeline Installer — v${VERSION} ==="
 echo ""
