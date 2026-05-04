@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "run_id": "31e09378-1139-4681-a5b0-87532f1b4b52",
+  "command": "/plan",
+  "prompt_version": "findings-emit@1.0",
+  "model_versions": {
+    "reviewer-default": "claude-opus-4-7"
+  },
+  "artifact_hash": "sha256:371ac691d00ee0970ad675df9fe035d7ec3b2df1a463f63d5e5af9c40ed0c766",
+  "created_at": "2026-05-04T02:41:37Z",
+  "output_paths": [
+    "plan/findings.jsonl",
+    "plan/participation.jsonl",
+    "plan/run.json"
+  ],
+  "status": "ok",
+  "warnings": []
+}

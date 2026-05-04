@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "run_id": "2ad28193-ebe9-4864-8d58-7690683d3914",
+  "command": "/check",
+  "prompt_version": "findings-emit@1.0",
+  "model_versions": {
+    "reviewer-default": "claude-opus-4-7",
+    "codex-adversary": "codex"
+  },
+  "artifact_hash": "sha256:efcfdb46da06781fb88c26107f6b05feb99f95b4f101f748fbbb2c8ed7e1178e",
+  "created_at": "2026-05-04T03:45:50Z",
+  "output_paths": [
+    "check/findings.jsonl",
+    "check/participation.jsonl",
+    "check/run.json"
+  ],
+  "status": "ok",
+  "warnings": []
+}

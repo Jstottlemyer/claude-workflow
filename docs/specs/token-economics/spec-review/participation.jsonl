@@ -1,0 +1,7 @@
+{"schema_version": 1, "stage": "spec-review", "persona": "ambiguity", "model": "claude-opus-4-7", "findings_emitted": 4, "status": "ok"}
+{"schema_version": 1, "stage": "spec-review", "persona": "codex-adversary", "model": "codex", "findings_emitted": 10, "status": "ok"}
+{"schema_version": 1, "stage": "spec-review", "persona": "feasibility", "model": "claude-opus-4-7", "findings_emitted": 5, "status": "ok"}
+{"schema_version": 1, "stage": "spec-review", "persona": "gaps", "model": "claude-opus-4-7", "findings_emitted": 8, "status": "ok"}
+{"schema_version": 1, "stage": "spec-review", "persona": "requirements", "model": "claude-opus-4-7", "findings_emitted": 4, "status": "ok"}
+{"schema_version": 1, "stage": "spec-review", "persona": "scope", "model": "claude-opus-4-7", "findings_emitted": 4, "status": "ok"}
+{"schema_version": 1, "stage": "spec-review", "persona": "stakeholders", "model": "claude-opus-4-7", "findings_emitted": 4, "status": "ok"}

@@ -1,0 +1,6 @@
+{"schema_version": 1, "stage": "check", "persona": "codex-adversary", "model": "codex", "findings_emitted": 9, "status": "ok"}
+{"schema_version": 1, "stage": "check", "persona": "completeness", "model": "claude-opus-4-7", "findings_emitted": 2, "status": "ok"}
+{"schema_version": 1, "stage": "check", "persona": "risk", "model": "claude-opus-4-7", "findings_emitted": 5, "status": "ok"}
+{"schema_version": 1, "stage": "check", "persona": "scope-discipline", "model": "claude-opus-4-7", "findings_emitted": 5, "status": "ok"}
+{"schema_version": 1, "stage": "check", "persona": "sequencing", "model": "claude-opus-4-7", "findings_emitted": 2, "status": "ok"}
+{"schema_version": 1, "stage": "check", "persona": "testability", "model": "claude-opus-4-7", "findings_emitted": 9, "status": "ok"}
