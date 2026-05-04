@@ -122,6 +122,134 @@ End every session with:
 
 Captures session summary, triages learnings, checks git loose ends, and audits permissions.
 
+## 5b. Example: onboarding a brownfield mobile Swift app
+
+Brownfield = an existing codebase you're bringing into the pipeline for the first time.
+
+### Step 1 — scan the codebase with graphify first
+
+Before running `/kickoff`, let graphify build a knowledge graph of the existing code. This gives Claude a precise map of your file structure, key types, and relationships — so the constitution and future specs are grounded in what's actually there, not guesses.
+
+```bash
+cd ~/Projects/MyiOSApp
+graphify update .
+```
+
+This runs locally with no LLM calls (AST-only) and takes seconds on most iOS projects. It writes to `graphify-out/`. Once done, open Claude Code:
+
+```bash
+claude
+```
+
+Claude will automatically read `graphify-out/GRAPH_REPORT.md` before answering architecture questions. You can also query it directly:
+```
+graphify query "what are the main view controllers" --budget 1500
+```
+
+### Step 2 — run /kickoff
+
+```
+/kickoff
+```
+
+For a Swift/SwiftUI project, Claude will detect the stack and propose the mobile domain agents. A session looks like this:
+
+```
+=== Repo Signals ===
+Stack: Swift 5.9, SwiftUI, SpriteKit
+Evidence:
+  - 23 .swift files, 4 .xcodeproj files
+  - Package.swift with SwiftUI + SpriteKit dependencies
+  - graphify graph: 142 nodes, ContentView, GameScene, PlayerViewModel as god nodes
+Proposed domain: mobile + games
+
+Proposed session roster (on top of 27 defaults):
+  swift-mentor       — Swift idioms, @Observable, async/await best practices
+  test-writer        — XCTest / Swift Testing unit + UI test coverage
+  performance-advisor — Instruments-style memory + frame-rate review
+  swiftui-scene-builder — SwiftUI layout and scene composition
+  accessibility-guardian — HIG compliance + VoiceOver + Dynamic Type
+
+Use this roster? (yes / adjust / defaults only)
+```
+
+### Step 3 — add a visual/graphical reviewer to the constitution
+
+If your app has significant UI work (custom layouts, animations, game scenes), add a visual reviewer when `/kickoff` asks about the roster. Type **adjust** and add:
+
+```
++ ui-visual-reviewer
+```
+
+`/kickoff` will install it from `~/.claude/domain-agents/mobile/` if it exists, or offer to create it from a template. For a visual review focus, the resulting constitution looks like:
+
+```markdown
+# MyiOSApp Constitution
+
+**Version:** 1.0
+
+## Core Principles
+
+### I. SwiftUI-first, UIKit by exception
+Use SwiftUI for all new views. UIKit only where SwiftUI lacks capability or
+for interop with existing UIKit surfaces. Never mix paradigms in the same view.
+
+### II. Visual quality is a first-class requirement
+Every spec that touches UI must include a Visual/UX section reviewed by the
+ui-visual-reviewer agent. Pixel-level concerns (spacing, alignment, typography
+scale, animation timing) are blocker-severity findings, not nits.
+
+### III. HIG compliance before feature completion
+Apple Human Interface Guidelines govern layout, navigation patterns, and
+interactive controls. A feature is not done if it fails HIG review.
+
+## Quality Standards
+
+### Testing
+XCTest for unit + integration; Swift Testing for new test targets (iOS 18+).
+UI tests via XCUITest for critical user flows.
+
+### Accessibility
+VoiceOver labels, Dynamic Type, minimum 44pt touch targets. Reviewed by
+accessibility-guardian at every /spec-review gate.
+
+### Performance
+60fps on iPhone 13 baseline. No main-thread blocking. Reviewed by
+performance-advisor at /check.
+
+## Agent Roster
+
+Default 27 pipeline agents always active. Project-specific additions:
+
+- **swift-mentor** — Swift best practices, concurrency patterns — /spec-review, /plan
+- **test-writer** — XCTest + Swift Testing coverage review — /plan, /check
+- **performance-advisor** — memory, frame rate, Instruments signals — /check
+- **swiftui-scene-builder** — SwiftUI layout + scene composition — /spec-review, /plan
+- **accessibility-guardian** — HIG, VoiceOver, Dynamic Type — /spec-review, /check
+- **ui-visual-reviewer** — spacing, animation, visual polish — /spec-review, /plan
+
+## Constraints
+
+### In Scope
+iOS 18+ iPhone and iPad. Swift only. SwiftUI primary, SpriteKit for game scenes.
+
+### Out of Scope
+macOS, watchOS, Android. Objective-C. Server-side code.
+
+### Technical Constraints
+Deployment target: iOS 18. Xcode 16+. Swift Package Manager preferred over CocoaPods.
+```
+
+### Step 4 — your first spec on the brownfield
+
+Once the constitution is written, start a spec for whatever you're adding or changing:
+
+```
+/spec add a score animation that plays when the player levels up
+```
+
+Because graphify already scanned the project, Claude knows your existing `GameScene`, `PlayerViewModel`, and `ScoreView` — the spec Q&A will reference real types, not invented ones.
+
 ## 6. The pipeline at a glance
 
 ```
