@@ -122,4 +122,21 @@ Plan.md R1-R10 doesn't include the config/* tampering case. Security made it Thr
 
 ---
 
-`fix now` (revise plan + re-check) / `defer to build` (proceed; address blockers as W0 tasks) / `hold` (pause and discuss)
+## v1.2 Re-Check Verdict (post-fix-now)
+
+**Plan revised to v1.2** (sha256 `9a159413…`, 389 lines). 10 blockers + 7 should-fix from v1.0 addressed in v1.1; Codex re-pass on v1.1 surfaced 7 small pseudocode bugs which were patched inline → v1.2.
+
+**Re-Check dispatched on testability + risk + Codex re-pass:**
+
+| Re-Check Dimension | v1.0 Verdict | v1.2 Verdict | Resolution |
+|---|---|---|---|
+| Testability | **FAIL** (4 must-fix) | **PASS WITH NOTES** | All 4 RESOLVED, empirically re-validated on bash 3.2.57. 2 minor should-fix remain (NF1 stateful brew-stub body, NF2 expect script location) — both addressed in v1.2 plan W4 task 4.1 ship criterion. |
+| Risk | PASS WITH NOTES (3 must-fix) | **PASS** | All 3 must-fix RESOLVED, all 5 should-fix landed. 2 new minor (SF6-v2 array idiom, SF7-v2 cmux cask deps) addressed in v1.2 D8 patch. |
+| Codex (re-pass on v1.1) | (NEW) | 7 small findings | All 7 patched inline into v1.2 — D1 macOS-14 location, D1 function-defs-first note, D6 quote helper double-quoting, D8 array idiom, D8 Brewfile-derived preview, D11 N2 PATH-stub uname, D4 `pwd -P` symlink resolution. |
+
+**Final verdict: GO.** All FAIL dimensions resolved. All must-fix items addressed. Plan is implementation-ready.
+
+Outstanding minor items deferred to /build:
+- Sequencing S2 (CHANGELOG source-of-truth direction) — pick at PR-write time
+- Risk carryovers SF1 (combined migration+theme banner copy), RECOMMENDED-tier failure differentiation in D8 catch — small inline tweaks during W2-2.6 implementation
+- Testability v1.0 carry-forwards SF4/SF5/SF7/O5 — small W4 tweaks during 4.1-4.5 implementation

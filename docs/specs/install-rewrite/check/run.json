@@ -2,24 +2,26 @@
   "schema_version": 1,
   "prompt_version": "findings-emit@1.0",
   "snapshot_prompt_version": "snapshot@1.0",
-  "run_id": "ef5f37bb-c2ab-4afa-872f-79b724151b94",
+  "run_id": "be1de767-1058-48f5-8164-e8b7c0f11295",
   "stage": "check",
   "feature": "install-rewrite",
-  "created_at": "2026-05-04T06:28:43Z",
+  "created_at": "2026-05-04T06:43:17Z",
   "status": "ok",
-  "warnings": [],
+  "warnings": ["v1.0 plan FAIL'd on testability; v1.1 + v1.2 revisions applied; re-check on testability + risk + codex returned PASS / PASS WITH NOTES"],
   "artifact_path": "docs/specs/install-rewrite/plan.md",
-  "artifact_hash": "9424fb4dab01b497d846a84f0abd8508bc4929bd7766d9becc7c9f9f0b6a0cd8",
+  "artifact_hash": "9a159413aadf7ed38fb68b6e5757638bf0835fd6bcbac7d200216be342af3ef1",
   "snapshot_path": "docs/specs/install-rewrite/check/source.plan.md",
   "personas_dispatched": ["completeness", "sequencing", "risk", "scope-discipline", "testability"],
   "codex_adversary_ran": true,
+  "codex_re_pass_ran": true,
   "findings_count": 20,
   "verdicts": {
     "completeness": "PASS WITH NOTES",
     "sequencing": "PASS WITH NOTES",
-    "risk": "PASS WITH NOTES",
+    "risk": "PASS",
     "scope-discipline": "PASS WITH NOTES",
-    "testability": "FAIL"
+    "testability": "PASS WITH NOTES"
   },
-  "overall_verdict": "NO-GO"
+  "v1_0_verdict": "NO-GO",
+  "overall_verdict": "GO"
 }

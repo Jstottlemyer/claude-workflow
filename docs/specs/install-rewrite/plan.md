@@ -16,7 +16,7 @@ Install.sh becomes an **opinionated, idempotent, owner-vs-adopter-aware installe
 2. **SIGINT trap** is installed before the first `.monsterflow.tmp` write (Stage 9 theme is the first such writer)
 3. **Migration detect** runs before any symlink mutation, so opt-out cleanly bails
 
-**Critical-path waves:** `W1 → (W2 || W3) → W4 → W5`. W2 (10 commits, strictly sequential — corrected from 9) and W3 (onboard.sh) author in parallel once W1 closes.
+**Critical-path waves:** `W1 → (W2 || W3) → W4 → W5`. W2 has 11 task entries (2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.9b, 2.10) but ships as **10 commits** (2.9 + 2.9b squash since they're both prompt-wrapping edits to nearby line ranges). W3 (onboard.sh) authors in parallel once W1 closes.
 
 ## Revisions (v1.1, post-check)
 
@@ -47,23 +47,31 @@ Should-fix tweaks: S1 brew transitive-deps preview added to W2-2.6; S3 W2 commit
 #!/bin/bash
 set -euo pipefail
 
-# 1. Flag parse (no I/O yet)
-parse_flags "$@"     # parses argv into env vars; unknown flag → exit 2
-[ "$SHOW_HELP" = "1" ] && { print_help; exit 0; }    # B5: short-circuit before any I/O
+# Block 0: function definitions (no execution yet — bash needs these
+# defined before they're called below)
+parse_flags() { … }   # parses argv into env vars; unknown flag → exit 2
+print_help()  { … }   # writes to stdout, zero env beyond $0, exits 0
+# (other helpers used by Block 1-3 also defined here)
 
-# 2. OS guards (no repo I/O yet)
+# Block 1: Flag parse (no I/O yet)
+parse_flags "$@"
+[ "$SHOW_HELP" = "1" ] && { print_help; exit 0; }   # B5: short-circuit before any I/O
+
+# Block 2: OS guards (no repo I/O yet)
 [ "$(uname)" = "Darwin" ] || { echo "MonsterFlow install.sh is macOS-only." >&2; exit 1; }
 MACOS_VER="$(sw_vers -productVersion 2>/dev/null || echo 0)"
-# (S5 hint: cmux requires ≥14 — handled at brew-bundle stage, not here)
+# macOS ≥14 enforced HERE (not at brew-bundle stage) — see W2 task 2.1 + R14;
+# if MACOS_VER < 14, downgrade `cmux` from RECOMMENDED to OPTIONAL via env var
+# CMUX_DEMOTE=1 that the tier-detection block at line ~50 honors.
 
-# 3. Now safe to compute repo paths + banner
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Block 3: Now safe to compute repo paths + banner
+REPO_DIR="$(cd "$(dirname "$0")" && pwd -P)"   # Codex re-pass: pwd -P resolves symlinks
 CLAUDE_DIR="$HOME/.claude"
 VERSION="$(cat "$REPO_DIR/VERSION" 2>/dev/null | tr -d '[:space:]' || echo 'unknown')"
 print_banner "$VERSION"
 ```
 
-`print_help` writes to stdout, requires zero env beyond `$0`, exits 0.
+The "definitions-only first" block exists because bash requires function definitions to precede calls; combined with the no-I/O-before-help requirement, all helpers used in Block 1-3 must live above Block 1.
 
 ### D2 — Exit code matrix
 
@@ -88,7 +96,10 @@ print_banner "$VERSION"
 | `HOMEBREW_NO_AUTO_UPDATE=1` | install.sh top | brew | non-negotiable for the `<3s` repeat-run budget |
 | `PERSONA_METRICS_GITIGNORE` | (existing) | (existing) | unchanged |
 
-### D4 — Owner detection (AUGMENTED, not replaced — B2 fix)
+### D4 — Owner detection (AUGMENTED, not replaced — B2 fix; symlink-resolved per Codex re-pass)
+
+REPO_DIR is now computed via `pwd -P` (D1 Block 3) so the primary `PWD == REPO_DIR` check resolves symlinks consistently with the secondary `script_dir == git_root` check. Test fixture: case 6e covers symlinked-repo-path invocation.
+
 
 ```bash
 detect_owner() {
@@ -125,21 +136,28 @@ OWNER="$(detect_owner)"
 
 ### D6 — `.zshrc` sentinel block (B4 fix — POSIX single-quote escaping)
 
-```bash
-# BEGIN MonsterFlow theme
-[ -f '<repo-escaped>/config/zsh-prompt-colors.zsh' ] && source '<repo-escaped>/config/zsh-prompt-colors.zsh'
-# END MonsterFlow theme
-```
-
-The `<repo-escaped>` value is computed via single-quote escaping (replace each `'` in `$REPO_DIR` with `'\''`). POSIX-portable; parses identically under bash and zsh. Helper:
+The helper returns a fully-quoted string (including the surrounding `'…'`); the template uses it bare (no extra quotes). Codex re-pass caught a double-quoting bug in v1.1's first cut; corrected:
 
 ```bash
-zsh_quote() {
+# Helper: returns the path wrapped in POSIX-safe single quotes,
+# with embedded singles escaped as '\''
+posix_quote() {
     local s="$1"
     printf "'%s'" "${s//\'/\'\\\'\'}"
 }
-ZSHRC_PATH="$(zsh_quote "$REPO_DIR/config/zsh-prompt-colors.zsh")"
+ZSHRC_PATH="$(posix_quote "$REPO_DIR/config/zsh-prompt-colors.zsh")"
+# ZSHRC_PATH already contains the outer quotes — do NOT add more.
+
+# Sentinel block written into ~/.zshrc:
+cat >> ~/.zshrc <<EOF
+
+# BEGIN MonsterFlow theme
+[ -f $ZSHRC_PATH ] && source $ZSHRC_PATH
+# END MonsterFlow theme
+EOF
 ```
+
+POSIX-portable; parses identically under bash and zsh.
 
 ### D7 — SIGINT cleanup (`mktemp -d` scoped scratch — unchanged)
 
@@ -166,12 +184,16 @@ do_install_missing() {
     [ "$NO_INSTALL" = "1" ] && { echo "Skipped install per --no-install."; return; }
     [ "$ALL_RECOMMENDED_PRESENT" = "1" ] && return  # nothing to do
 
-    # S1: preview transitive deps before confirm
+    # S1: preview transitive deps before confirm — derive tool list from Brewfile
+    # (Codex re-pass: don't hardcode `gh shellcheck jq`; misses cmux + future Brewfile changes)
     echo "About to install via Homebrew (uses Brewfile at repo root):"
     awk '/^brew "/||/^cask "/{print "  -",$0}' "$REPO_DIR/Brewfile"
     echo ""
     echo "Resolved transitive set:"
-    brew deps --include-build --formula gh shellcheck jq 2>/dev/null | sed 's/^/    /' | head -30 || true
+    BREW_FORMULAS=$(awk -F'"' '/^brew "/{print $2}' "$REPO_DIR/Brewfile")
+    BREW_CASKS=$(awk -F'"' '/^cask "/{print $2}' "$REPO_DIR/Brewfile")
+    [ -n "$BREW_FORMULAS" ] && brew deps --include-build --formula $BREW_FORMULAS 2>/dev/null | sed 's/^/    /' | head -30 || true
+    [ -n "$BREW_CASKS" ] && for c in $BREW_CASKS; do brew deps --cask "$c" 2>/dev/null | sed "s/^/    [cask:$c] /"; done || true
     echo ""
 
     if [ "$NON_INTERACTIVE" = "0" ]; then
@@ -186,9 +208,16 @@ do_install_missing() {
         exit 1
     fi
 
-    # Post-install re-detection: confirm install actually fixed the missing tools
+    # Post-install re-detection: confirm install actually fixed the missing tools.
+    # `re_detect_tools` re-runs the same has_cmd loop from line ~30 and rebuilds
+    # the REQUIRED_MISSING / RECOMMENDED_MISSING / OPTIONAL_MISSING arrays.
+    # Codex re-pass: array-emptiness check uses ${#arr[@]} -eq 0, not the
+    # ${arr[@]:-} = "" idiom which is unreliable under set -u with bash 3.2.
     re_detect_tools
-    [ "${REQUIRED_MISSING[@]:-}" = "" ] || { echo "✗ Post-install: REQUIRED still missing. Aborting." >&2; exit 1; }
+    if [ "${#REQUIRED_MISSING[@]}" -ne 0 ]; then
+        echo "✗ Post-install: REQUIRED still missing. Aborting." >&2
+        exit 1
+    fi
 }
 ```
 
@@ -301,11 +330,11 @@ All prompts, panels, error messages frozen by ux agent in `plan/raw/ux.md`.
 | 4.2 | Cases 1, 2, 3, 3a, 4 | inside 4.1 | 4.1 | M |
 | 4.3 | Cases 5, 6 a/b/c/d (incl. case 6e: already-symlink no-op branch) | inside 4.1 | 4.1 | M |
 | 4.4 | Cases 7a (via `expect`, B8 fix), 7b, 8, 9 a/b/c | inside 4.1 | 4.1 | M |
-| 4.5 | Negative N1, N2 (Linux guard via `uname` function-shadow), N3 | inside 4.1 | 4.1 | S |
+| 4.5 | Negative N1, N2 (Linux guard via PATH-stub `uname` returning "Linux" — same model as brew stub; Codex re-pass: function-shadow doesn't survive bash subshell), N3 | inside 4.1 | 4.1 | S |
 | 4.6 | Register in `tests/run-tests.sh` TESTS array | `tests/run-tests.sh` | 4.5 | S |
 | 4.7 | **NEW (B10):** `tests/test-config-content.sh` — grep config/* for `curl|wget|nc|bash <(|eval`, fail on any match | new | 4.6 | S |
 
-**4.1 ship criterion (B7 expansion):** Brew stub binary at `$BATS_TMPDIR/stubs/brew` writes argv to `$STUB_LOG`, reads/writes state from `$STUB_STATE`. Stub state reset between cases via `setup_test()`. Stub state persists within a case. Pinned `BASH=/bin/bash` for bash-3.2 fidelity (S4).
+**4.1 ship criterion (B7 expansion):** Brew stub binary at `$BATS_TMPDIR/stubs/brew` writes argv to `$STUB_LOG`, reads/writes state from `$STUB_STATE` (toggleable: case 4 sets `STUB_STATE=jq:missing` initially, then `STUB_STATE=jq:installed` after the simulated `brew bundle install`). Stateful brew-stub body lives at `tests/fixtures/stubs/brew.sh.template`; `make_stub` substitutes `$STUB_STATE` path at setup time. Stub state reset between cases via `setup_test()`. Pinned `BASH=/bin/bash` for bash-3.2 fidelity (S4). `expect` script for case 7a TTY simulation lives at `tests/fixtures/expect/onboard-tty.exp`.
 
 **Wave-level ship criterion:** `bash tests/run-tests.sh` exits 0 on owner-machine; runtime <30s local, <60s CI; **`shellcheck tests/test-install.sh` returns 0** (O2 fix); 12 + 3 cases + new test-config-content green.
 
