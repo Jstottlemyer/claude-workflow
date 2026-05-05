@@ -40,6 +40,8 @@ TESTS=(
   # install-rewrite W4 — supply-chain gate first (cheap), then full install harness
   test-config-content.sh
   test-install.sh
+  # account-type-agent-scaling — per-gate persona resolver
+  test-resolve-personas.sh
 )
 
 # Tests whose passing condition is exit non-zero (M8 inverted-assertion contract).
