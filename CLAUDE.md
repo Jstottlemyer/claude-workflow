@@ -23,6 +23,15 @@ Two focused Claude Code subagents ship with this repo. Neither is auto-scheduled
 
 Tests for both subagents' frontmatter live at `tests/test-agents.sh`. Run `bash tests/run-tests.sh agents` to validate.
 
+## Autorun Stage Architecture (as of v0.7.x)
+
+- **`spec-review.sh`** and **`check.sh`**: N parallel `claude -p` calls (one per persona, disk-discovered from `personas/<gate>/`). No `--add-dir` — spec/plan content passed inline. `TIMEOUT_PERSONA=600s` per persona; merge step concatenates raw outputs.
+- **`check.sh`**: two-phase — Phase 1 is parallel reviewers, Phase 2 is one synthesis call that reads all reviewer outputs and produces the GO/NO-GO verdict.
+- **`plan.sh`**: single synthesis call (needs all review findings coherently). No `--add-dir`.
+- **Persona directory mapping**: gate name ≠ directory name. `spec-review` → `personas/review/`, `plan` → `personas/plan/`, `check` → `personas/check/`. Never walk `personas/<gate-name>/` directly.
+- **`TIMEOUT_PERSONA`** (default 600s) is per-persona; `TIMEOUT_STAGE` (default 1800s) is for synthesis calls. Both configurable via `queue/autorun.config.json`.
+- Before committing changes to `scripts/autorun/*.sh`, invoke the `autorun-shell-reviewer` subagent.
+
 ## Backlog
 
 Unscheduled ideas live in [BACKLOG.md](BACKLOG.md). Add new items there, not in this file. Promote an item to a real spec via `/spec` when you're ready to work on it.
