@@ -40,7 +40,11 @@ Migration bullets below are the source of truth surfaced by `install.sh`'s upgra
   - **README and `docs/index.html` mermaid diagrams** updated with the new `Judge · Dedupe · Synth` interstitials between gates and the `Persona Metrics` side observer; all three Judges feed the metrics layer (Tight-C visual recipe).
   - **Spec artifacts:** `docs/specs/persona-metrics/{spec,review,plan,check,diagrams}.md` document the full pipeline cycle. Scope (b) was adopted post-checkpoint via diagram review feedback — `/plan`'s synthesis-inclusion semantics is the new structural piece.
 
-## [Unreleased]
+## [0.8.0] — autorun overnight policy framework — 2026-05-05
+
+Per-axis warn/block policy + single-fence verdict extractor + 4-artifact branch reset capture + Python stdlib helper (`_policy_json.py` with AST-audited ban list). **26 acceptance criteria.** Ships via PR #6 after a 4-iteration `/check` pipeline (v1-v3 NO-GO surfaced architectural issues including a nonce mechanism that turned out not to be a trust boundary; v4 GO_WITH_FIXES was documentation/framing only).
+
+Spec / plan / check artifacts: `docs/specs/autorun-overnight-policy/`.
 
 ### External adopters: action required
 
