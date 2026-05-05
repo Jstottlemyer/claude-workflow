@@ -41,9 +41,25 @@ Before reviewer agents dispatch, run `commands/_prompts/snapshot.md`:
 - Rotate prior `findings.jsonl` to `findings-<UTC-ts>.jsonl` if present.
 - Echo one-line user feedback.
 
-## Phase 1: Dispatch 5 Plan Reviewer Agents
+## Phase 0b: Resolve persona budget (account-type-agent-scaling)
 
-Read the persona files from `~/.claude/personas/check/` and dispatch 5 parallel subagents using the Agent tool. Each agent receives:
+Before dispatching reviewer agents, run the resolver:
+
+```bash
+SELECTED=$(bash <REPO_DIR>/scripts/resolve-personas.sh check \
+             --feature "<feature-slug>" --emit-selection-json)
+RESOLVER_EXIT=$?
+```
+
+- If `RESOLVER_EXIT != 0` or stdout empty: **abort the gate** (no silent fallback).
+- Dispatch one subagent per line of `$SELECTED` (skipping `codex-adversary`; Codex runs separately at Phase 2b).
+- Resolver writes `docs/specs/<feature>/check/selection.json`.
+- No `agent_budget` in config → full roster (existing behavior).
+- Print one line: `Selected: <names> | Dropped: <names>`.
+
+## Phase 1: Dispatch Plan Reviewer Agents
+
+Read each persona file in `<REPO_DIR>/personas/check/` corresponding to a name in `$SELECTED`, then dispatch one parallel subagent per name using the Agent tool. The legacy 5-reviewer roster (completeness, sequencing, risk, scope-discipline, testability) is the resolver's full-roster fallback. Each agent receives:
 - The spec, review findings, and plan
 - The constitution (if exists)
 - Their persona's role, checklist, and key questions

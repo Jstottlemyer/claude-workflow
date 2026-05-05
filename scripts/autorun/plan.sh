@@ -16,6 +16,23 @@ source "$REPO_DIR/scripts/autorun/defaults.sh"
 mkdir -p "$ARTIFACT_DIR"
 
 # ---------------------------------------------------------------------------
+# Resolver pre-flight (account-type-agent-scaling)
+# plan.sh runs as a single synthesis call (no parallel persona dispatch),
+# but we still call the resolver to write selection.json for the audit
+# trail (persona-metrics validator + /wrap-insights drift baseline).
+# Failure here is non-fatal — synthesis can proceed without selection.json.
+# ---------------------------------------------------------------------------
+if [ "${AUTORUN_DRY_RUN:-0}" != "1" ]; then
+  if ! bash "$REPO_DIR/scripts/resolve-personas.sh" plan \
+        --feature "$SLUG" --emit-selection-json >/dev/null 2>/tmp/autorun-plan-resolver.err; then
+    echo "[autorun] plan: WARN — resolver pre-flight failed; continuing without selection.json"
+    if [ -s /tmp/autorun-plan-resolver.err ]; then
+      sed 's/^/  /' /tmp/autorun-plan-resolver.err >&2
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # Dependency: review-findings.md must exist (written by run.sh after risk merge)
 # ---------------------------------------------------------------------------
 if [ ! -f "$ARTIFACT_DIR/review-findings.md" ]; then

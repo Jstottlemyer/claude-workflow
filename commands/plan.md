@@ -31,9 +31,25 @@ If `<feature>/spec-review/findings.jsonl` does not exist (legacy spec or `/spec-
 
 **This phase never blocks the stage.**
 
-## Phase 1: Dispatch 6 Design Agents
+## Phase 0b: Resolve persona budget (account-type-agent-scaling)
 
-Read the persona files from `~/.claude/personas/plan/` and dispatch 7 parallel subagents using the Agent tool. Each agent receives:
+Before dispatching design agents, run the resolver:
+
+```bash
+SELECTED=$(bash <REPO_DIR>/scripts/resolve-personas.sh plan \
+             --feature "<feature-slug>" --emit-selection-json)
+RESOLVER_EXIT=$?
+```
+
+- If `RESOLVER_EXIT != 0` or stdout empty: **abort the gate** (no silent fallback).
+- Dispatch one subagent per line of `$SELECTED` (skipping `codex-adversary`; Codex runs separately).
+- Resolver writes `docs/specs/<feature>/plan/selection.json`.
+- No `agent_budget` in config → full roster (existing behavior).
+- Print one line: `Selected: <names> | Dropped: <names>`.
+
+## Phase 1: Dispatch Design Agents
+
+Read each persona file in `<REPO_DIR>/personas/plan/` corresponding to a name in `$SELECTED`, then dispatch one parallel subagent per name using the Agent tool. The legacy 7-designer roster (api, data-model, ux, scalability, security, integration, wave-sequencer) is the resolver's full-roster fallback. Each agent receives:
 - The spec content
 - The review findings (if available)
 - The constitution (if exists)
