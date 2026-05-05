@@ -53,9 +53,9 @@ The plan is deliberately small in surface area: this feature adds **one new reso
                                     |
                                     v
             commands/_prompts/findings-emit.md emits
-            participation.jsonl rows tagged with
-            dispatch_pool[] + roster_size_total
-            (schema v2; back-compat with v1 readers)
+            participation.jsonl rows (schema v1 unchanged);
+            dispatch_pool[] + roster_size_total captured in
+            budget-events.jsonl sidecar (D17/D19)
 ```
 
 ### Three load-bearing decisions
@@ -82,7 +82,7 @@ def resolve(gate, config, rankings, disk_personas, codex_state):
          and r.persona in disk_personas
          and r.persona not in selected
          and qualifies(r)],                               # see "qualifies" below; B2
-        key=lambda r: (r.score, -r.insufficient_sample_weight),
+        key=lambda r: (not r.insufficient_sample, r.downstream_survival_rate, r.uniqueness_rate, -r.avg_tokens_per_invocation),
         reverse=True,
     )
     for r in ranked:
@@ -110,7 +110,7 @@ def resolve(gate, config, rankings, disk_personas, codex_state):
     return SelectionResult(selected, dropped, fallback_reason, ...)
 ```
 
-`qualifies(r)`: rows with `insufficient_sample == true` are *included with deprioritization weight 0.5x* rather than excluded — prevents low-traffic gates (R13) from starving rankings selection while still preferring well-sampled personas.
+`qualifies(r)`: all ranking rows qualify. Rows with `insufficient_sample == true` (a bool field) sort *after* well-sampled rows via the leading `not r.insufficient_sample` key — prevents low-traffic gates (R13) from starving rankings selection while still preferring well-sampled personas.
 
 ---
 
@@ -119,7 +119,7 @@ def resolve(gate, config, rankings, disk_personas, codex_state):
 | # | Decision | Why | Resolves |
 |---|---------|-----|----------|
 | D1 | Resolver implementation language: **Python 3.9+** with thin bash wrapper | bash 3.2 JSON parsing is brittle; three writers need shared validation lib | I1, I3, R3 |
-| D2 | Persona discovery: **disk-walk `personas/<gate>/*.md` at every invocation**; seeds are priority hints, not roster definitions | Adopter forks rename/add/drop personas; hardcoded seeds break first install | B1, R9, I4 |
+| D2 | Persona discovery: **gate→directory mapping** (`spec-review`→`review/`, `plan`→`plan/`, `check`→`check/`); walk `personas/<dir>/*.md` using `_roster.py`'s `_DIR_TO_GATE` table (or its inverse extracted to `scripts/resolve-personas/_lib.py`); seeds are priority hints, not roster definitions | `personas/spec-review/` does not exist — walking by gate name emits zero personas for spec-review gate; mapping is the live source of truth in `scripts/_roster.py:35` | B1, R9, I4 |
 | D3 | Resolver contract: **`--json` mode is canonical**; `--names-only` for back-compat | Banner needs Selected + Dropped + Codex eligibility + fallback reason | B8 |
 | D4 | Algorithm reading of B3: **(a) pins-consume-budget, then rankings, then seed** | Most predictable; pins are the explicit user voice; rankings are data-driven; seed is structural fallback | B3 |
 | D5 | Pin truncation: **FIFO (list order)** when pins > budget | Predictable; matches user's mental model from install Q&A order | I6 |
@@ -131,12 +131,12 @@ def resolve(gate, config, rankings, disk_personas, codex_state):
 | D11 | `persona_pins` schema: **list per gate** (singular pin allowed; AC #3 reworded to "first pin or seed[0]") | Future-proofs for >1 pin per gate; install Q&A starts at 1 pin and is extendable | I7 |
 | D12 | Codex auth check: **`MONSTERFLOW_CODEX_AVAILABLE` env-var cache**, set by autorun (or first gate in interactive); `command -v codex` short-circuit; `timeout 2` on `codex login status` | Per-gate calls add latency, may emit telemetry, may hang on SSO | I2, R12 |
 | D13 | Config writes: **`mktemp + json.load validation + mv -f`**, with `.bak` rotation; `schema_version: 1`; `$HOME` not `~` in code | Atomic; rollback path; future migrations | I17, R3 |
-| D14 | Config reads during autorun: **snapshot at autorun start to `dashboard/data/budget-snapshot-<run-id>.json`**, exported via `MONSTERFLOW_BUDGET_SNAPSHOT` | Reconfigure mid-autorun cannot produce mid-pipeline inconsistency | R14 |
-| D15 | Bypass: **`MONSTERFLOW_RESOLVE_PERSONAS_BYPASS=1`** env var skips resolver entirely; gate dispatches full disk roster | Documented escape hatch when resolver itself is the bug | R1 |
+| D14 | Config reads during autorun: **snapshot at autorun start**; `MONSTERFLOW_BUDGET_SNAPSHOT` + `MONSTERFLOW_AUTORUN_ACTIVE` sentinel both `export`ed in parent `run.sh` shell (child stage scripts inherit); `resolver._lib.py` only honors snapshot when **both** vars present; `trap EXIT` unsets both vars and deletes snapshot file | Prevents stale snapshot bleeding into interactive sessions after autorun; reconfigure mid-autorun cannot produce mid-pipeline inconsistency | R14 |
+| D15 | Bypass: **`MONSTERFLOW_RESOLVE_PERSONAS_BYPASS=1`** env var skips resolver logic; gate dispatches full disk roster **but still emits a single `budget-events.jsonl` row** with `fallback_reason: "bypass_env"` before short-circuiting | Documented escape hatch when resolver is the bug; audit trail ensures bypass is never silent (D17) | R1 |
 | D16 | Empty-stdout guard: **gate caller treats `len(selected_claude_personas) < 1` as hard error** (not just non-zero exit) | Prevents zero-persona dispatch from a "successful" resolver call | R1, I18 |
 | D17 | Fallback observability: **resolver appends one row per invocation to `dashboard/data/budget-events.jsonl`** (decision record) | Headless degradation surfaces in `/wrap-quick` and autorun report | I13, R2 |
 | D18 | Rankings freshness: **stderr warning + banner annotation** when `persona-rankings.jsonl` mtime > 30 days; hard re-emphasis at >90 | Prevents silent reliance on stale rankings | R5 |
-| D19 | `participation.jsonl` schema v2: **add `dispatch_pool[]` and `roster_size_total`** (optional in schema v1 readers) | Phase 1c persona drift becomes longitudinal-comparable; budget-dropped ≠ silent | B10, R10 |
+| D19 | Participation context: **emit `dispatch_pool[]` and `roster_size_total` to `dashboard/data/budget-events.jsonl` sidecar only** (D17); `participation.jsonl` stays at schema v1 (`additionalProperties: false` makes new fields a breaking change, not optional); `persona-metrics-validator` reads both files | Phase 1c drift remains longitudinal-comparable without a v1→v2 migration; validator joins on session/run ID | B10, R10 |
 | D20 | Defaults source-of-truth: **`scripts/resolve-personas/defaults.json` + `seeds.json`** read by resolver, install.sh, and `tests/test-defaults-consistency.sh` | Single canonical source; doc/code drift impossible | O7, R6 |
 | D21 | Reconfigure flag: **`install.sh --reconfigure[=budget|pins|all]`** (default: `all`). Keep `--reconfigure-budget` as v1 alias | Avoids future flag explosion | O8 |
 | D22 | "Tell Claude to reconfigure": **invokes `commands/_prompts/budget-qa.md`** — same Q&A install.sh uses, no parallel implementation | One Q&A module, three callers (install, --reconfigure, Claude) | I3, I10 |
@@ -154,30 +154,35 @@ Five waves. Wave 0 (foundations) and Wave 5 (consistency tests) gate the others.
 | # | Task | Depends On | Size | Parallel? |
 |---|------|-----------|------|-----------|
 | **Wave 0 — Foundation: contracts and schemas** |
+| T0.0 | Apply spec patches SP1/SP2/SP3 to `docs/specs/account-type-agent-scaling/spec.md` (§7): (SP1) replace `risk` with `wave-sequencer` in /plan budget=1 default; (SP2) reword AC #1 for no-config behavior; (SP3) drop "disable budget for this run" recovery option. Must land **before any other Wave 0 task** so the spec is the source of truth from the start. | — | S | — |
 | T0.1 | Author `schemas/budget-config.schema.json` (schema_version=1, agent_budget int 1–8, persona_pins object-of-arrays). Add JSON Schema validation tests. | — | S | T0.1/T0.2/T0.3 in parallel |
-| T0.2 | Update `schemas/participation.schema.json` to v2 — add optional `dispatch_pool[]` (string list) and `roster_size_total` (int). Document "v1 rows treat as if dispatch_pool == full roster." | — | S | parallel |
+| T0.2 | Document `budget-events.jsonl` schema in `docs/budget.md` skeleton (T0.4 dependency): add `dispatch_pool[]` (string list) and `roster_size_total` (int) as fields on the budget-events row. `schemas/participation.schema.json` is **not changed** — it stays at `schema_version: 1` with `additionalProperties: false`. | — | S | parallel |
 | T0.3 | Author `scripts/resolve-personas/defaults.json` (default_budget_pro=3, default_budget_default=6, ceiling=8, floor=1, codex_gates=["spec-review","check"], rankings_stale_days=30) and `scripts/resolve-personas/seeds.json` (per-gate priority lists with corrected `/plan` list — `wave-sequencer, integration, api, data-model, security, ux, scalability` — and per-gate budget=1 defaults). | — | S | parallel |
 | T0.4 | Lock the `docs/budget.md` skeleton: config schema, algorithm pseudocode (D-section copy), banner format spec, recovery options, env vars (`MONSTERFLOW_CODEX_AVAILABLE`, `MONSTERFLOW_BUDGET_SNAPSHOT`, `MONSTERFLOW_RESOLVE_PERSONAS_BYPASS`), `XDG_CONFIG_HOME` non-support note, "stable contract" annotation on banner. | T0.1, T0.3 | M | — |
 | **Wave 1 — Resolver and tests** |
-| T1.1 | `scripts/resolve-personas/resolver.py` — implement algorithm from §1. Reads config (or snapshot via env var), rankings, walks `personas/<gate>/`. Outputs `--json` and `--names-only` modes. Validates persona files exist (`test -f`). Honors `MONSTERFLOW_RESOLVE_PERSONAS_BYPASS`. Emits `dashboard/data/budget-events.jsonl` row per invocation. Exits non-zero only on unrecoverable error; empty stdout never. | T0.1, T0.3 | L | — |
-| T1.2 | `scripts/resolve-personas.sh` — bash wrapper. Invokes Python resolver with `python3` from MonsterFlow's known path. Pass-through args. Translates exit codes. macOS bash 3.2-safe (no associative arrays, no `mapfile`). | T1.1 | S | T1.2/T1.3 parallel |
+| T1.1 | `scripts/resolve-personas/resolver.py` — implement algorithm from §1. Reads config (or snapshot via env var), rankings, walks `personas/<dir>/` using gate→directory map from `_lib.py` (D2: `spec-review`→`review/`, etc.). Outputs `--json` and `--names-only` modes. Validates persona files exist (`test -f`). Honors `MONSTERFLOW_RESOLVE_PERSONAS_BYPASS` (emits `fallback_reason: "bypass_env"` budget-events row before short-circuiting). Emits `dashboard/data/budget-events.jsonl` row per invocation. Exits non-zero only on unrecoverable error; empty stdout never. | T0.1, T0.3 | L | — |
+| T1.2 | `scripts/resolve-personas.sh` — bash wrapper. `command -v python3` short-circuit: if absent → full-roster fallback with stderr warning + budget-events row (`fallback_reason: "python3_missing"`). `timeout 10 python3` ceiling. Version sniff: print clear "MonsterFlow requires python3 ≥ 3.9" on mismatch rather than letting resolver crash with an opaque traceback. Pass-through args. macOS bash 3.2-safe (no associative arrays, no `mapfile`). | T1.1 | S | T1.2/T1.3 parallel |
 | T1.3 | `scripts/resolve-personas/_lib.py` — shared helpers: `load_config(path)`, `validate_config(obj)`, `atomic_write_config(path, obj)`, `discover_personas(gate)`. Used by resolver, install.sh's Q&A backend, and budget-qa prompt's executor. | T1.1 | M | parallel with T1.2 |
-| T1.4 | `tests/test-resolve-personas.sh` — fixtures + assertions for: budget=1 happy path; budget=N happy path; no config (full roster); no rankings (seed fill); rankings present (rankings then seed); pin > budget (FIFO truncation); pin missing on disk (skip + fill); persona file absent for ranked persona (skip + fill); codex authenticated (additive); codex on `/plan` (NOT additive in v1); codex unauthenticated; ceiling enforcement at 8; floor enforcement at 1; bypass env var (full roster); snapshot env var (reads snapshot, not live); empty-stdout guard; corrupted config.json (resolver errors cleanly); fork-roster fixture (renamed `requirements` → `requirements-v2`). 18+ test cases. | T1.1, T1.2, T1.3 | L | — |
+| T1.4 | `tests/test-resolve-personas.sh` — fixtures + assertions for: budget=1 happy path; budget=N happy path; no config (full roster); no rankings (seed fill); rankings present (rankings then seed); pin > budget (FIFO truncation); pin missing on disk (skip + fill); persona file absent for ranked persona (skip + fill); codex authenticated (additive); codex on `/plan` (NOT additive in v1); codex unauthenticated; ceiling enforcement at 8; floor enforcement at 1; bypass env var (full roster); snapshot env var (reads snapshot, not live); empty-stdout guard; corrupted config.json (resolver errors cleanly); fork-roster fixture (renamed `requirements` → `requirements-v2`); PATH=/empty (python3 absent → full roster + budget-events row with `fallback_reason: "python3_missing"`); snapshot-var-without-sentinel (`MONSTERFLOW_BUDGET_SNAPSHOT` set but `MONSTERFLOW_AUTORUN_ACTIVE` absent → reads live config, not snapshot). 20+ test cases. | T1.1, T1.2, T1.3 | L | — |
 | T1.5 | Wire `tests/test-resolve-personas.sh` into `tests/run-tests.sh` (per the orchestrator-wiring discipline; explicit task, not implicit). | T1.4 | S | — |
 | **Wave 2 — Gate command integration** (parallel with Wave 3) |
-| T2.1 | Update `commands/spec-review.md` Phase 1 pre-flight: call `bash scripts/resolve-personas.sh --json spec-review`, parse selected/dropped/codex_eligible/fallback_reason, emit `Selected: ... \| Dropped: ...` banner, dispatch only selected personas (Codex still goes through Phase 2b — D7). Hard-error on `len(selected_claude) < 1`. Fall back to full roster on resolver non-zero exit (interactive: prompt; non-tty: warn + seed). | T1.1, T1.2 | M | T2.1/T2.2/T2.3 parallel |
-| T2.2 | Update `commands/plan.md` same pattern. Codex gate-eligibility check returns false here — banner explicitly omits codex-adversary line. | T1.1, T1.2 | M | parallel |
-| T2.3 | Update `commands/check.md` same pattern (Codex additive). | T1.1, T1.2 | M | parallel |
-| T2.4 | Update `commands/_prompts/findings-emit.md` to emit participation rows with `dispatch_pool[]` (full Selected list) and `roster_size_total` (`len(disk_personas)`). Back-compat: don't emit on legacy reads. | T0.2 | S | — |
+| T2.0 | Author `commands/_prompts/_resolve-persona-dispatch.md` — single canonical fragment containing: JSON parse of resolver output, banner emit (`Selected: ... \| Dropped: ...`), dispatch logic, hard-error on `len(selected_claude) < 1`, and resolver-fallback behavior (interactive: prompt; non-tty: warn + seed). All three gate commands include it verbatim via `{{include}}`. Author `tests/test-dispatch-fragment.sh`: asserts `commands/{spec-review,plan,check}.md` each contain the `{{include: commands/_prompts/_resolve-persona-dispatch.md}}` line. Wire into `tests/run-tests.sh`. | T1.2 | M | — |
+| T2.1 | Update `commands/spec-review.md` Phase 1 pre-flight: add `{{include: commands/_prompts/_resolve-persona-dispatch.md}}` (one-line edit). Codex still goes through Phase 2b (D7). | T2.0 | S | T2.1/T2.2/T2.3 parallel |
+| T2.2 | Update `commands/plan.md` Phase 1 pre-flight: add `{{include: commands/_prompts/_resolve-persona-dispatch.md}}` (one-line edit). Codex gate-eligibility returns false for `/plan`; fragment handles this via `codex_eligible` from resolver output. | T2.0 | S | parallel |
+| T2.3 | Update `commands/check.md` Phase 1 pre-flight: add `{{include: commands/_prompts/_resolve-persona-dispatch.md}}` (one-line edit; Codex additive here). | T2.0 | S | parallel |
+| T2.4 | Update `.claude/agents/persona-metrics-validator.md` rules to read `dashboard/data/budget-events.jsonl` alongside `participation.jsonl` when computing dispatch-pool context (D19). A persona at 0% that was excluded in every recent budget-events row is **budget-exclusion, not drift** — adjust suspect-drift criteria accordingly. `commands/_prompts/findings-emit.md` is not changed; participation.jsonl stays at schema v1. | — | S | — |
 | T2.5 | Author `commands/_prompts/_codex_check.md` (or inline in command bodies, depending on existing pattern): codex auth check with `command -v codex` + `timeout 2 codex login status`, caches result in `MONSTERFLOW_CODEX_AVAILABLE`. Used by all three commands and by the resolver's autorun-mode pre-check. | T0.4 | M | — |
+| T2.5a | Extend `tests/test-resolve-personas.sh` with codex-cache lifecycle cases: (1) cached-false → user authenticates → cache stays false (no mid-session re-check); (2) `codex` binary absent → cache writes false; (3) codex status times out → cache writes false. Covers D12 staleness risk (MF7/SF5). | T2.5 | S | — |
 | **Wave 3 — install.sh + reconfigure + Q&A module** (parallel with Wave 2) |
 | T3.1 | `install.sh` — add Q&A block after existing welcome. macOS-only (D23). Detects existing config + matching schema_version → skip (D24). Pro/non-Pro prompt → budget prompt (with `[Enter] for default` short-circuit per I12) → optional per-gate pin prompts (skippable per R11). Atomic write via `_lib.py` (D13). | T1.3 | L | T3.1/T3.2/T3.3 parallel |
 | T3.2 | `install.sh --reconfigure[=budget|pins|all]` flag handling (D21). Default `all`. `--reconfigure-budget` retained as v1 alias. Re-runs Q&A subset, writes config. | T3.1 | M | parallel |
 | T3.3 | `commands/_prompts/budget-qa.md` — canonical Q&A prompt (D22). Used by `install.sh`, `--reconfigure`, and "tell Claude to reconfigure" path. Imports `_lib.py` validators. Single source of truth for prompt wording and validation. | T1.3 | M | parallel |
+| T3.3a | `commands/reconfigure-budget.md` — slash command stub that invokes `commands/_prompts/budget-qa.md` (D22). Document the canonical trigger phrase in `QUICKSTART.md`. Without this slash command, AC #11 ("tell Claude to reconfigure") has no discoverable, verifiable trigger surface. | T3.3 | S | — |
 | T3.4 | Resolver-error recovery prompt logic (in `commands/{spec-review,plan,check}.md` pre-flight): interactive shows 3 options (D6); non-tty silently uses seed list and emits stderr + budget-events row. | T2.1, T2.2, T2.3 | S | — |
+| T3.5 | `tests/test-install-reconfigure.sh` — covers AC #10 round-trip (reconfigure → config written → values match), R7 idempotency (second install with matching schema_version → skips Q&A), R3 `.bak` corruption recovery (corrupt config.json → install restores from .bak), D24 schema_version migration prompt. Wire into `tests/run-tests.sh`. | T3.2, T3.1 | M | — |
 | **Wave 4 — Observability and autorun integration** |
-| T4.1 | `scripts/autorun/*.sh` — at autorun start, snapshot current `~/.config/monsterflow/config.json` to `dashboard/data/budget-snapshot-<run-id>.json` (atomic copy), export `MONSTERFLOW_BUDGET_SNAPSHOT=<path>`. Resolver's `_lib.py` reads snapshot path when env var set (D14). Snapshot file is per-run audit data. | T1.3 | M | T4.1/T4.2 parallel |
-| T4.2 | `scripts/autorun/*.sh` — at autorun start, run codex auth check once, export `MONSTERFLOW_CODEX_AVAILABLE` for the whole pipeline (D12). | T2.5 | S | parallel |
+| T4.1 | `scripts/autorun/run.sh` wrapper (parent shell): snapshot `~/.config/monsterflow/config.json` to `dashboard/data/budget-snapshot-<run-id>.json`, then `export MONSTERFLOW_BUDGET_SNAPSHOT=<path>` and `export MONSTERFLOW_AUTORUN_ACTIVE=1` in the **parent** (child stage scripts inherit via export). `trap 'unset MONSTERFLOW_AUTORUN_ACTIVE MONSTERFLOW_BUDGET_SNAPSHOT; rm -f "$snapshot_path"' EXIT`. Resolver's `_lib.py` only honors snapshot when **both** vars present (D14). | T1.3 | M | T4.1/T4.2 parallel |
+| T4.2 | `scripts/autorun/run.sh` wrapper: run codex auth check once, `export MONSTERFLOW_CODEX_AVAILABLE` in the parent shell (stage scripts inherit). `trap EXIT` from T4.1 also unsets this var on pipeline completion. | T2.5 | S | parallel |
 | T4.3 | Autorun completion report: count budget-events rows emitted during the run, surface "fallback_reason ≠ ok" count + rankings_stale count. Treat fallback count > 0 as a yellow flag in the morning summary, not silent (R2). | T4.1 | M | — |
 | T4.4 | `commands/wrap-quick.md` and `commands/wrap-insights.md` Phase 1c — surface stale-rankings warnings (D18) and budget-fallback events. Document the longitudinal `dispatch_pool` accounting in the persona-drift section ("pre-budget rows treat dispatch_pool as full roster"). | T2.4, T4.3 | M | — |
 | T4.5 | Update `.claude/agents/persona-metrics-validator.md` rules: a persona at 0% participation that has `dispatch_pool` excluding it on every recent row is *not* drift — it's a budget exclusion. Adjust suspect-drift criteria. | T2.4 | S | — |
@@ -187,7 +192,7 @@ Five waves. Wave 0 (foundations) and Wave 5 (consistency tests) gate the others.
 | T5.3 | `tests/test-defaults-consistency.sh` — greps documented values (default budgets, ceiling, floor, per-gate seeds, codex_gates) from `defaults.json`, `seeds.json`, `docs/budget.md`, `QUICKSTART.md`, `install.sh` Q&A literals, `spec.md`. Asserts equality. Wire into `tests/run-tests.sh`. | T5.1, T5.2 | M | parallel |
 | T5.4 | README sweep — defer "fixed persona counts" updates to v1.1 explicitly, OR update README counts (O9). Pick: defer (lower risk; one less file to keep consistent in v1). | T5.2 | S | — |
 
-**Total: 5 waves, 25 tasks. Estimated effort: ~3 sessions of focused work (~6–10h).** Sizes: 14 S, 9 M, 2 L. Parallelism within waves is high; cross-wave parallelism is bounded by the foundation contracts.
+**Total: 5 waves, 30 tasks. Estimated effort: ~3–4 sessions of focused work (~8–12h).** New tasks from MF fixes: T0.0, T2.0, T2.5a, T3.3a, T3.5. T2.1/T2.2/T2.3 downgraded from M→S (now one-line includes). Parallelism within waves is high; cross-wave parallelism is bounded by foundation contracts.
 
 ---
 
@@ -224,7 +229,7 @@ Carrying forward R1–R14 from review with mitigations now folded into specific 
 | **R7.** install.sh idempotency | Medium | D24, T3.1 (schema_version skip-or-migrate) |
 | R8. Banner becomes accidental contract | Low | D25 (lock as stable contract on day one), parallel `budget-events.jsonl` for downstream parsers |
 | **R9.** Adopter-fork roster divergence | High | D2 (disk-discovered personas), T1.4 (fork-roster fixture in tests) |
-| **R10.** Persona-metrics longitudinal break | High | D19 (participation v2: dispatch_pool + roster_size_total), T2.4, T4.5 |
+| **R10.** Persona-metrics longitudinal break | High | D19 (dispatch context in budget-events.jsonl sidecar; participation v1 unchanged), T2.4, T4.5 |
 | **R11.** Pins ossify | Medium | D9 (default no pins), R11 follow-up: pin drift detection in `/wrap-insights` Phase 1c — *deferred to v1.1* (cut from v1; Q4 confirms) |
 | **R12.** `codex login status` per-gate side effects | Medium | D12 (env-var caching), T2.5 (canonical codex check with timeout + command -v), T4.2 (autorun caches once) |
 | **R13.** `insufficient_sample` starves rankings | Medium | D-pseudocode `qualifies()` includes with 0.5x weight (Q3) |
@@ -239,7 +244,7 @@ Carrying forward R1–R14 from review with mitigations now folded into specific 
 | Blocker | Resolved by |
 |---------|-------------|
 | **B1.** `/plan` seed cites missing `risk` persona | D2 (disk-discovered) + T0.3 (corrected `seeds.json` plan list: `wave-sequencer, integration, api, data-model, security, ux, scalability`; budget=1 plan default = `wave-sequencer`) |
-| **B2.** Rankings selection algorithm undefined | §1 pseudocode + D-section, locked in `docs/budget.md` (T5.1); `qualifies()` defined; tie-break = score then `insufficient_sample_weight` |
+| **B2.** Rankings selection algorithm undefined | §1 pseudocode + D-section, locked in `docs/budget.md` (T5.1); `qualifies()` defined; sort key = `(not insufficient_sample, downstream_survival_rate desc, uniqueness_rate desc, avg_tokens_per_invocation asc)` — all fields exist on `persona-rankings.allowlist.json` schema |
 | **B3.** AC #2 pin/rankings/seed combination ambiguous | D4 (reading (a): pins-consume-budget); pseudocode authoritative |
 | **B4.** AC #7 vs UX option (3) contradiction | D6 (drop "disable budget for this run"; new option (3) = abort) |
 | **B5.** Default-no-config inconsistency | D8 (full disk roster, not "default 6"); banner is acknowledged change; AC #1 reworded in spec patch (Wave 0) |
@@ -247,7 +252,7 @@ Carrying forward R1–R14 from review with mitigations now folded into specific 
 | **B7.** Codex-additive at budget=1 vs convergence rule | Documented in `docs/budget.md` (T5.1): "at budget=1 every Claude finding is single-source by construction; Codex provides cross-substrate adversarial check but does not satisfy the 2+ convergence rule" |
 | **B8.** Resolver output contract | D3 (`--json` mode canonical, `--names-only` for back-compat) |
 | **B9.** token-economics dependency un-gated | D26 (≥1 row in `persona-rankings.jsonl` for the gate); install warns when file empty |
-| **B10.** Persona-metrics drift contamination | D19 (participation schema v2 with `dispatch_pool[]`); T2.4, T4.5 |
+| **B10.** Persona-metrics drift contamination | D19 (dispatch context in budget-events.jsonl sidecar only; participation v1 unchanged); T2.4, T4.5 |
 
 ---
 
@@ -259,15 +264,15 @@ Three small spec.md edits needed to align the spec text with the plan decisions.
 - **SP2.** Reword AC #1: "config.json absent or `agent_budget` unset → resolver outputs the full disk roster in priority+lexical order; banner is rendered. No persona-set change." (B5)
 - **SP3.** Drop UX recovery option (3) "disable budget for this run"; replace with "abort the gate" (B4).
 
-These are stylistic clarifications, not scope changes. They keep `/check` reading a coherent spec.
+These are stylistic clarifications, not scope changes. **Task T0.0 owns these patches** and must land before any Wave 0 code work so the spec is the source of truth from the start.
 
 ---
 
 ## 8. Sequencing Notes
 
-- **Critical path:** T0.1 → T1.1 → T1.4 → T1.5 (resolver + green tests). Without these, no gate command can be safely modified.
+- **Critical path:** T0.0 → T0.1 → T1.1 → T1.4 → T1.5 (spec patches first, then resolver + green tests). Without T0.0, tasks read a spec that contradicts the plan. Without T1.1+T1.4+T1.5, no gate command can be safely modified.
 - **Parallel opportunity 1:** T0.1 / T0.2 / T0.3 — three independent schema/data files.
-- **Parallel opportunity 2:** T2.1 / T2.2 / T2.3 — three near-identical command edits (template-first batching: do T2.1, get approval, then T2.2/T2.3 as batched edit).
+- **Parallel opportunity 2:** T2.0 first (canonical dispatch fragment), then T2.1 / T2.2 / T2.3 in parallel — each is now a one-line `{{include}}` edit; no template-first batching needed.
 - **Parallel opportunity 3:** T3.1 / T3.3 / T2.5 — install Q&A, reusable Q&A prompt, codex check module — each on a different file path.
 - **Wave 4 cannot start before Wave 2** (autorun depends on resolver behavior in commands).
 - **Wave 5 lands last** — the consistency test only passes once defaults are spread to all the doc files.
@@ -277,11 +282,11 @@ These are stylistic clarifications, not scope changes. They keep `/check` readin
 ## 9. Definition of Done
 
 - [ ] All 14 spec acceptance criteria pass against the resolver + commands (with AC #1 revised per SP2 and AC #3 wording per I7).
-- [ ] `tests/run-tests.sh` runs `tests/test-resolve-personas.sh` and `tests/test-defaults-consistency.sh`; both green.
+- [ ] `tests/run-tests.sh` runs `tests/test-resolve-personas.sh`, `tests/test-install-reconfigure.sh`, `tests/test-dispatch-fragment.sh`, and `tests/test-defaults-consistency.sh`; all green.
 - [ ] `dashboard/data/budget-events.jsonl` records every resolver invocation in a smoke run across all three gates.
-- [ ] `participation.jsonl` rows from a post-feature gate run carry `dispatch_pool[]` and `roster_size_total`; v1 readers do not crash.
+- [ ] `budget-events.jsonl` rows from a post-feature gate run carry `dispatch_pool[]` and `roster_size_total`; `participation.jsonl` schema v1 is unchanged.
 - [ ] `install.sh --reconfigure` round-trips a config edit, with `.bak` written and `schema_version` preserved.
-- [ ] `MONSTERFLOW_RESOLVE_PERSONAS_BYPASS=1` smoke test: full roster dispatched, no resolver invocation in budget-events.jsonl.
+- [ ] `MONSTERFLOW_RESOLVE_PERSONAS_BYPASS=1` smoke test: full roster dispatched, **one** `fallback_reason: "bypass_env"` row written to budget-events.jsonl.
 - [ ] Autorun snapshot smoke test: edit config mid-run, confirm gate B reads pre-edit snapshot.
 - [ ] `docs/budget.md` published; QUICKSTART links it; spec-review blockers B1–B10 each have a traceable resolution paragraph.
 
