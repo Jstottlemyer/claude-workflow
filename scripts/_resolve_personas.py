@@ -152,6 +152,9 @@ def run(args: argparse.Namespace, repo_dir: Path) -> int:
 
     # MONSTERFLOW_DISABLE_BUDGET=1 — emergency kill switch (MF4)
     if os.environ.get("MONSTERFLOW_DISABLE_BUDGET") == "1":
+        if not on_disk:
+            warn(f"MONSTERFLOW_DISABLE_BUDGET=1 active but no personas found on disk for gate '{gate}' — aborting")
+            return 2
         if why:
             print(f"kill-switch: MONSTERFLOW_DISABLE_BUDGET=1 — bypassing budget", file=sys.stderr)
             print(f"on_disk({gate}): {', '.join(on_disk)}", file=sys.stderr)

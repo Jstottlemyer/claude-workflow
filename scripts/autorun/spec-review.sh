@@ -97,7 +97,17 @@ if [ "${#PERSONA_FILES[@]}" -eq 0 ]; then
   exit 1
 fi
 
-echo "[autorun] spec-review: resolver selected: ${SELECTED_PERSONAS[*]}"
+ALL_ON_DISK=()
+for _f in "$REPO_DIR/personas/review/"*.md; do
+  [ -f "$_f" ] && ALL_ON_DISK+=("$(basename "$_f" .md)")
+done
+DROPPED_PERSONAS=()
+for _p in "${ALL_ON_DISK[@]}"; do
+  _drop=1
+  for _s in "${SELECTED_PERSONAS[@]}"; do [ "$_p" = "$_s" ] && _drop=0 && break; done
+  [ "$_drop" -eq 1 ] && DROPPED_PERSONAS+=("$_p")
+done
+echo "[autorun] spec-review: resolver selected: ${SELECTED_PERSONAS[*]} | dropped: ${DROPPED_PERSONAS[*]:-none}"
 echo "[autorun] spec-review: launching ${#PERSONA_FILES[@]} personas in parallel (timeout=${TIMEOUT_PERSONA}s each)"
 
 # ---------------------------------------------------------------------------

@@ -62,7 +62,7 @@ abort) of the `account-type-agent-scaling` feature spec.
 | Gate | Seed list (priority order) |
 |------|----------------------------|
 | spec-review | requirements, gaps, scope, ambiguity, feasibility, stakeholders |
-| plan | wave-sequencer, integration, api, data-model, security, ux, scalability |
+| plan | integration, api, data-model, security, ux, scalability, wave-sequencer |
 | check | scope-discipline, risk, completeness, sequencing, testability |
 
 These mirror `docs/specs/account-type-agent-scaling/spec.md` §"Per-gate seed
