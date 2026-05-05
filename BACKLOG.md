@@ -8,6 +8,24 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
 
 ---
 
+## Pipeline + install discipline (from 2026-05-05 autorun-overnight-policy session)
+
+- **`pipeline-gate-permissiveness` (NEW spec candidate)** — apply autorun's per-axis warn/block policy framework to /spec-review, /check, /plan, /build gates. Default to GO_WITH_FIXES + apply-inline for documentation/contract/test findings; only architectural/security/integrity findings should re-cycle the user. Cap re-cycles at 2-3. Surface routing decision in verdict block. Same `--mode=permissive|strict` CLI preset shape as autorun.
+  - **Why:** autorun-overnight-policy ran 4 /check iterations (v1-v3 NO-GO, v4 GO_WITH_FIXES). Iteration 4's two MFs were both documentation/framing — could have been routed as warns from v3 → 1 fewer iteration → 1 fewer "fix now / defer / hold" prompt. The 17 SFs across 4 iterations were almost all build-time items. Halt-on-anything bombards the user with re-cycle questions.
+  - **Entry points:** `commands/{spec-review,check,plan,build}.md` (verdict logic + routing); `personas/{review,check}/judge.md` + synthesis (classification: architectural / contract / docs / tests / scope / polish); new schema for finding `class` field; possibly a `PIPELINE_DEGRADED` sticky bit promoted from autorun's `RUN_DEGRADED`.
+  - **Sequencing:** can start any time; benefits from the autorun-overnight-policy infrastructure landing first (PR #6) so the structural pattern is in code to reference. Pairs naturally with `autorun-verdict-deterministic` (also from this session) — they're sibling concerns about what synthesis output is trustworthy and what gates should halt on.
+  - **Size:** L (touches 4 command skills + persona docs + finding schema + tests; conceptually similar to autorun-overnight-policy's per-axis framework).
+  - See memory `feedback_pipeline_gate_permissiveness.md` for the design rationale and concrete evidence from this session.
+
+- **`install-sh-backup-uninstall` (NEW spec candidate)** — install.sh currently modifies adopter defaults (CLAUDE.md, .claude/settings.json, .claude/agents/, commands/, hooks, doctor.sh, queue scaffolding) without backups or a revert path. Add (a) pre-flight banner with explicit consent gate explaining we're making opinionated changes, (b) backup every modified file to `.monsterflow-backups/<timestamp>/manifest.json` BEFORE modification, (c) ship `scripts/uninstall.sh` that reads the manifest and reverts (idempotent; supports `--restore-from <timestamp>`), (d) document revert path in README + CHANGELOG as a trust signal.
+  - **Why:** adopters who try MonsterFlow and decide it's not for them are stuck cleaning up by hand. Reversibility is a trust signal. The pipeline + agents + hooks are *opinionated* defaults — without explicit messaging adopters may not realize how much we're stamping on their existing config.
+  - **Entry points:** `install.sh` (banner + backup machinery); new `scripts/uninstall.sh`; `README.md` + `CHANGELOG.md` updates; smoke test `tests/test-install-uninstall-roundtrip.sh`.
+  - **Sequencing:** independent of other backlog items. Can start any time.
+  - **Size:** M (mostly file enumeration + JSON manifest + reverter; ~200-400 LoC + tests).
+  - See memory `project_install_sh_backup_uninstall.md` for the file-surface enumeration and design notes.
+
+---
+
 ## Autorun follow-ups (deferred from autorun-overnight-policy v4-v5)
 
 - **`autorun-verdict-deterministic` (NEW spec, follow-up to autorun-overnight-policy v6)** — replace synthesis-emits-sidecar pattern with deterministic verdict aggregation from structured reviewer outputs. Closes the v2-MF6 residual class (single-fence prompt-injection: synthesis omits its own fence; reviewed content quotes a single fake; count==1 forged GO ships) that v6 documents as known v1 limitation.
