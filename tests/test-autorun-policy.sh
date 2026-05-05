@@ -973,10 +973,11 @@ QUEUE_DIR="${PROJECT_DIR:-$PWD}/queue"
 RUNS_DIR="$QUEUE_DIR/runs"
 mkdir -p "$RUNS_DIR"
 
-# Synthetic run-id (avoid uuidgen dep). Use PID + seconds + RANDOM and pad.
-RID_RAW="$$$(date +%s)$RANDOM"
-# pad/truncate to 36 chars in uuid-like shape
-RUN_ID="00000000-0000-0000-0000-$(printf '%012d' "$RID_RAW" | tail -c 12)"
+# Synthetic run-id derived from slug — guarantees uniqueness across the 2-N stub
+# invocations a single test makes (each test uses distinct slugs).
+SLUG_HEX="$(printf '%s' "$SLUG" | od -An -tx1 | tr -d ' \n' | head -c 12)"
+SLUG_PADDED="$(printf '%-12s' "$SLUG_HEX" | tr ' ' '0' | head -c 12)"
+RUN_ID="00000000-0000-0000-0000-${SLUG_PADDED}"
 mkdir -p "$RUNS_DIR/$RUN_ID"
 
 cat > "$RUNS_DIR/$RUN_ID/morning-report.json" <<JSON
