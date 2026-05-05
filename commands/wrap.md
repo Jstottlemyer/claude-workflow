@@ -155,6 +155,14 @@ For each persona, compute:
 
 **Stale-survival warning:** for each feature, compare current `sha256(<artifact>.md)` against the `artifact_hash` recorded in its `survival.jsonl`. Mismatch → render a one-line warning naming the feature.
 
+**Agent-budget integration (selection.json) — AC-P10:** for each `(feature, stage)` in the rolling window, look for `docs/specs/<feature>/<stage>/selection.json` (written by `scripts/resolve-personas.sh --emit-selection-json`). Apply:
+- **Drift baseline:** count a `(feature, stage)` row toward each persona's drift denominator ONLY when `selection_method == "full"` (no budget configured) OR `selection.json` is absent (pre-budget legacy run). When `selection_method ∈ {rankings, seed, locked}`, the row participated in a budgeted dispatch and is excluded from the drift baseline — it does not count against unselected personas.
+- **Distinguish budget-dropped from failed-to-run:** a persona in `selection.json.dropped[]` is intentionally not dispatched (budget cap). Do NOT count it as `silent` (no `silent_rate` penalty). It is only counted toward `participated_count` when `selection_method == "full"`.
+- **Codex reconciliation:** `selection.json.codex_status ∈ {appended, not_authenticated, missing_binary, disabled, failed}`. When `appended`, treat `codex-adversary` as an expected participant for that row. When anything else, codex absence is not silent.
+- **Render banner:** if any feature in the window has `selection_method != "full"`, prepend the drift block with `legend: drift baseline = unbudgeted runs only (M of N features in window had agent_budget configured — excluded)`.
+
+If a `(feature, stage)` lacks `selection.json` AND was created after the agent-budget feature shipped (heuristic: `mtime(spec.md) > mtime(scripts/resolve-personas.sh)`), emit a one-line warning: `[persona-metrics] missing selection.json for <feature>/<stage> — drift attribution may be incorrect`.
+
 **Lenient JSONL parsing:** malformed rows are skipped with a one-line warning (`[persona-metrics] skipped 1 malformed row in <feature>/<stage>/findings.jsonl`); the rollup proceeds.
 
 **Deeper validation when drift looks weird:** if Phase 1c surfaces unexpected drift (a persona suddenly load-bearing at 0%, all features showing stale-survival warnings, etc.), invoke the `persona-metrics-validator` subagent for a full schema + foreign-key + `artifact_hash` audit across `docs/specs/*/{spec-review,plan,check}/`. The subagent is read-only and reports per-file issues. Do not invoke it on every wrap — only when drift output is suspect.
