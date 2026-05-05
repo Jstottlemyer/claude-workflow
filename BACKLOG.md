@@ -8,6 +8,31 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
 
 ---
 
+## Autorun follow-ups (deferred from autorun-overnight-policy v4-v5)
+
+- **`autorun-verdict-deterministic` (NEW spec, follow-up to autorun-overnight-policy v6)** — replace synthesis-emits-sidecar pattern with deterministic verdict aggregation from structured reviewer outputs. Closes the v2-MF6 residual class (single-fence prompt-injection: synthesis omits its own fence; reviewed content quotes a single fake; count==1 forged GO ships) that v6 documents as known v1 limitation.
+  - **Why:** check v3 Codex H2 demonstrated that any model-echoed secret (the v4 nonce attempt) is not a trust boundary against adaptive prompt injection. The architectural answer is to remove the LLM from the verdict-emission path: each reviewer persona emits structured `sev:security` and verdict tags in raw output; `check.sh` aggregates `check-verdict.json` deterministically (any reviewer NO_GO → NO_GO; any sev:security → security_findings populated; else GO_WITH_FIXES if any FAIL else GO). Synthesis call writes prose only.
+  - **Acceptance bullets** (per check v4 Codex M2 — sizing-driven):
+    - New reviewer-output schema (e.g., `schemas/reviewer-output.schema.json`) — current `check-verdict.schema.json` cannot be reused as the trust boundary (Codex M3); persona outputs need their own structured contract.
+    - Deterministic aggregation precedence pinned: any `verdict: NO_GO` → NO_GO; any `sev:security` tag → security_findings populated (hardcoded block); else `GO_WITH_FIXES` if any FAIL; else GO. Order independent across reviewers.
+    - Migration from existing `check-verdict` fences: one-release back-compat with explicit deprecation; `extract-fence` retained for legacy synthesis outputs but post-processor prefers reviewer-aggregated path.
+    - Adversarial single-fence fixture (deterministic equivalent of v1 fixture (e)): asserts that even a perfectly-crafted forged `check-verdict` fence in reviewer output cannot bypass aggregation, because the aggregator does not consume synthesis JSON.
+    - Manual `/check` behavior: synthesis writes prose only; aggregator runs over reviewer raws (works for both autorun and manual /check; collapses the v1 mode-fork concern).
+  - **Sequencing:** *do not start* until autorun-overnight-policy v6 ships. This spec inherits its `_policy_json.py` + `_policy.sh` infrastructure.
+  - **Entry points:** `commands/check.md` synthesis section (rewrite to "prose only"); `personas/check/*.md` (each persona output structured-emission schema); `scripts/autorun/check.sh` (aggregator); `schemas/reviewer-output.schema.json` (NEW); `schemas/check-verdict.schema.json` (becomes aggregator-output, not synthesis-output).
+  - **Size:** **XL** (changes the trust model + reviewer output contract + synthesis role + aggregation rules + schema semantics + tests + migration/back-compat + manual `/check` behavior — substantially more than a local refactor).
+
+- **Stage-boundary STOP-check inside `run.sh`** — current `autorun-batch.sh` honors STOP only at iteration boundaries (an in-flight `run.sh` finishes its slug after STOP is touched). Adding a STOP-check inside `run.sh` between stages would cut overnight halt latency from "next slug" to "next stage."
+  - **Why:** R15 documented at autorun-overnight-policy/plan.md v4 — iteration-boundary semantics are correct but coarse. Adopters expecting STOP to halt mid-slug will be surprised.
+  - **Entry points:** `scripts/autorun/run.sh` `update_stage()` function; add `[[ -e queue/STOP ]]` check after each stage transition.
+  - **Size:** S.
+
+- **Promote `tests/test-policy-json.sh` to its own file** — currently 5.2's `_policy_json.py` audit + extract-fence + validator tests live in `test-autorun-policy.sh`. Splitting isolates Python failures from shell failures.
+  - **Why:** Codex /check v2 SF — keeping Python CLI/schema/fence tests inside the shell policy suite slows debugging when one breaks.
+  - **Size:** S (mostly file split + run-tests.sh wiring).
+
+---
+
 ## Token economics (cross-cutting)
 
 > **2026-05-04:** Per-persona instrumentation (cost + survival + uniqueness as separate columns) promoted to `docs/specs/token-economics/spec.md` (instrumentation-only after `/spec-review` round 1 narrowed scope). Per-plugin cost measurement and roster-scaling action stay here, both depending on the instrumentation spec landing first. Items #4 (Agent Teams) and #2 (Onboarding) remain unscheduled.
@@ -63,3 +88,4 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
   - **Entry points:** `commands/spec-review.md` (Phase 1 dispatch section), `personas/judge.md`, `personas/synthesis.md`. Would need a separate `commands/spec-review-team.md` variant to A/B against, not a destructive rewrite.
   - **Sequencing:** *do not start* until token-economics + account-scaling items above are done. This adds cost; we need the budget framework in place first.
   - **Size:** L (research project, not a feature ship).
+  - **Prior research (2026-05-05):** docs reread + reframe captured. Memory: `project_agent_teams_refit.md` (debate-not-fan-out framing, 3 concrete fits: adversarial /check, personas-as-subagent-defs, hook-enforced invariants). Wiki: `_raw/2026-05-05-1037-agent-teams-refit-monsterflow.md` (general Claude Code primitives, splits at ingest). Read these before opening a `/spec` so we don't restart from a blank page.
