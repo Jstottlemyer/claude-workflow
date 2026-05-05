@@ -91,7 +91,7 @@ $PLAN_CONTENT"
     2>"$RAW_DIR/$persona.err" &
 
   PIDS+=($!)
-  echo "[autorun] check: launched $persona (pid=${PIDS[-1]})"
+  echo "[autorun] check: launched $persona (pid=$!)"
 done
 
 FAILED=()

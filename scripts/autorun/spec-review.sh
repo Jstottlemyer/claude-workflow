@@ -80,7 +80,7 @@ $SPEC_CONTENT"
     2>"$RAW_DIR/$persona.err" &
 
   PIDS+=($!)
-  echo "[autorun] spec-review: launched $persona (pid=${PIDS[-1]})"
+  echo "[autorun] spec-review: launched $persona (pid=$!)"
 done
 
 # ---------------------------------------------------------------------------
