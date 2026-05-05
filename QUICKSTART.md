@@ -267,6 +267,29 @@ Work scales — you don't need the full pipeline for a bug fix:
 | Feature | Full pipeline |
 | V2 / rework | Revise existing spec, then full pipeline |
 
+## 6b. Agent Budget (optional, opt-in)
+
+Cap how many Claude personas run per gate. Useful if you're on Claude Pro
+($20/mo) and want fewer parallel reviewers, or if you want to dial up
+adversarial review on specific gates. Codex-adversary is **additive** —
+not counted against your budget.
+
+```bash
+# Set or change budget (interactive Q&A)
+bash install.sh --reconfigure-budget
+
+# Inspect what would dispatch for a gate
+bash scripts/resolve-personas.sh check --feature my-feature --why
+
+# Emergency kill switch — restore full roster for one run
+MONSTERFLOW_DISABLE_BUDGET=1 autorun
+```
+
+Defaults: budget=3 (Pro), budget=6 (free or Max). Range 1–8. No config
+present → full roster (existing-user behavior preserved).
+
+Full reference + schema + reset paths: [`docs/budget.md`](docs/budget.md).
+
 ## 7. Run the pipeline overnight (optional)
 
 Write a spec, then let `/autorun` drive the rest while you sleep — no interactive session needed.
