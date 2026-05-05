@@ -44,7 +44,9 @@ START="$(date +%s)"
 RUN_LOG="$(mktemp "${TMPDIR:-/tmp}/autorun-dryrun-log-XXXXXX.txt")"
 export ENGINE_DIR PROJECT_DIR
 RUN_EXIT=0
-AUTORUN_DRY_RUN=1 bash "$ENGINE_DIR/scripts/autorun/run.sh" >"$RUN_LOG" 2>&1 || RUN_EXIT=$?
+# v6: run.sh is single-slug; queue-loop migrated to autorun-batch.sh (Task 3.0b).
+# Pass --mode=supervised + slug; --dry-run flag preferred over env var.
+bash "$ENGINE_DIR/scripts/autorun/run.sh" --mode=supervised --dry-run sample >"$RUN_LOG" 2>&1 || RUN_EXIT=$?
 END="$(date +%s)"
 ELAPSED=$(( END - START ))
 
@@ -89,18 +91,135 @@ assert_file "$ART/check.md"
 assert_file "$ART/build-log.md"
 assert_file "$ART/verify-gaps.md"
 assert_file "$ART/pre-build-sha.txt"
-assert_file "$ART/state.json"
 assert_grep "$ART/verify-gaps.md" "VERDICT: COMPLIANT" "verify-gaps.md contains VERDICT: COMPLIANT"
 
-# state.json should be valid JSON
-if [ -f "$ART/state.json" ]; then
-  if python3 -c "import json; json.load(open('$ART/state.json'))" 2>/dev/null; then
-    echo "✓ state.json is valid JSON"
+# v6: per-run state lives under queue/runs/<run-id>/run-state.json (Task 3.1).
+# Find the run dir (single-slug invocation produces exactly one).
+RUN_DIR=""
+for d in "$PROJECT_DIR/queue/runs"/*/; do
+  [ -d "$d" ] || continue
+  case "$(basename "${d%/}")" in
+    .locks|current) continue ;;
+  esac
+  RUN_DIR="${d%/}"
+  break
+done
+
+POLICY_JSON_PY="$ENGINE_DIR/scripts/autorun/_policy_json.py"
+
+# Validate <file> against <schema_name> via _policy_json.py validate.
+# v6 contract: the documented validator. Bash 3.2 compatible.
+assert_schema_valid() {
+  local file="$1" schema="$2" label="$3"
+  if [ ! -f "$file" ]; then
+    echo "✗ $label (file missing: $file)"
+    FAIL=$(( FAIL + 1 ))
+    return
+  fi
+  local err
+  err="$(python3 "$POLICY_JSON_PY" validate "$file" "$schema" 2>&1 1>/dev/null)" || {
+    echo "✗ $label (schema validation failed)"
+    echo "$err" | sed 's/^/    /'
+    FAIL=$(( FAIL + 1 ))
+    return
+  }
+  echo "✓ $label"
+  PASS=$(( PASS + 1 ))
+}
+
+if [ -n "$RUN_DIR" ]; then
+  assert_file "$RUN_DIR/run-state.json"
+  assert_file "$RUN_DIR/morning-report.json"
+  if [ -f "$RUN_DIR/run-state.json" ] && python3 -c "import json; json.load(open('$RUN_DIR/run-state.json'))" 2>/dev/null; then
+    echo "✓ run-state.json is valid JSON"
     PASS=$(( PASS + 1 ))
   else
-    echo "✗ state.json is not valid JSON"
+    echo "✗ run-state.json missing or invalid"
     FAIL=$(( FAIL + 1 ))
   fi
+
+  # ---------------------------------------------------------------------------
+  # v6 contract assertions (Task 5.5)
+  # ---------------------------------------------------------------------------
+
+  # assert_run_state_valid — schema validation per v6 contract.
+  assert_schema_valid "$RUN_DIR/run-state.json" run-state \
+    "run-state.json validates against schemas/run-state.schema.json"
+
+  # assert_morning_report_valid — schema validation per v6 contract.
+  assert_schema_valid "$RUN_DIR/morning-report.json" morning-report \
+    "morning-report.json validates against schemas/morning-report.schema.json"
+
+  # assert_run_degraded_zero_when_no_warnings — happy dry-run with no
+  # warnings → RUN_DEGRADED=0 derivation correct (read from final
+  # morning-report). AC#7 / spec.md.
+  if [ -f "$RUN_DIR/morning-report.json" ]; then
+    RD="$(python3 "$POLICY_JSON_PY" get "$RUN_DIR/morning-report.json" /run_degraded --default unset 2>/dev/null || echo unset)"
+    WARN_COUNT="$(python3 -c "import json,sys
+d=json.load(open(sys.argv[1]))
+print(len(d.get('warnings') or []))" "$RUN_DIR/morning-report.json" 2>/dev/null || echo unset)"
+    # _policy_json.py get emits JSON-formatted scalars (lowercase 'false').
+    if [ "$WARN_COUNT" = "0" ] && [ "$RD" = "false" ]; then
+      echo "✓ run_degraded=false when warnings array is empty (AC#7)"
+      PASS=$(( PASS + 1 ))
+    else
+      echo "✗ run_degraded derivation wrong (run_degraded=$RD warnings=$WARN_COUNT; expected false/0)"
+      FAIL=$(( FAIL + 1 ))
+    fi
+  fi
+fi
+
+# -----------------------------------------------------------------------------
+# Dry-run synthesis stub fence assertions (SF-O5 + Task 3.1 contract)
+#
+# The dry-run check.sh stub MUST emit a `check-verdict` fenced JSON block in
+# its synthesis output. Without this, the post-processor would silently hit
+# the legacy grep fallback path, giving false confidence in the smoke test.
+# -----------------------------------------------------------------------------
+DRYRUN_CHECK_STUB="$ART/check.md"
+
+# assert_dry_run_emits_check_verdict_fence — one fence in the stub stream.
+if [ -f "$DRYRUN_CHECK_STUB" ]; then
+  EXTRACT_OUT="$(python3 "$POLICY_JSON_PY" extract-fence "$DRYRUN_CHECK_STUB" check-verdict 2>/dev/null || true)"
+  FENCE_COUNT="$(printf '%s\n' "$EXTRACT_OUT" | sed -n '1p')"
+  FENCE_COUNT="${FENCE_COUNT:-0}"
+  if [ "$FENCE_COUNT" = "1" ]; then
+    echo "✓ dry-run synthesis stub emits exactly one check-verdict fence (SF-O5)"
+    PASS=$(( PASS + 1 ))
+  else
+    echo "✗ dry-run synthesis stub fence count = $FENCE_COUNT (expected 1; SF-O5)"
+    FAIL=$(( FAIL + 1 ))
+  fi
+
+  # assert_check_verdict_extracted_to_sidecar — round-trip the fence through
+  # the extractor and validate the JSON payload against check-verdict schema.
+  # (Task 5.5 note: the dry-run stage script does not itself write the
+  # canonical sidecar at docs/specs/<slug>/check-verdict.json — see wiring
+  # gap in the task report. This test validates the round-trip via the
+  # documented helper, which is what the post-processor would do.)
+  SIDECAR_TMP="$(mktemp "${TMPDIR:-/tmp}/check-verdict-XXXXXX.json")"
+  if [ "$FENCE_COUNT" = "1" ]; then
+    printf '%s\n' "$EXTRACT_OUT" | sed '1d' > "$SIDECAR_TMP"
+    if [ -s "$SIDECAR_TMP" ]; then
+      assert_schema_valid "$SIDECAR_TMP" check-verdict \
+        "extracted check-verdict payload validates against schemas/check-verdict.schema.json"
+    else
+      echo "✗ extracted check-verdict payload empty"
+      FAIL=$(( FAIL + 1 ))
+    fi
+  else
+    echo "✗ skipping check-verdict extraction (fence count != 1)"
+    FAIL=$(( FAIL + 1 ))
+  fi
+  rm -f "$SIDECAR_TMP"
+else
+  echo "✗ dry-run check.md stub not found at $DRYRUN_CHECK_STUB"
+  FAIL=$(( FAIL + 1 ))
+fi
+
+if [ -z "$RUN_DIR" ]; then
+  echo "✗ no queue/runs/<run-id>/ directory created"
+  FAIL=$(( FAIL + 1 ))
 fi
 
 echo ""

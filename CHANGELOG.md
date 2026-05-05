@@ -42,6 +42,42 @@ Migration bullets below are the source of truth surfaced by `install.sh`'s upgra
 
 ## [Unreleased]
 
+### External adopters: action required
+
+- **Silent default-shift (supervised semantics by default):** existing `queue/autorun.config.json` files without a `policies` block now use **supervised semantics by default** — every policy axis (`verdict`, `branch`, `codex_probe`, `verify_infra`) blocks. Recommended action for overnight runs: add an explicit policies block, OR pass `--mode=overnight`, OR set `AUTORUN_MODE=overnight`.
+  ```json
+  "policies": {
+    "verdict": "warn",
+    "branch": "warn",
+    "codex_probe": "warn",
+    "verify_infra": "warn"
+  }
+  ```
+- **Single-slug breaking change (per AC#24):** `run.sh <slug>` now processes EXACTLY ONE slug per invocation. The legacy queue-loop is gone. Cron'd `run.sh` invocations that depended on multi-slug looping must migrate to `autorun-batch.sh`. Verbatim before/after cron snippet:
+  ```
+  # Before (v0.x):
+  0 22 * * * cd /path/to/repo && scripts/autorun/run.sh
+  # After (v0.y):
+  0 22 * * * cd /path/to/repo && scripts/autorun/autorun-batch.sh --mode=overnight
+  ```
+- **`current` symlink rotation in batch mode:** `queue/runs/current` symlink now rotates atomically per slug — intermediate state always points to a valid run-dir (no torn-symlink window).
+- **`grep` fallback removal pinned to v0.9.0:** the legacy `OVERALL_VERDICT:`-grep + body-NO-GO-scan fallback (per AC#19) is **one-release back-compat only** and will be removed in v0.9.0. Adopters with custom synthesis prompts MUST emit the fenced ` ```check-verdict ` block before then. After v0.9.0, missing fence → `policy_block check integrity "synthesis omitted check-verdict block"`.
+- **`_codex_probe.sh` is the single source for codex availability** (per AC#11). Custom scripts that grep for `command -v codex` should migrate:
+  ```sh
+  bash scripts/autorun/_codex_probe.sh
+  case $? in
+    0) ;;             # codex available
+    1|2) ;;            # absent / unauthenticated — apply policy
+  esac
+  ```
+- **`queue/autorun.config.json` validation is now fail-fast at startup** (per AC#16). Invalid policy values halt with `INVALID_CONFIG: policies.<axis>="<value>" — must be "warn" or "block"`. Validate your config before the next overnight run.
+
+### Known v1 limitation
+
+> v1 fence extraction rejects multi-fence injection but does not authenticate a single check-verdict fence quoted from reviewed content. Do not use unattended auto-merge on untrusted prompt-bearing content until autorun-verdict-deterministic ships. Mitigation is detection-hardening, not prevention. For repos processing untrusted spec sources (third-party PRs, externally-authored queue items), set `verdict_policy=block` and disable unattended auto-merge.
+
+The architectural fix (deterministic verdict aggregation from structured reviewer outputs, replacing synthesis-emits-sidecar) is carved off to the `autorun-verdict-deterministic` follow-up spec. See `BACKLOG.md` for the XL-sized acceptance bullets.
+
 ### Added
 
 - **`wave-sequencer` persona at `/plan`** (7th designer) — owns wave structure and dependency contracts. Codifies the three-gate default surfaced by Codex review: (1) data contract first, (2) UI / behavior closure second, (3) test hardening last. Other `/plan` personas own *what* gets built; `wave-sequencer` owns *the order* and *what each wave commits to*. Flags anti-patterns: polish-bucket waves, schema-as-afterthought, UI-first sequencing, hardening-before-closure, single-mega-wave. Output adds a "Wave decomposition" block per wave with `Closes / Includes / Depends on / Verifier signal / Minimum-shippable test`. Persona-metrics will surface its `load_bearing_rate` over the next ~10 features as the empirical test for whether it earns the slot.

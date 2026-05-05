@@ -42,6 +42,18 @@ TESTS=(
   test-install.sh
   # account-type-agent-scaling — per-gate persona resolver
   test-resolve-personas.sh
+  # autorun-overnight-policy — Codex availability + auth probe (Task 2.2)
+  test-codex-probe.sh
+  # autorun-overnight-policy — _policy_json.py stdlib backend (Task 2.1b)
+  test-policy-json.sh
+  # autorun-overnight-policy — _policy.sh shell helper API (Task 2.1)
+  test-policy-sh.sh
+  # autorun-overnight-policy — verify.sh infra-error classifier (Task 3.4)
+  test-autorun-policy.sh
+  # autorun-overnight-policy — integration smoke (Task 3.10)
+  test-autorun-smoke.sh
+  # autorun-overnight-policy — doctor.sh diagnostic surface (Task 5.4)
+  test-doctor.sh
 )
 
 # Tests whose passing condition is exit non-zero (M8 inverted-assertion contract).

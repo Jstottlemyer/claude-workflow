@@ -159,8 +159,8 @@ case_1_no_config_full_roster() {
     local exit_code; exit_code=$(run_resolver check)
     local status=ok
     assert_exit "$name" 0 "$exit_code" || status=fail
-    # check has 5 personas on disk
-    assert_stdout_lines "$name" 5 || status=fail
+    # check has 6 personas on disk (incl security-architect added in autorun-overnight-policy v6)
+    assert_stdout_lines "$name" 6 || status=fail
     assert_stdout_lacks "$name" "codex-adversary" || status=fail
     case_done "$name" "$status"
 }
@@ -172,7 +172,7 @@ case_2_budget_absent_full_roster() {
     local exit_code; exit_code=$(run_resolver check)
     local status=ok
     assert_exit "$name" 0 "$exit_code" || status=fail
-    assert_stdout_lines "$name" 5 || status=fail
+    assert_stdout_lines "$name" 6 || status=fail
     case_done "$name" "$status"
 }
 
@@ -399,7 +399,7 @@ case_29_disable_budget_kill_switch() {
     local status=ok
     unset MONSTERFLOW_DISABLE_BUDGET
     assert_exit "$name" 0 "$exit_code" || status=fail
-    assert_stdout_lines "$name" 5 || status=fail
+    assert_stdout_lines "$name" 6 || status=fail
     case_done "$name" "$status"
 }
 
@@ -485,11 +485,11 @@ case_34_print_seed_plan() {
 
 case_35_print_seed_check() {
     setup_case
-    local name="35: --print-seed check emits 5 names"
+    local name="35: --print-seed check emits 6 names"
     local exit_code; exit_code=$(run_resolver check --print-seed)
     local status=ok
     assert_exit "$name" 0 "$exit_code" || status=fail
-    assert_stdout_lines "$name" 5 || status=fail
+    assert_stdout_lines "$name" 6 || status=fail
     assert_first_line "$name" "scope-discipline" || status=fail
     case_done "$name" "$status"
 }

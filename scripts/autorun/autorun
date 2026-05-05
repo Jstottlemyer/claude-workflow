@@ -28,24 +28,19 @@ export ENGINE_DIR PROJECT_DIR
 
 case "${1:-}" in
     start)
-        LOCKFILE="$QUEUE_DIR/.autorun.lock"
+        # v6: locking moved into run.sh via _policy.sh (slug-scoped lockfile under
+        # queue/runs/.locks/<slug>.lock). Wrapper no longer calls flock — see
+        # spec AC#23 + plan Task 3.0.
 
-        # Ensure flock is available
-        if ! command -v flock &>/dev/null; then
-            echo "autorun: 'flock' is not available on this system."
-            echo "Install util-linux (Linux) or use brew install util-linux (macOS) and ensure it is on PATH."
-            exit 1
+        # One-time deprecation: remove legacy queue-wide lock if present.
+        if [ -e "$QUEUE_DIR/.autorun.lock" ]; then
+            echo "[autorun] removing legacy queue/.autorun.lock (slug-scoped locking moved to run.sh)" >&2
+            rm -f "$QUEUE_DIR/.autorun.lock"
         fi
 
-        # Acquire lock; exit clearly if another instance is already running
-        if ! flock -n "$LOCKFILE" true 2>/dev/null; then
-            echo "autorun: already running (another instance holds $LOCKFILE)"
-            echo "Use 'autorun status' to check progress, or 'autorun stop' to request a halt."
-            exit 1
-        fi
-
-        # exec replaces this wrapper process for a cleaner process table
-        exec flock -n "$LOCKFILE" bash "$ENGINE_DIR/scripts/autorun/run.sh"
+        # Forward all remaining args to run.sh; exec for a clean process table.
+        shift
+        exec bash "$ENGINE_DIR/scripts/autorun/run.sh" "$@"
         ;;
 
     stop)

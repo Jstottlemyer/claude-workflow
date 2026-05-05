@@ -1,0 +1,23 @@
+{
+  "fixture": "clean-merged",
+  "final_state": "merged",
+  "run_degraded": false,
+  "codex_high_count": 0,
+  "merge_capable": true,
+  "verdict": "GO",
+  "warnings_count": 0,
+  "blocks_count": 0,
+  "security_findings_count": 0,
+  "pr_url": "https://github.com/test/repo/pull/42",
+  "extractor_path": "fence_extracted",
+  "fence_count": 1,
+  "auto_merge_fired": true,
+  "halted_at_stage": null,
+  "policy_resolution_expected": {
+    "verdict_policy": "warn",
+    "branch_policy": "warn",
+    "codex_probe_policy": "warn",
+    "verify_infra_policy": "warn",
+    "integrity_policy": "block"
+  }
+}

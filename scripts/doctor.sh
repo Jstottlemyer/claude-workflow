@@ -171,7 +171,7 @@ trap 'rm -f "$DIAG_FILE"' EXIT
             ver=$(grep -oE "${prompt}@[0-9]+\.[0-9]+" "$prompt_file" | head -1)
             if [ -n "$ver" ]; then
                 count=$(grep -c "$ver" "$prompt_file")
-                echo "ok   ${prompt}.md → $ver (mentioned $count× in file)"
+                echo "ok   ${prompt}.md → $ver (mentioned ${count}× in file)"
             else
                 echo "WARN ${prompt}.md → no prompt_version string found"
                 PM_FAILS=$((PM_FAILS+1))
@@ -286,7 +286,115 @@ print(hashlib.sha256('\n'.join(canon).encode('utf-8')).hexdigest())
         echo "~/CLAUDE.md missing — create one for your personal context (see QUICKSTART section 3)"
     fi
     echo '```'
+    echo ""
+
+    echo "## Autorun Policy Health"
+    echo '```'
+    AUTORUN_CFG="$SCRIPT_DIR/../queue/autorun.config.json"
+    AUTORUN_BATCH="$SCRIPT_DIR/autorun/autorun-batch.sh"
+    AUTORUN_RUN="$SCRIPT_DIR/autorun/run.sh"
+
+    # Check 1: missing `policies` block in queue/autorun.config.json
+    if [ -f "$AUTORUN_CFG" ]; then
+        if python3 -c "import json,sys; d=json.load(open('$AUTORUN_CFG')); sys.exit(0 if 'policies' in d else 1)" 2>/dev/null; then
+            echo "ok   queue/autorun.config.json has 'policies' block"
+        else
+            echo "WARN queue/autorun.config.json is missing the 'policies' block."
+            echo "     Three ways to fix (pick one):"
+            echo "       (a) Run: bash scripts/autorun/run.sh --mode=overnight ...  (explicit per-invocation)"
+            echo "       (b) Add to crontab: bash scripts/autorun/autorun-batch.sh  (cron-context default)"
+            echo "       (c) Edit queue/autorun.config.json and add a 'policies' block:"
+            echo '             "policies": {'
+            echo '               "verdict": "block",'
+            echo '               "branch":  "block",'
+            echo '               "codex_probe":  "block",'
+            echo '               "verify_infra": "block"'
+            echo '             }'
+            echo "     For cron-driven overnight runs, recommend --mode=overnight (option a or b)."
+        fi
+    else
+        echo "MISS queue/autorun.config.json not found at $AUTORUN_CFG"
+    fi
+    echo ""
+
+    # Check 2: flock availability
+    if command -v flock >/dev/null 2>&1; then
+        echo "ok   flock available ($(command -v flock))"
+    else
+        echo "WARN flock not found — autorun will use mkdir-fallback for locking."
+        echo "     Correctness is preserved (mkdir is atomic on POSIX), but performance is"
+        echo "     slightly worse under contention. Stock macOS has no flock; install via:"
+        echo "       brew install flock"
+    fi
+    echo ""
+
+    # Check 3: timeout (BSD vs GNU). Stock macOS ships neither timeout nor gtimeout.
+    if command -v timeout >/dev/null 2>&1; then
+        echo "ok   timeout available ($(command -v timeout))"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        echo "ok   gtimeout available ($(command -v gtimeout)) — Homebrew coreutils"
+    else
+        echo "WARN neither 'timeout' nor 'gtimeout' is on PATH."
+        echo "     TIMEOUT_PERSONA / TIMEOUT_STAGE config values silently do nothing without one."
+        echo "     Recommend: brew install coreutils"
+    fi
+    echo ""
+
+    # Check 4: autorun-batch.sh presence + executable (per AC#24, required for cron'd queue-loop)
+    if [ -f "$AUTORUN_BATCH" ]; then
+        if [ -x "$AUTORUN_BATCH" ]; then
+            echo "ok   scripts/autorun/autorun-batch.sh present + executable"
+        else
+            echo "WARN scripts/autorun/autorun-batch.sh exists but is not executable."
+            echo "     Fix: chmod +x scripts/autorun/autorun-batch.sh"
+        fi
+    else
+        echo "WARN scripts/autorun/autorun-batch.sh missing (required for cron'd queue-loop per AC#24)."
+        echo "     Pull latest workflow repo + re-run install.sh."
+    fi
+    echo ""
+
+    # Check 5: cron entry calls run.sh directly (silent-default-shift catch per AC#21)
+    CRON_OUT="$(crontab -l 2>/dev/null)"
+    if [ -n "$CRON_OUT" ]; then
+        # Match run.sh in crontab — but ONLY if it's not within an autorun-batch.sh line.
+        if printf '%s\n' "$CRON_OUT" | grep -E 'autorun/run\.sh' | grep -v 'autorun-batch\.sh' >/dev/null 2>&1; then
+            echo "WARN crontab entry calls scripts/autorun/run.sh directly."
+            echo "     This risks the silent-default-shift class (AC#21): a non-TTY cron context"
+            echo "     defaults to a different policy mode than an interactive run. Recommended:"
+            echo "       (a) switch to scripts/autorun/autorun-batch.sh in crontab, OR"
+            echo "       (b) pass --mode=overnight explicitly on the run.sh line."
+        else
+            echo "ok   no risky run.sh-direct cron entries detected"
+        fi
+    else
+        echo "ok   no crontab (or crontab unreadable) — nothing to flag"
+    fi
+    echo '```'
+    echo ""
+
+    echo "## Known Limitations (autorun v1)"
+    echo '```'
+    echo "[doctor] autorun v1 ships with known prompt-injection residual class (single-fence-spoof). See BACKLOG.md → autorun-verdict-deterministic. For untrusted spec sources, set \`verdict_policy=block\` and disable unattended auto-merge."
+    echo '```'
 } > "$DIAG_FILE"
+
+# --- Mirror the autorun policy health + R18 line to stdout so the user sees it
+#     during normal doctor.sh runs (not just in the filed GitHub issue). ---
+
+echo ""
+echo "=== Autorun Policy Health (mirrored from diagnostic) ==="
+# Extract the section between the two markers from $DIAG_FILE.
+awk '
+    /^## Known Limitations/ { exit }
+    /^## Autorun Policy Health/ { in_section=1 }
+    in_section { print }
+' "$DIAG_FILE"
+
+echo ""
+echo "=== Known Limitations (autorun v1) ==="
+echo "[doctor] autorun v1 ships with known prompt-injection residual class (single-fence-spoof). See BACKLOG.md → autorun-verdict-deterministic. For untrusted spec sources, set \`verdict_policy=block\` and disable unattended auto-merge."
+echo ""
 
 # --- File the issue via gh ---
 

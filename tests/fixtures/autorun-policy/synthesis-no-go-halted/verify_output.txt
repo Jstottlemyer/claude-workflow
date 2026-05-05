@@ -1,0 +1,1 @@
+(verifier should not be invoked: pipeline halts at check stage on NO_GO)

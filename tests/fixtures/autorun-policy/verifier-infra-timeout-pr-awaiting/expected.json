@@ -1,0 +1,26 @@
+{
+  "fixture": "verifier-infra-timeout-pr-awaiting",
+  "final_state": "pr-awaiting-review",
+  "run_degraded": true,
+  "codex_high_count": 0,
+  "merge_capable": false,
+  "verdict": "GO",
+  "warnings_count": 1,
+  "blocks_count": 0,
+  "security_findings_count": 0,
+  "pr_url": "https://github.com/test/repo/pull/43",
+  "extractor_path": "fence_extracted",
+  "fence_count": 1,
+  "auto_merge_fired": false,
+  "halted_at_stage": null,
+  "expected_warnings": [
+    {
+      "stage": "verify",
+      "axis": "verify_infra",
+      "reason_substring": "exit=124"
+    }
+  ],
+  "policy_resolution_expected": {
+    "verify_infra_policy": "warn"
+  }
+}

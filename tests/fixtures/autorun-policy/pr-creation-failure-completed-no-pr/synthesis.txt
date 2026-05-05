@@ -1,0 +1,16 @@
+OVERALL_VERDICT: GO
+
+# Synthesis — PR-creation-failure fixture
+
+All five reviewer personas concurred. No blocking findings, no security findings.
+
+```check-verdict
+{
+  "schema_version": 1,
+  "prompt_version": "check-verdict@1.0",
+  "verdict": "GO",
+  "blocking_findings": [],
+  "security_findings": [],
+  "summary": "All reviewers GO; PR creation will fail in this fixture."
+}
+```

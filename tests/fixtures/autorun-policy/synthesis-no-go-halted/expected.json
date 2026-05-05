@@ -1,0 +1,25 @@
+{
+  "fixture": "synthesis-no-go-halted",
+  "final_state": "halted-at-stage",
+  "halted_at_stage": "check",
+  "run_degraded": false,
+  "merge_capable": false,
+  "verdict": "NO_GO",
+  "warnings_count": 0,
+  "blocks_count": 1,
+  "security_findings_count": 0,
+  "pr_url": null,
+  "extractor_path": "fence_extracted",
+  "fence_count": 1,
+  "auto_merge_fired": false,
+  "verify_invoked": false,
+  "pr_create_invoked": false,
+  "expected_blocks": [
+    {
+      "stage": "check",
+      "axis": "verdict",
+      "reason_substring": "NO_GO"
+    }
+  ],
+  "notes": "NO_GO is a hardcoded block per spec line 359 — fires regardless of verdict_policy."
+}

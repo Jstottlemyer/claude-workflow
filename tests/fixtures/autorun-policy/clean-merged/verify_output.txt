@@ -1,0 +1,3 @@
+PASS tests/test-clean-merged.sh
+PASS tests/run-tests.sh (1/1 green)
+Verifier completed in 4.2s. All assertions hold.

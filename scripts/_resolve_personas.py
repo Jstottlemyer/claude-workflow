@@ -30,7 +30,7 @@ from typing import Any
 SEED: dict[str, list[str]] = {
     "spec-review": ["requirements", "gaps", "scope", "ambiguity", "feasibility", "stakeholders"],
     "plan": ["integration", "api", "data-model", "security", "ux", "scalability", "wave-sequencer"],
-    "check": ["scope-discipline", "risk", "completeness", "sequencing", "testability"],
+    "check": ["scope-discipline", "risk", "completeness", "sequencing", "testability", "security-architect"],
 }
 
 VALID_GATES = set(SEED.keys())
