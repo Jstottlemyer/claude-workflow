@@ -13,6 +13,7 @@ parse_flags() {
     NO_ONBOARD=0
     FORCE_ONBOARD=0
     NON_INTERACTIVE_FLAG=0   # explicit --non-interactive
+    RECONFIGURE_BUDGET=0     # account-type-agent-scaling
 
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -23,6 +24,7 @@ parse_flags() {
             --non-interactive)     NON_INTERACTIVE_FLAG=1 ;;
             --no-onboard)          NO_ONBOARD=1 ;;
             --force-onboard)       FORCE_ONBOARD=1 ;;
+            --reconfigure-budget)  RECONFIGURE_BUDGET=1 ;;
             *)                     echo "Unknown flag: $1" >&2; echo "Run with --help for usage." >&2; exit 2 ;;
         esac
         shift
@@ -63,6 +65,9 @@ Flags:
   --non-interactive       Disable all prompts; auto-detected when stdin is not a TTY
   --no-onboard            Suppress onboard panel
   --force-onboard         Run onboard panel even under --non-interactive
+  --reconfigure-budget    Re-run only the agent-budget Q&A (writes
+                          ~/.config/monsterflow/config.json); short-circuits
+                          all other install steps. See docs/budget.md.
 
 Env vars:
   MONSTERFLOW_OWNER=1|0           Force owner/adopter mode (test ergonomics)
@@ -77,6 +82,151 @@ HELP
 # === Block 1: Flag Parse (no I/O yet) ===
 parse_flags "$@"
 [ "$SHOW_HELP" = "1" ] && { print_help; exit 0; }
+
+# === Agent-budget Q&A (account-type-agent-scaling) ===
+# Gated behind --reconfigure-budget. Short-circuits all other install steps so
+# users can re-tune budget/pins without re-running symlink + brew + theme.
+# See docs/budget.md for the full schema and reset paths.
+prompt_budget_qa() {
+    local repo_dir="$1"
+    local resolver="$repo_dir/scripts/resolve-personas.sh"
+    if [ ! -x "$resolver" ]; then
+        echo "✗ resolve-personas.sh not found at $resolver" >&2
+        echo "  Re-clone the repo or run install.sh without --reconfigure-budget first." >&2
+        return 1
+    fi
+
+    local config_dir="$HOME/.config/monsterflow"
+    local config_file="$config_dir/config.json"
+    mkdir -p "$config_dir"
+
+    echo ""
+    echo "=== Agent Budget Configuration ==="
+    echo ""
+    echo "Per-gate Claude persona cap. Codex-adversary is additive (not counted)."
+    echo "Range: 1–8. Higher = more reviewers per gate, more tokens."
+    echo ""
+
+    local pro_answer pro_default_budget
+    read -rp "Are you on the Claude Pro plan (\$20/mo)? Pro has tighter rate limits. [y/N]: " pro_answer
+    if [[ "$pro_answer" =~ ^[Yy]$ ]]; then
+        pro_default_budget=3
+        local tier_hint="pro"
+    else
+        pro_default_budget=6
+        local tier_hint="free-or-max"
+    fi
+
+    local budget
+    while :; do
+        read -rp "How many Claude personas per gate? [default: $pro_default_budget]: " budget
+        budget="${budget:-$pro_default_budget}"
+        if ! [[ "$budget" =~ ^[0-9]+$ ]]; then
+            echo "  ✗ must be an integer 1–8"
+            continue
+        fi
+        if [ "$budget" -lt 1 ] || [ "$budget" -gt 8 ]; then
+            echo "  ✗ out of range; must be 1–8"
+            continue
+        fi
+        break
+    done
+
+    # Per-gate pin prompts. Validate against on-disk personas (per the locked
+    # qualifying-row definition in docs/specs/account-type-agent-scaling/spec.md).
+    declare -a GATES=(spec-review plan check)
+    declare -a GATE_DIRS=(review plan check)
+    declare -a GATE_DEFAULTS=(requirements integration scope-discipline)
+    local pins_json="{}"
+    local i=0
+    for gate in "${GATES[@]}"; do
+        local persona_dir="$repo_dir/personas/${GATE_DIRS[$i]}"
+        local available=""
+        if [ -d "$persona_dir" ]; then
+            available="$(cd "$persona_dir" && ls *.md 2>/dev/null | sed 's/\.md$//' | tr '\n' ' ')"
+        fi
+        local default_pin="${GATE_DEFAULTS[$i]}"
+        echo ""
+        echo "Gate: $gate"
+        echo "  available: $available"
+        local pin_input
+        while :; do
+            read -rp "  Default pin for $gate (always runs first; blank to skip) [default: $default_pin]: " pin_input
+            pin_input="${pin_input:-$default_pin}"
+            if [ "$pin_input" = "none" ] || [ "$pin_input" = "-" ]; then
+                pin_input=""
+                break
+            fi
+            # Validate against on-disk
+            if [ -f "$persona_dir/$pin_input.md" ]; then
+                break
+            fi
+            echo "  ✗ '$pin_input' not in personas/${GATE_DIRS[$i]}/ — try one of: $available"
+        done
+        if [ -n "$pin_input" ]; then
+            pins_json=$(python3 -c "
+import json, sys
+d = json.loads('''$pins_json''')
+d['$gate'] = ['$pin_input']
+print(json.dumps(d))
+")
+        fi
+        i=$((i + 1))
+    done
+
+    # Atomic write — preserve unknown keys via read-modify-write.
+    local tmp="$config_file.tmp.$$"
+    python3 - "$config_file" "$tmp" "$budget" "$tier_hint" "$pins_json" <<'PY'
+import json, os, sys
+config_file, tmp, budget, tier_hint, pins_json = sys.argv[1:6]
+existing = {}
+if os.path.exists(config_file):
+    try:
+        with open(config_file) as f:
+            existing = json.load(f)
+    except Exception:
+        existing = {}
+existing['$schema_version'] = 1
+existing['agent_budget'] = int(budget)
+existing['persona_pins'] = json.loads(pins_json)
+existing['tier_hint'] = tier_hint
+existing.setdefault('codex_disabled', False)
+with open(tmp, 'w') as f:
+    json.dump(existing, f, indent=2)
+    f.write('\n')
+    f.flush()
+    os.fsync(f.fileno())
+os.replace(tmp, config_file)
+PY
+
+    chmod 644 "$config_file" 2>/dev/null || true
+
+    echo ""
+    echo "✓ Wrote $config_file"
+    echo ""
+    echo "  agent_budget = $budget   tier_hint = $tier_hint"
+    echo ""
+    echo "Reset paths:"
+    echo "  - Re-run:  bash $repo_dir/install.sh --reconfigure-budget"
+    echo "  - Tell Claude:  \"Reconfigure my agent budget\" (Claude calls this same flag)"
+    echo "  - Manual:  edit $config_file (schema: bash $repo_dir/scripts/resolve-personas.sh --print-schema)"
+    echo ""
+    echo "Note: Codex-adversary runs in addition to your budget when authenticated."
+    echo "      Disable with codex_disabled=true in config.json or MONSTERFLOW_DISABLE_BUDGET=1 (full kill switch)."
+}
+
+if [ "$RECONFIGURE_BUDGET" = "1" ]; then
+    BUDGET_REPO_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+    if [ -t 0 ]; then
+        prompt_budget_qa "$BUDGET_REPO_DIR" || exit $?
+        exit 0
+    else
+        echo "✗ --reconfigure-budget requires an interactive terminal (TTY)." >&2
+        echo "  For headless config, edit ~/.config/monsterflow/config.json directly." >&2
+        echo "  Schema: bash $BUDGET_REPO_DIR/scripts/resolve-personas.sh --print-schema" >&2
+        exit 1
+    fi
+fi
 
 # === Block 2: OS Guards (no repo I/O yet) ===
 if [ "$(uname)" != "Darwin" ]; then
