@@ -234,6 +234,36 @@ MONSTERFLOW_DISABLE_BUDGET=1 autorun
 
 This is an **emergency kill switch** — leaves config untouched.
 
+### Resolver fails interactively (AC #7)
+
+In an interactive session (TTY attached, `AUTORUN` unset), the gate command
+applies `commands/_prompts/_resolver-recovery.md` instead of aborting. The
+canonical fragment presents three options:
+
+```
+Resolver script failed (exit <N>). Options:
+  (1) reconfigure now    — re-run install.sh --reconfigure-budget, then retry the gate
+  (2) continue with seed — dispatch the per-gate seed list (no rankings, no pins)
+  (3) abort gate         — exit non-zero, leave config untouched
+
+Choose [1/2/3]:
+```
+
+- **Option (1)** invokes `install.sh --reconfigure-budget` in the foreground
+  and re-runs the resolver once. One retry only — looping prompts on
+  repeated failure leads to infinite loops in flaky environments.
+- **Option (2)** fetches the seed list via
+  `bash scripts/resolve-personas.sh <gate> --print-seed` and proceeds with
+  dispatch. No rankings, no pins, no Codex (the resolver owns the auth
+  probe). Prints a one-line warning so the seed-mode run is auditable.
+- **Option (3)** exits non-zero with the resolver's exit code.
+
+Plan decision **D6** drops the originally-spec'd "disable budget for this
+run" option (which would have silently restored the full roster) — that
+behavior contradicted AC #7's no-silent-restore clause. The kill switch is
+now the explicit env var `MONSTERFLOW_DISABLE_BUDGET=1`, set by the user
+before the gate runs.
+
 ### "pin '<name>' not found in personas/<gate>/"
 
 You configured a pin that doesn't match a `.md` file on disk. The

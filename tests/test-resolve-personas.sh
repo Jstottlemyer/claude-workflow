@@ -453,6 +453,97 @@ case_32_emit_json_no_feature() {
     case_done "$name" "$status"
 }
 
+# AC #7 — recovery prompt support: --print-seed lets the recovery fragment's
+# "(2) continue with seed" option fetch the canonical per-gate seed list
+# without re-implementing it in shell. Coverage:
+#   - happy path: each gate emits its full seed list (newline-separated)
+#   - exit code: 0 on success, 4 on missing/invalid gate
+#   - codex never appears (Codex is owned by the resolver's auth probe)
+
+case_33_print_seed_spec_review() {
+    setup_case
+    local name="33: --print-seed spec-review emits 6 names"
+    local exit_code; exit_code=$(run_resolver spec-review --print-seed)
+    local status=ok
+    assert_exit "$name" 0 "$exit_code" || status=fail
+    assert_stdout_lines "$name" 6 || status=fail
+    assert_first_line "$name" "requirements" || status=fail
+    assert_stdout_lacks "$name" "codex-adversary" || status=fail
+    case_done "$name" "$status"
+}
+
+case_34_print_seed_plan() {
+    setup_case
+    local name="34: --print-seed plan emits 7 names (wave-sequencer present)"
+    local exit_code; exit_code=$(run_resolver plan --print-seed)
+    local status=ok
+    assert_exit "$name" 0 "$exit_code" || status=fail
+    assert_stdout_lines "$name" 7 || status=fail
+    assert_stdout_contains "$name" "wave-sequencer" || status=fail
+    case_done "$name" "$status"
+}
+
+case_35_print_seed_check() {
+    setup_case
+    local name="35: --print-seed check emits 5 names"
+    local exit_code; exit_code=$(run_resolver check --print-seed)
+    local status=ok
+    assert_exit "$name" 0 "$exit_code" || status=fail
+    assert_stdout_lines "$name" 5 || status=fail
+    assert_first_line "$name" "scope-discipline" || status=fail
+    case_done "$name" "$status"
+}
+
+case_36_print_seed_invalid_gate() {
+    setup_case
+    local name="36: --print-seed without gate → exit 4"
+    local exit_code; exit_code=$(run_resolver --print-seed)
+    local status=ok
+    assert_exit "$name" 4 "$exit_code" || status=fail
+    case_done "$name" "$status"
+}
+
+case_37_print_seed_unknown_gate() {
+    setup_case
+    local name="37: --print-seed bogus-gate → exit 4"
+    local exit_code; exit_code=$(run_resolver bogus-gate --print-seed)
+    local status=ok
+    assert_exit "$name" 4 "$exit_code" || status=fail
+    case_done "$name" "$status"
+}
+
+# AC #7 — recovery-fragment wiring: the canonical fragment file exists and is
+# referenced by all three gate command files. Without these references, AC #7
+# has no callable surface in interactive mode.
+case_38_recovery_fragment_exists() {
+    setup_case
+    local name="38: _resolver-recovery.md fragment exists and is referenced"
+    local fragment="$REPO_DIR/commands/_prompts/_resolver-recovery.md"
+    local status=ok
+    if [ ! -f "$fragment" ]; then
+        FAIL=$(( FAIL + 1 ))
+        FAILED_CASES+=("$name: fragment $fragment missing")
+        status=fail
+    fi
+    for cmd in spec-review plan check; do
+        if ! grep -q "_resolver-recovery.md" "$REPO_DIR/commands/$cmd.md"; then
+            FAIL=$(( FAIL + 1 ))
+            FAILED_CASES+=("$name: commands/$cmd.md does not reference _resolver-recovery.md")
+            status=fail
+        fi
+    done
+    # Fragment must enumerate the three options and explicitly forbid silent
+    # full-roster restoration (per AC #7 + plan D6 / SP3).
+    for needle in "reconfigure now" "continue with seed" "abort gate"; do
+        if ! grep -qF "$needle" "$fragment"; then
+            FAIL=$(( FAIL + 1 ))
+            FAILED_CASES+=("$name: fragment missing recovery option text '$needle'")
+            status=fail
+        fi
+    done
+    case_done "$name" "$status"
+}
+
 ##############################################################################
 # Main
 ##############################################################################
@@ -481,6 +572,12 @@ case_29_disable_budget_kill_switch
 case_30_emit_selection_json
 case_31_invalid_gate
 case_32_emit_json_no_feature
+case_33_print_seed_spec_review
+case_34_print_seed_plan
+case_35_print_seed_check
+case_36_print_seed_invalid_gate
+case_37_print_seed_unknown_gate
+case_38_recovery_fragment_exists
 
 echo ""
 echo "=========================================="

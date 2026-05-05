@@ -51,7 +51,7 @@ SELECTED=$(bash <REPO_DIR>/scripts/resolve-personas.sh check \
 RESOLVER_EXIT=$?
 ```
 
-- If `RESOLVER_EXIT != 0` or stdout empty: **abort the gate** (no silent fallback).
+- If `RESOLVER_EXIT != 0` or stdout empty: apply `commands/_prompts/_resolver-recovery.md` (canonical recovery fragment — interactive: 3-option prompt; non-tty/autorun: abort). No silent seed fallback in headless mode.
 - Dispatch one subagent per line of `$SELECTED` (skipping `codex-adversary`; Codex runs separately at Phase 2b).
 - Resolver writes `docs/specs/<feature>/check/selection.json`.
 - No `agent_budget` in config → full roster (existing behavior).

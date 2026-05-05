@@ -432,6 +432,9 @@ def main() -> int:
     parser.add_argument("--why", action="store_true", help="print reasoning to stderr")
     parser.add_argument("--print-schema", action="store_true",
                         help="emit canonical config.json schema and exit")
+    parser.add_argument("--print-seed", action="store_true",
+                        help="emit the per-gate seed list (newline-separated) and exit; "
+                             "used by the recovery prompt's 'continue with seed' option")
     parser.add_argument("--unlock-budget", action="store_true",
                         help="delete the .budget-lock.json for the given --feature")
     parser.add_argument("--emit-selection-json", action="store_true",
@@ -440,6 +443,14 @@ def main() -> int:
 
     if args.print_schema:
         emit_schema()
+        return 0
+
+    if args.print_seed:
+        if not args.gate or args.gate not in VALID_GATES:
+            warn("--print-seed requires gate (one of: spec-review, plan, check)")
+            return 4
+        for name in SEED[args.gate]:
+            print(name)
         return 0
 
     if not args.gate:
