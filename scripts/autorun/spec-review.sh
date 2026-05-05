@@ -40,17 +40,64 @@ AUTONOMY_DIRECTIVE="You are running in fully autonomous overnight mode. At every
 
 SPEC_CONTENT="$(cat "$SPEC_FILE")"
 
-# Discover personas from disk — never hardcode names so adopter forks stay safe
-PERSONA_FILES=()
-while IFS= read -r -d '' f; do
-  PERSONA_FILES+=("$f")
-done < <(find "$REPO_DIR/personas/review" -name '*.md' -print0 | sort -z)
+# ---------------------------------------------------------------------------
+# Resolve which personas to dispatch (account-type-agent-scaling)
+#
+# resolve-personas.sh reads ~/.config/monsterflow/config.json + rankings +
+# per-feature lock to select a budget-bounded persona list. When the user
+# hasn't configured a budget, the resolver emits the full on-disk roster
+# (existing behavior — AC1 of the spec).
+#
+# Per spec AC #8 and plan §3/§4.2: AUTORUN aborts on resolver non-zero.
+# No silent seed fallback. Operator must fix config and re-run.
+# Kill switch for emergencies: MONSTERFLOW_DISABLE_BUDGET=1 (full roster).
+# ---------------------------------------------------------------------------
+RESOLVER_ERR="$(mktemp "${TMPDIR:-/tmp}/autorun-spec-review-resolver-XXXXXX.err")"
+RESOLVER_EXIT=0
+SELECTED_RAW="$(bash "$REPO_DIR/scripts/resolve-personas.sh" spec-review \
+                  --feature "$SLUG" --emit-selection-json 2>"$RESOLVER_ERR")" \
+  || RESOLVER_EXIT=$?
+if [ "$RESOLVER_EXIT" -ne 0 ]; then
+  echo "[autorun] spec-review: ERROR — resolver exited $RESOLVER_EXIT" >&2
+  if [ -s "$RESOLVER_ERR" ]; then
+    sed 's/^/  /' "$RESOLVER_ERR" >&2
+  fi
+  rm -f "$RESOLVER_ERR"
+  exit 1
+fi
+rm -f "$RESOLVER_ERR"
+# Filter codex-adversary (additive; autorun handles Codex separately in run.sh).
+SELECTED_PERSONAS=()
+while IFS= read -r line; do
+  [ -z "$line" ] && continue
+  [ "$line" = "codex-adversary" ] && continue
+  SELECTED_PERSONAS+=("$line")
+done <<< "$SELECTED_RAW"
 
-if [ "${#PERSONA_FILES[@]}" -eq 0 ]; then
-  echo "[autorun] spec-review: ERROR — no persona files found in personas/review/" >&2
+if [ "${#SELECTED_PERSONAS[@]}" -eq 0 ]; then
+  echo "[autorun] spec-review: ERROR — resolver emitted zero Claude personas" >&2
   exit 1
 fi
 
+# Build persona-file list from the resolved names. Skip names whose file is
+# missing (resolver should not produce these; defensive). spec-review uses
+# personas/review/ on disk per CLAUDE.md gate→dir mapping.
+PERSONA_FILES=()
+for name in "${SELECTED_PERSONAS[@]}"; do
+  pf="$REPO_DIR/personas/review/$name.md"
+  if [ -f "$pf" ]; then
+    PERSONA_FILES+=("$pf")
+  else
+    echo "[autorun] spec-review: WARN — persona file missing: $pf" >&2
+  fi
+done
+
+if [ "${#PERSONA_FILES[@]}" -eq 0 ]; then
+  echo "[autorun] spec-review: ERROR — no persona files found for resolved set" >&2
+  exit 1
+fi
+
+echo "[autorun] spec-review: resolver selected: ${SELECTED_PERSONAS[*]}"
 echo "[autorun] spec-review: launching ${#PERSONA_FILES[@]} personas in parallel (timeout=${TIMEOUT_PERSONA}s each)"
 
 # ---------------------------------------------------------------------------

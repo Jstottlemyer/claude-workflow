@@ -229,6 +229,35 @@ print(hashlib.sha256('\n'.join(canon).encode('utf-8')).hexdigest())
     echo '```'
     echo ""
 
+    echo "## Agent Budget"
+    echo '```'
+    BUDGET_CONFIG="$HOME/.config/monsterflow/config.json"
+    if [ -f "$BUDGET_CONFIG" ]; then
+        echo "Path: $BUDGET_CONFIG"
+        echo ""
+        cat "$BUDGET_CONFIG" 2>&1
+        echo ""
+        # Validate against current schema
+        if [ -x "$SCRIPT_DIR/resolve-personas.sh" ]; then
+            echo "--- resolver self-check (gate=check) ---"
+            bash "$SCRIPT_DIR/resolve-personas.sh" check --why 2>&1 | head -10 || true
+        fi
+    else
+        echo "(no agent-budget config — full roster dispatched per gate)"
+        echo ""
+        echo "To configure: bash $SCRIPT_DIR/../install.sh --reconfigure-budget"
+        echo "Reference:    docs/budget.md"
+    fi
+    # Upgrade nudge: check whether the resolver script is present in the
+    # installed clone (existing users who pulled before the feature landed
+    # never re-run install.sh).
+    if [ ! -x "$SCRIPT_DIR/resolve-personas.sh" ]; then
+        echo ""
+        echo "⚠ resolve-personas.sh missing — run install.sh to update symlinks"
+    fi
+    echo '```'
+    echo ""
+
     echo "## Workflow Clone State"
     echo '```'
     CLONE="$HOME/Projects/MonsterFlow"

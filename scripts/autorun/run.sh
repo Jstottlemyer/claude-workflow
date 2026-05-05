@@ -155,132 +155,157 @@ run_item() {
     # -------------------------------------------------------------------------
     # Stage 1: spec-review
     # -------------------------------------------------------------------------
-    update_stage "spec-review"
-    write_state "spec-review"
+    if [ -f "$ARTIFACT_DIR/review-findings.md" ]; then
+        echo "[autorun] $SLUG: review-findings.md present — resuming past spec-review"
+    else
+        update_stage "spec-review"
+        write_state "spec-review"
 
-    local STAGE_EXIT=0
-    bash "$ENGINE_DIR/scripts/autorun/spec-review.sh" || STAGE_EXIT=$?
-    log_run "$SLUG" "spec-review" "$STAGE_EXIT"
+        local STAGE_EXIT=0
+        bash "$ENGINE_DIR/scripts/autorun/spec-review.sh" || STAGE_EXIT=$?
+        log_run "$SLUG" "spec-review" "$STAGE_EXIT"
 
-    if [ "$STAGE_EXIT" -eq 2 ]; then
-        echo "[autorun] $SLUG: spec-review threshold exceeded — skipping to next item"
-        write_failure_item "spec-review" "threshold exceeded"
-        return 0
-    elif [ "$STAGE_EXIT" -ne 0 ]; then
-        echo "[autorun] $SLUG: spec-review failed (exit $STAGE_EXIT)"
-        write_failure_item "spec-review" "exit $STAGE_EXIT"
-        return 0
-    fi
+        if [ "$STAGE_EXIT" -eq 2 ]; then
+            echo "[autorun] $SLUG: spec-review threshold exceeded — skipping to next item"
+            write_failure_item "spec-review" "threshold exceeded"
+            return 0
+        elif [ "$STAGE_EXIT" -ne 0 ]; then
+            echo "[autorun] $SLUG: spec-review failed (exit $STAGE_EXIT)"
+            write_failure_item "spec-review" "exit $STAGE_EXIT"
+            return 0
+        fi
 
-    # spec-review.sh can exit 0 without producing review-findings.md when
-    # neither review.md nor raw persona files are written. Treat that as
-    # failure — otherwise risk-analysis appends to a never-created file
-    # and planning proceeds without spec-review evidence.
-    if [ ! -f "$ARTIFACT_DIR/review-findings.md" ]; then
-        echo "[autorun] $SLUG: spec-review exited 0 but review-findings.md missing — treating as failure"
-        write_failure_item "spec-review" "review-findings.md not produced"
-        return 0
+        # spec-review.sh can exit 0 without producing review-findings.md when
+        # neither review.md nor raw persona files are written. Treat that as
+        # failure — otherwise risk-analysis appends to a never-created file
+        # and planning proceeds without spec-review evidence.
+        if [ ! -f "$ARTIFACT_DIR/review-findings.md" ]; then
+            echo "[autorun] $SLUG: spec-review exited 0 but review-findings.md missing — treating as failure"
+            write_failure_item "spec-review" "review-findings.md not produced"
+            return 0
+        fi
     fi
 
     # -------------------------------------------------------------------------
     # Stage 1b: risk-analysis (non-fatal)
     # -------------------------------------------------------------------------
-    update_stage "risk-analysis"
-    write_state "risk-analysis"
-
-    STAGE_EXIT=0
-    bash "$ENGINE_DIR/scripts/autorun/risk-analysis.sh" || STAGE_EXIT=$?
-    log_run "$SLUG" "risk-analysis" "$STAGE_EXIT"
-
-    if [ "$STAGE_EXIT" -ne 0 ]; then
-        echo "[autorun] $SLUG: risk-analysis failed (exit $STAGE_EXIT) — continuing without risk findings"
-        # Non-fatal: create empty risk-findings.md so plan.sh can proceed
-        printf '# Risk Analysis\n(risk-analysis failed — skipped)\n' > "$ARTIFACT_DIR/risk-findings.md" || true
-    fi
-
-    # Merge risk-findings into review-findings (for plan.sh)
     if [ -f "$ARTIFACT_DIR/risk-findings.md" ]; then
-        {
-            echo ""
-            echo "---"
-            echo "## Risk Analysis"
-            echo ""
-            cat "$ARTIFACT_DIR/risk-findings.md"
-        } >> "$ARTIFACT_DIR/review-findings.md"
-        echo "[autorun] $SLUG: merged risk-findings.md into review-findings.md"
+        echo "[autorun] $SLUG: risk-findings.md present — resuming past risk-analysis"
+    else
+        update_stage "risk-analysis"
+        write_state "risk-analysis"
+
+        STAGE_EXIT=0
+        bash "$ENGINE_DIR/scripts/autorun/risk-analysis.sh" || STAGE_EXIT=$?
+        log_run "$SLUG" "risk-analysis" "$STAGE_EXIT"
+
+        if [ "$STAGE_EXIT" -ne 0 ]; then
+            echo "[autorun] $SLUG: risk-analysis failed (exit $STAGE_EXIT) — continuing without risk findings"
+            # Non-fatal: create empty risk-findings.md so plan.sh can proceed
+            printf '# Risk Analysis\n(risk-analysis failed — skipped)\n' > "$ARTIFACT_DIR/risk-findings.md" || true
+        fi
+
+        # Merge risk-findings into review-findings (for plan.sh)
+        if [ -f "$ARTIFACT_DIR/risk-findings.md" ]; then
+            {
+                echo ""
+                echo "---"
+                echo "## Risk Analysis"
+                echo ""
+                cat "$ARTIFACT_DIR/risk-findings.md"
+            } >> "$ARTIFACT_DIR/review-findings.md"
+            echo "[autorun] $SLUG: merged risk-findings.md into review-findings.md"
+        fi
     fi
 
     # -------------------------------------------------------------------------
     # Stage 2: plan
     # -------------------------------------------------------------------------
-    update_stage "plan"
-    write_state "plan"
+    if [ -f "$ARTIFACT_DIR/plan.md" ]; then
+        echo "[autorun] $SLUG: plan.md present — resuming past plan (manual edits preserved)"
+    else
+        update_stage "plan"
+        write_state "plan"
 
-    STAGE_EXIT=0
-    bash "$ENGINE_DIR/scripts/autorun/plan.sh" || STAGE_EXIT=$?
-    log_run "$SLUG" "plan" "$STAGE_EXIT"
+        STAGE_EXIT=0
+        bash "$ENGINE_DIR/scripts/autorun/plan.sh" || STAGE_EXIT=$?
+        log_run "$SLUG" "plan" "$STAGE_EXIT"
 
-    if [ "$STAGE_EXIT" -ne 0 ]; then
-        echo "[autorun] $SLUG: plan failed (exit $STAGE_EXIT)"
-        write_failure_item "plan" "exit $STAGE_EXIT"
-        return 0
+        if [ "$STAGE_EXIT" -ne 0 ]; then
+            echo "[autorun] $SLUG: plan failed (exit $STAGE_EXIT)"
+            write_failure_item "plan" "exit $STAGE_EXIT"
+            return 0
+        fi
     fi
 
     # -------------------------------------------------------------------------
     # Stage 3: check (gate — exit 2 = NO-GO)
+    # Skip only when check.md exists AND verdict is GO (no NO-GO in content).
+    # A NO-GO check.md means the plan was fixed and check must re-run.
     # -------------------------------------------------------------------------
-    update_stage "check"
-    write_state "check"
-
-    STAGE_EXIT=0
-    bash "$ENGINE_DIR/scripts/autorun/check.sh" || STAGE_EXIT=$?
-    log_run "$SLUG" "check" "$STAGE_EXIT"
-
-    if [ "$STAGE_EXIT" -eq 2 ]; then
-        echo "[autorun] $SLUG: check returned NO-GO — skipping build"
-        write_failure_item "check" "NO-GO verdict"
-        return 0
-    elif [ "$STAGE_EXIT" -ne 0 ]; then
-        echo "[autorun] $SLUG: check failed (exit $STAGE_EXIT)"
-        write_failure_item "check" "exit $STAGE_EXIT"
-        return 0
-    fi
-
-    # --- Branch setup (before build) ---
-    # Create or reset the autorun branch for this item
-    update_stage "branch-setup"
-    BRANCH_NAME="autorun/$SLUG"
-    git -C "$PROJECT_DIR" fetch origin main 2>/dev/null \
-      && BASE_REF="origin/main" \
-      || { echo "[autorun] $SLUG: WARN — could not fetch origin/main — using local main"; BASE_REF="main"; }
-    if git -C "$PROJECT_DIR" rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
-        # Branch exists — reset to upstream main to start fresh
-        git -C "$PROJECT_DIR" checkout "$BRANCH_NAME"
-        git -C "$PROJECT_DIR" reset --hard "$BASE_REF"
-        echo "[autorun] $SLUG: reset existing branch $BRANCH_NAME to $BASE_REF"
+    if [ -f "$ARTIFACT_DIR/check.md" ] && ! grep -qi "NO-GO\|NO GO" "$ARTIFACT_DIR/check.md" 2>/dev/null; then
+        echo "[autorun] $SLUG: check.md present with GO verdict — resuming past check"
     else
-        git -C "$PROJECT_DIR" checkout -b "$BRANCH_NAME" "$BASE_REF"
-        echo "[autorun] $SLUG: created branch $BRANCH_NAME from $BASE_REF"
+        update_stage "check"
+        write_state "check"
+
+        STAGE_EXIT=0
+        bash "$ENGINE_DIR/scripts/autorun/check.sh" || STAGE_EXIT=$?
+        log_run "$SLUG" "check" "$STAGE_EXIT"
+
+        if [ "$STAGE_EXIT" -eq 2 ]; then
+            echo "[autorun] $SLUG: check returned NO-GO — skipping build"
+            write_failure_item "check" "NO-GO verdict"
+            return 0
+        elif [ "$STAGE_EXIT" -ne 0 ]; then
+            echo "[autorun] $SLUG: check failed (exit $STAGE_EXIT)"
+            write_failure_item "check" "exit $STAGE_EXIT"
+            return 0
+        fi
     fi
 
-    # -------------------------------------------------------------------------
-    # Stage 4: build
-    # -------------------------------------------------------------------------
-    update_stage "build"
-    write_state "build"
+    # --- Branch setup + build (skipped together if build-log exists) ---
+    if [ -f "$ARTIFACT_DIR/build-log.md" ]; then
+        echo "[autorun] $SLUG: build-log.md present — resuming past build"
+        PRE_BUILD_SHA="$(cat "$ARTIFACT_DIR/pre-build-sha.txt" 2>/dev/null || echo "unknown")"
+        WAVE_COUNT="$(grep -c "^## Wave" "$ARTIFACT_DIR/build-log.md" 2>/dev/null || echo "unknown")"
+    else
+        # --- Branch setup (before build) ---
+        # Create or reset the autorun branch for this item
+        update_stage "branch-setup"
+        BRANCH_NAME="autorun/$SLUG"
+        git -C "$PROJECT_DIR" fetch origin main 2>/dev/null \
+          && BASE_REF="origin/main" \
+          || { echo "[autorun] $SLUG: WARN — could not fetch origin/main — using local main"; BASE_REF="main"; }
+        if git -C "$PROJECT_DIR" rev-parse --verify "$BRANCH_NAME" >/dev/null 2>&1; then
+            # Branch exists — reset to upstream main to start fresh
+            git -C "$PROJECT_DIR" checkout "$BRANCH_NAME"
+            git -C "$PROJECT_DIR" reset --hard "$BASE_REF"
+            echo "[autorun] $SLUG: reset existing branch $BRANCH_NAME to $BASE_REF"
+        else
+            git -C "$PROJECT_DIR" checkout -b "$BRANCH_NAME" "$BASE_REF"
+            echo "[autorun] $SLUG: created branch $BRANCH_NAME from $BASE_REF"
+        fi
 
-    STAGE_EXIT=0
-    bash "$ENGINE_DIR/scripts/autorun/build.sh" || STAGE_EXIT=$?
-    log_run "$SLUG" "build" "$STAGE_EXIT"
+        # -------------------------------------------------------------------------
+        # Stage 4: build
+        # -------------------------------------------------------------------------
+        update_stage "build"
+        write_state "build"
 
-    if [ "$STAGE_EXIT" -eq 3 ]; then
-        # STOP file: clean halt — bubble up to the main loop
-        echo "[autorun] $SLUG: build requested clean halt (STOP file)"
-        return 3
-    elif [ "$STAGE_EXIT" -ne 0 ]; then
-        # failure.md already written by build.sh
-        echo "[autorun] $SLUG: build failed (exit $STAGE_EXIT)"
-        return 0
+        STAGE_EXIT=0
+        bash "$ENGINE_DIR/scripts/autorun/build.sh" || STAGE_EXIT=$?
+        log_run "$SLUG" "build" "$STAGE_EXIT"
+
+        if [ "$STAGE_EXIT" -eq 3 ]; then
+            # STOP file: clean halt — bubble up to the main loop
+            echo "[autorun] $SLUG: build requested clean halt (STOP file)"
+            return 3
+        elif [ "$STAGE_EXIT" -ne 0 ]; then
+            # failure.md already written by build.sh
+            echo "[autorun] $SLUG: build failed (exit $STAGE_EXIT)"
+            return 0
+        fi
     fi
 
     # --- Stage 5: Create PR ---
@@ -290,8 +315,14 @@ run_item() {
         echo "[autorun] $SLUG: STOP file detected before PR creation — halting"
         return 3
     fi
-    update_stage "pr-creation"
-    write_state "pr-creation"
+
+    if [ -f "$ARTIFACT_DIR/pr-url.txt" ]; then
+        echo "[autorun] $SLUG: pr-url.txt present — resuming past PR creation"
+        PRE_BUILD_SHA="$(cat "$ARTIFACT_DIR/pre-build-sha.txt" 2>/dev/null || echo "unknown")"
+        WAVE_COUNT="$(grep -c "^## Wave" "$ARTIFACT_DIR/build-log.md" 2>/dev/null || echo "unknown")"
+    else
+        update_stage "pr-creation"
+        write_state "pr-creation"
 
     # Push branch to remote before creating PR (gh pr create requires the branch to exist remotely)
     PUSH_EXIT=0
@@ -348,13 +379,19 @@ PRBODY
         write_failure_item "pr-creation" "PR creation failed (exit $STAGE_EXIT)"
         return 0
     fi
+    fi  # end pr-url.txt skip block
 
     # --- Stage 6: Codex review (if available) ---
-    CODEX_OUTPUT_FILE="${TMPDIR:-/tmp}/codex-autorun-review-${SLUG}.txt"
+    CODEX_OUTPUT_FILE="$ARTIFACT_DIR/codex-review.md"  # persisted so resume can skip
     CODEX_AVAILABLE=0
     CODEX_HIGH_COUNT=0
 
-    if command -v codex >/dev/null 2>&1; then
+    if [ -f "$CODEX_OUTPUT_FILE" ]; then
+        echo "[autorun] $SLUG: codex-review.md present — resuming past Codex review"
+        CODEX_AVAILABLE=1
+        CODEX_HIGH_COUNT="$(grep -c '^\*\*High:\*\*' "$CODEX_OUTPUT_FILE" 2>/dev/null || true)"
+        CODEX_HIGH_COUNT="${CODEX_HIGH_COUNT:-0}"
+    elif command -v codex >/dev/null 2>&1; then
         update_stage "codex-review"
         write_state "codex-review"
 

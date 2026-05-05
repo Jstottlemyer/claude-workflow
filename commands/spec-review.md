@@ -33,15 +33,25 @@ Before reviewer agents dispatch, run the snapshot directive at `commands/_prompt
 
 If snapshot refuses, halt the phase — do not dispatch reviewers.
 
-## Phase 1: Dispatch 6 PRD Reviewer Agents
+## Phase 0b: Resolve persona budget (account-type-agent-scaling)
 
-Read these 6 persona files, then dispatch 6 parallel subagents using the Agent tool:
-- `~/.claude/personas/review/requirements.md`
-- `~/.claude/personas/review/gaps.md`
-- `~/.claude/personas/review/ambiguity.md`
-- `~/.claude/personas/review/feasibility.md`
-- `~/.claude/personas/review/scope.md`
-- `~/.claude/personas/review/stakeholders.md`
+Before dispatching reviewers, run the resolver to determine which personas to dispatch:
+
+```bash
+SELECTED=$(bash <REPO_DIR>/scripts/resolve-personas.sh spec-review \
+             --feature "<feature-slug>" --emit-selection-json)
+RESOLVER_EXIT=$?
+```
+
+- If `RESOLVER_EXIT != 0` or stdout is empty: apply `commands/_prompts/_resolver-recovery.md` (canonical recovery fragment — interactive sessions get a 3-option prompt; non-tty/autorun aborts the gate). Do **not** silently fall back to a hardcoded list — that would defeat the budget.
+- Otherwise, dispatch one subagent per line of `$SELECTED` (skipping `codex-adversary`, which is handled by Phase 2b).
+- The resolver writes `docs/specs/<feature>/spec-review/selection.json` with the audit row.
+- If `~/.config/monsterflow/config.json` is absent or has no `agent_budget`, the resolver emits the full roster — existing behavior preserved.
+- Print one line to gate stdout: `Selected: <names> | Dropped: <names>` (read these from `selection.json`).
+
+## Phase 1: Dispatch PRD Reviewer Agents
+
+Read each persona file in `<REPO_DIR>/personas/review/` corresponding to a name in `$SELECTED`, then dispatch one parallel subagent per name using the Agent tool. The legacy hardcoded list (requirements, gaps, ambiguity, feasibility, scope, stakeholders) is the resolver's full-roster fallback — when the user has no budget configured, all six dispatch as before.
 
 Each agent receives:
 - The full spec content

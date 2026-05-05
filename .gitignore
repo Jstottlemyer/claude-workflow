@@ -43,3 +43,12 @@ docs/specs/*/check/raw/
 docs/specs/*/check/source.plan.md
 docs/specs/*/.persona-metrics-warned
 # END persona-metrics
+
+# BEGIN agent-budget (MonsterFlow)
+# Per-feature budget snapshots — machine-local, not source of truth.
+docs/specs/*/.budget-lock.json
+# Per-gate selection audit — useful for /wrap-insights but not a versioned artifact.
+docs/specs/*/spec-review/selection.json
+docs/specs/*/plan/selection.json
+docs/specs/*/check/selection.json
+# END agent-budget

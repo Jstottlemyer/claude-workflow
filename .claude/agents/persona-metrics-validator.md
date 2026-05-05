@@ -43,6 +43,32 @@ For each `<stage>` ∈ `{spec-review, plan, check}`, validate:
 ### 6. Cross-stage roster consistency
 - A persona that appears in spec-review's participation.jsonl but never in plan/check is suspicious — report as informational.
 
+### 7. Selection audit (`selection.json`) — agent-budget integration
+
+When `docs/specs/<feature>/<stage>/selection.json` exists (written by
+`scripts/resolve-personas.sh --emit-selection-json`), read it and apply:
+
+- **Distinguish budget-dropped from failed-to-run.** Personas in
+  `selection.json.dropped[]` are intentionally not dispatched (budget cap)
+  — they are NOT participation failures. Exclude them from the drift
+  denominator.
+- **Drift baseline lock.** A feature contributes to the cross-feature drift
+  baseline ONLY when `selection_method == "full"` (i.e. user has no budget
+  configured, full roster dispatched). Features with
+  `selection_method ∈ {rankings, seed, locked}` participate in their own
+  drift snapshot but do NOT establish baseline norms — including them
+  collapses the baseline as adopters configure budgets.
+- **Codex status reconciliation.** `selection.json.codex_status` should
+  match the presence/absence of `codex-adversary` in `participation.jsonl`:
+  `appended` → row present; `not_authenticated`/`missing_binary`/`disabled`
+  → row absent. Mismatch is a warning (not an error — codex auth can flap).
+- **TODO (out-of-scope here, scaffolded):** add a "budget coverage" metric
+  per `(feature, gate)` = `len(selected) / len(selected ∪ dropped)`. Track
+  but do not gate `/wrap-insights` rendering on it.
+
+If `selection.json` is absent for a `(feature, stage)` pair, treat as
+"pre-budget" (legacy run) and apply the old participation-only drift logic.
+
 ## Output Format
 
 ```

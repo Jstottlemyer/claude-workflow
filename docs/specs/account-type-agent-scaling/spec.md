@@ -82,8 +82,8 @@ Alternatives considered:
 - Manual edit: open `~/.config/monsterflow/config.json` directly (schema documented in `docs/budget.md`).
 
 ### Recovery on resolver failure
-- Interactive: *"Resolver script failed. Options: (1) reconfigure now, (2) continue with seed list, (3) disable budget for this run."*
-- Non-tty/headless: logs warning to stderr, proceeds with seed list silently. Does not hang.
+- Interactive (TTY, AUTORUN unset): *"Resolver script failed. Options: (1) reconfigure now, (2) continue with seed list, (3) disable budget for this run."*
+- Non-tty / autorun (`AUTORUN=1` or stdin not a TTY): **resolver exits non-zero; gate ABORTS.** No silent fallback. Per `feedback_dryrun_full_graph.md`: stages must not "succeed" with reduced behavior. Operator must fix config and re-run. Kill switch: `MONSTERFLOW_DISABLE_BUDGET=1` (env) bypasses budget entirely and dispatches the full roster.
 
 ## Data & State
 
@@ -111,10 +111,24 @@ Used when `dashboard/data/persona-rankings.jsonl` has fewer than 1 qualifying ro
 | Gate | Seed order |
 |------|-----------|
 | spec-review | requirements, gaps, scope, ambiguity, feasibility, stakeholders |
-| plan | risk, integration, api, data-model, security, ux, scalability, wave-sequencer |
+| plan | integration, api, data-model, security, ux, scalability, wave-sequencer |
 | check | scope-discipline, risk, completeness, sequencing, testability |
 
-Budget=1 minimum defaults: spec-review → `requirements`, plan → `risk`, check → `scope-discipline`. Shown to user at install and changeable.
+Budget=1 minimum defaults: spec-review → `requirements`, plan → `integration`, check → `scope-discipline`. Shown to user at install and changeable.
+
+> **Note:** `personas/plan/risk.md` does not exist on disk (verified 2026-05-04). The plan-gate seed list contains 7 personas, all present on disk. A future addition of `risk` to the plan roster would require: (a) creating `personas/plan/risk.md`, (b) updating this seed list, and (c) updating the SEED constant in `scripts/resolve-personas.sh`.
+
+### Qualifying row (locked)
+
+A row in `dashboard/data/persona-rankings.jsonl` is *qualifying for gate G* iff:
+- `row.gate == G`
+- `row.insufficient_sample == false`
+- `row.persona != "codex-adversary"` (Codex is additive, never ranked into the budget)
+- `personas/<G>/<row.persona>.md` exists on disk
+
+### Full roster (locked)
+
+The set of `*.md` files under `personas/<gate>/` (disk discovery, identical to autorun's existing discovery model). Used when `agent_budget` is unset/absent in the config — NOT the seed list. This preserves existing-user behavior with zero config.
 
 ### Codex-adversary rule
 Codex is output by `resolve-personas.sh` as a separate entry only when `codex login status` exits 0. It is never counted against `agent_budget`. At budget=1, the effective minimum is: 1 Claude persona + codex-adversary (if authenticated).
@@ -149,8 +163,9 @@ Codex is output by `resolve-personas.sh` as a separate entry only when `codex lo
 | `agent_budget` > available personas for gate | All available personas dispatched. No error. |
 | Rankings absent / < 1 qualifying row | Seed list used up to budget. Logged to stderr: "No rankings data — using seed list." |
 | Codex not authenticated | Codex omitted silently. Budget-N Claude personas only. |
-| Resolver script exits non-zero (interactive) | Recovery prompt: reconfigure / continue with seed / disable for this run. |
-| Resolver script exits non-zero (non-tty) | Warning to stderr. Seed list used. Gate does not hang. |
+| Resolver script exits non-zero (interactive, TTY) | Recovery prompt: reconfigure / continue with seed / disable for this run. |
+| Resolver script exits non-zero (non-tty / autorun) | Gate ABORTS with non-zero exit. No silent seed fallback. |
+| `MONSTERFLOW_DISABLE_BUDGET=1` env set | Resolver bypasses budget entirely; dispatches full roster (kill switch for emergency). |
 | Pin list longer than budget | Install Q&A validates and rejects. If somehow stored, pins are truncated to budget at runtime with a warning. |
 | Persona in pins no longer exists | Skipped at runtime with a warning. Remaining budget filled from rankings/seed. |
 
@@ -162,8 +177,8 @@ Codex is output by `resolve-personas.sh` as a separate entry only when `codex lo
 4. Codex authenticated → codex-adversary appears in gate dispatch in addition to the budget count.
 5. Codex not authenticated → codex-adversary absent; budget-N Claude personas only.
 6. Rankings absent → seed list used; no error; stderr note.
-7. Resolver script error (interactive) → recovery prompt with 3 options; none of them silently restore full roster on a budgeted session.
-8. Resolver script error (non-tty) → warning to stderr; seed list used; gate does not hang or dispatch 0 personas.
+7. Resolver script error (interactive, TTY) → recovery prompt with 3 options; none of them silently restore full roster on a budgeted session.
+8. Resolver script error (non-tty / autorun) → resolver exits non-zero; gate ABORTS with non-zero exit code; consumer surfaces error. No silent seed fallback. Operator must fix config and re-run. (Kill switch: `MONSTERFLOW_DISABLE_BUDGET=1` env bypasses budget entirely → full roster.)
 9. Gate stdout shows: selected personas + dropped personas before dispatch.
 10. `install.sh --reconfigure-budget` → re-runs Q&A; overwrites config.json; prints confirmation with config file path.
 11. "Tell Claude to reconfigure" → Claude runs Q&A, writes config.json, confirms.
