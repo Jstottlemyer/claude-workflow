@@ -73,20 +73,20 @@ abbreviated.
 
 | frontmatter | CLI flags | active mode | mode_source | gate behavior | side effects |
 |---|---|---|---|---|---|
-| absent | (none) | permissive | `default-flip` | permissive | per-user banner once + per-spec banner once |
-| absent | `--strict` | strict | `cli-strict` | strict | none |
-| absent | `--permissive` | permissive | `cli-permissive` | permissive | none (explicit opt-in suppresses default-flip banner) |
+| absent | (none) | permissive | `default` | permissive | per-user banner once + per-spec banner once |
+| absent | `--strict` | strict | `cli` | strict | none |
+| absent | `--permissive` | permissive | `cli` | permissive | none (explicit opt-in suppresses default-flip banner) |
 | absent | `--force-permissive="X"` | permissive | `cli-force` | permissive | append `.force-permissive-log` row + 4-line warning to stderr |
 | absent | `--strict --permissive` | (error) | (n/a) | exit 2 | print ambiguity error |
 | absent | `--strict --force-permissive="X"` | (error) | (n/a) | exit 2 | print ambiguity error |
-| permissive | (none) | permissive | `frontmatter-permissive` | permissive | none |
-| permissive | `--strict` | strict | `cli-strict` | strict | none |
-| permissive | `--permissive` | permissive | `cli-permissive` | permissive | none (redundant but allowed) |
+| permissive | (none) | permissive | `frontmatter` | permissive | none |
+| permissive | `--strict` | strict | `cli` | strict | none |
+| permissive | `--permissive` | permissive | `cli` | permissive | none (redundant but allowed) |
 | permissive | `--force-permissive="X"` | permissive | `cli-force` | permissive | append `.force-permissive-log` row + 4-line warning (NOTE: redundant on permissive frontmatter — flag still audits) |
 | permissive | `--strict --permissive` | (error) | (n/a) | exit 2 | print ambiguity error |
 | permissive | `--strict --force-permissive="X"` | (error) | (n/a) | exit 2 | print ambiguity error |
-| strict | (none) | strict | `frontmatter-strict` | strict | none |
-| strict | `--strict` | strict | `cli-strict` | strict | none (redundant but allowed) |
+| strict | (none) | strict | `frontmatter` | strict | none |
+| strict | `--strict` | strict | `cli` | strict | none (redundant but allowed) |
 | strict | `--permissive` | (error) | (n/a) | exit 2 | print rejection error (`--permissive cannot override a strict-flagged spec`) |
 | strict | `--force-permissive="X"` | permissive | `cli-force` | permissive | append `.force-permissive-log` row + 4-line warning to stderr |
 | strict | `--strict --permissive` | (error) | (n/a) | exit 2 | print ambiguity error |
@@ -270,12 +270,17 @@ the audit trail can be silently destroyed by `git clean -fdx`. Keep it tracked.
 The verdict sidecar (`verdict.json`) records the mode-resolution outcome so
 post-mortem readers can reconstruct gate behavior:
 
-- `gate_mode` — `permissive` or `strict` (the **active** mode)
-- `mode_source` — one of `default-flip`, `cli-strict`, `cli-permissive`, `cli-force`, `frontmatter-permissive`, `frontmatter-strict`
-- `force_permissive_reason` — the reason string, present iff `mode_source == cli-force`
-- `gate_max_recycles_active` — integer (post-clamp)
-- `gate_max_recycles_declared` — integer (pre-clamp; differs from active iff clamp fired)
-- `cap_reached` — boolean
+- `mode` — `permissive` or `strict` (the **active** mode)
+- `mode_source` — one of `frontmatter`, `cli`, `cli-force`, `default` (per `schemas/check-verdict.schema.json` v2)
+- `iteration` — 1-indexed counter (sourced from `.iteration-state.json`)
+- `iteration_max` — integer (post-clamp `gate_max_recycles`; clamp range [1, 5])
+- `cap_reached` — boolean (true iff iteration > iteration_max — auto-promotion fired)
+- `class_breakdown` — object with all 7 class keys (architectural / security / contract / documentation / tests / scope-cuts / unclassified) → integer counts
+- `class_inferred_count` — integer (findings coerced to unclassified at Judge step due to missing/invalid class field)
+- `followups_file` — path to `<spec-dir>/followups.jsonl` (or `null` iff that file does not exist on disk)
+- `stage` — one of `spec-review`, `plan`, `check` (the gate that emitted this verdict)
+
+The `--force-permissive` reason string is captured in `docs/specs/<feature>/.force-permissive-log` (JSONL audit trail; one row per invocation; NOT in the verdict sidecar). See Section 7.
 
 These fields are read by `/wrap-insights` Phase 1c persona-metrics rendering
 and by the `persona-metrics-validator` subagent for foreign-key joins.

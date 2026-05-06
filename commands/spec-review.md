@@ -91,7 +91,7 @@ If `gate_mode_resolve` exits non-zero, surface its stderr verbatim to the user a
 
 **Note on `is_ci_env`:** `gate_mode_resolve` already calls `is_ci_env` internally and refuses `--force-permissive` when `$CI` or `$AUTORUN_STAGE` is truthy (see `_gate-mode.md` §4 whitelist). No additional check needed here — trust the helper's exit code.
 
-**Downstream consumers** (judge / synthesis personas at Phase 2): read `commands/_gate-mode.md` for the classification precedence and verdict-sidecar field semantics. The `GATE_MODE`, `GATE_MODE_SOURCE`, and `GATE_MAX_RECYCLES` env-vars exported above flow into the synthesis call so the verdict sidecar (`verdict.json`) can record `gate_mode`, `mode_source`, `gate_max_recycles_active`, and `gate_max_recycles_declared`.
+**Downstream consumers** (judge / synthesis personas at Phase 2): read `commands/_gate-mode.md` for the classification precedence and verdict-sidecar field semantics. The `GATE_MODE`, `GATE_MODE_SOURCE`, and `GATE_MAX_RECYCLES` env-vars exported above flow into the synthesis call so the verdict sidecar (`verdict.json`) can record `mode`, `mode_source`, `iteration`, `iteration_max`, `cap_reached`, `class_breakdown`, `class_inferred_count`, `followups_file`, and `stage` per `schemas/check-verdict.schema.json` (v2).
 
 ## Phase 1: Dispatch PRD Reviewer Agents
 

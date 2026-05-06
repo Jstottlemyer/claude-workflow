@@ -853,7 +853,7 @@ src = open(sys.argv[1]).read()
 m = re.search(r'^```check-verdict\n(.*?)\n```$', src, re.DOTALL | re.MULTILINE)
 assert m, "no fenced block"
 data = json.loads(m.group(1))
-assert data.get("schema_version") == 1
+assert data.get("schema_version") == 2
 assert data.get("verdict") in ("GO", "GO_WITH_FIXES", "NO_GO")
 PY
     then

@@ -75,7 +75,7 @@ GATE_MAX_RECYCLES=$(gate_max_recycles_clamp "$SPEC")
   export GATE_MODE GATE_MODE_SOURCE GATE_MAX_RECYCLES
   ```
   (`GATE_MODE_SOURCE` is captured from `gate_mode_resolve`'s side-channel — see helper docstring.)
-- The verdict sidecar written at Phase 3 records `gate_mode`, `mode_source`, `gate_max_recycles_active`, `gate_max_recycles_declared`, `force_permissive_reason` (iff `cli-force`), and `cap_reached` per `commands/_gate-mode.md` §8.
+- The verdict sidecar written at Phase 3 records `mode`, `mode_source`, `iteration`, `iteration_max`, `cap_reached`, `class_breakdown`, `class_inferred_count`, `followups_file`, and `stage` per `schemas/check-verdict.schema.json` (v2). The `--force-permissive` reason string lands in `docs/specs/<feature>/.force-permissive-log` (audit trail), not in the verdict sidecar.
 
 ## Phase 1: Dispatch Design Agents
 

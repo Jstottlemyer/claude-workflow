@@ -99,7 +99,7 @@ export GATE_MODE GATE_MODE_SOURCE GATE_MAX_RECYCLES
 
 **Refusal in CI/autorun**: `gate_mode_resolve` rejects `--force-permissive` (exit 2) when `$CI` or `$AUTORUN_STAGE` is truthy (whitelist: `true`, `1`, `yes`, `TRUE`, `YES`). The audit trail must come from a human at the keyboard.
 
-The active mode flows downstream: Phase 2 Synthesis routes findings via the `architectural > security > unclassified > contract > tests > documentation > scope-cuts` precedence (canonical in `commands/_gate-mode.md`); the verdict sidecar (`check-verdict.json`) records `gate_mode`, `mode_source`, `gate_max_recycles_active`, `gate_max_recycles_declared`, `cap_reached`, and (iff source is `cli-force`) `force_permissive_reason`.
+The active mode flows downstream: Phase 2 Synthesis routes findings via the `architectural > security > unclassified > contract > tests > documentation > scope-cuts` precedence (canonical in `commands/_gate-mode.md`); the verdict sidecar (`check-verdict.json`) records `mode`, `mode_source`, `iteration`, `iteration_max`, `cap_reached`, `class_breakdown`, `class_inferred_count`, `followups_file`, and `stage` per `schemas/check-verdict.schema.json` (v2). The `--force-permissive` reason string is captured separately in `docs/specs/<feature>/.force-permissive-log` (JSONL audit trail; NOT in the verdict sidecar).
 
 ## Phase 1: Dispatch Plan Reviewer Agents
 
@@ -152,8 +152,8 @@ OVERALL_VERDICT: <GO|GO_WITH_FIXES|NO_GO>
 
 ```check-verdict
 {
-  "schema_version": 1,
-  "prompt_version": "check-verdict@1.0",
+  "schema_version": 2,
+  "prompt_version": "check-verdict@2.0",
   "verdict": "<GO|GO_WITH_FIXES|NO_GO>",
   "blocking_findings": [
     { "persona": "string", "finding_id": "ck-<10-hex>", "summary": "string" }
@@ -161,7 +161,19 @@ OVERALL_VERDICT: <GO|GO_WITH_FIXES|NO_GO>
   "security_findings": [
     { "persona": "string", "finding_id": "ck-<10-hex>", "summary": "string", "tag": "sev:security" }
   ],
-  "generated_at": "<ISO-8601 UTC>"
+  "generated_at": "<ISO-8601 UTC>",
+  "iteration": 1,
+  "iteration_max": 2,
+  "mode": "<permissive|strict>",
+  "mode_source": "<frontmatter|cli|cli-force|default>",
+  "class_breakdown": {
+    "architectural": 0, "security": 0, "contract": 0,
+    "documentation": 0, "tests": 0, "scope-cuts": 0, "unclassified": 0
+  },
+  "class_inferred_count": 0,
+  "followups_file": "<path-to-followups.jsonl-or-null>",
+  "cap_reached": false,
+  "stage": "check"
 }
 ```
 
