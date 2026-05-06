@@ -442,7 +442,7 @@
 <header class="hero">
   <div class="wrap">
     <img src="social-image.png" alt="The MonsterFlow mascot — a friendly six-armed coding monster wearing a leather harness, each arm typing on a different floating terminal window." class="hero-image">
-    <span class="eyebrow">8-command pipeline · Claude Code · v0.9.0</span>
+    <span class="eyebrow">8-command pipeline · Claude Code · v0.9.1</span>
     <h1>You say WHAT.<br>Claude handles HOW.</h1>
     <p class="hero-hook">Multi-agent review at every gate. And then the system measures whether those reviews are worth anything.</p>
     <p class="tagline">
@@ -490,7 +490,7 @@ flowchart TD
     P["/plan\napi · data-model · ux · scalability\nsecurity · integration · wave-sequencer"]:::plan
     JS2["Judge · Dedupe · Synth → plan.md"]:::synth
     C["/check\ncompleteness · sequencing · risk\nscope-discipline · testability"]:::gate
-    JS3["Judge · Dedupe · Synth → check.md\nthree-tier verdict (v0.9.0+)"]:::synth
+    JS3["Judge · Dedupe · Synth → check.md\nthree-tier verdict (v0.9.1+)"]:::synth
     V1["GO\nclean pass"]:::verdictGo
     V2["GO_WITH_FIXES\nwarn → followups.jsonl\n(common case in permissive mode)"]:::verdictWarn
     V3["NO_GO\narchitectural · security · unclassified\nhalt"]:::verdictBlock
@@ -540,7 +540,7 @@ flowchart TD
     classDef verdictBlock fill:#7f1d1d,stroke:#fca5a5,color:#fee2e2,stroke-width:2px
       </pre>
     </div>
-    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Three-tier verdict at /check (v0.9.0+).</strong> The pipeline-gate-permissiveness change replaces the old binary halt-or-pass behavior with three verdicts: <code>GO</code> (clean pass), <code>GO_WITH_FIXES</code> (non-architectural findings warn-routed to <code>followups.jsonl</code> and consumed by /build wave 1 — the common case in permissive mode), and <code>NO_GO</code> (architectural, security, or unclassified findings halt the pipeline). The same verdict shape applies at <code>/spec-review</code> and <code>/plan</code>; <code>/check</code> remains the last gate before code.</p>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Three-tier verdict at /check (v0.9.1+).</strong> The pipeline-gate-permissiveness change replaces the old binary halt-or-pass behavior with three verdicts: <code>GO</code> (clean pass), <code>GO_WITH_FIXES</code> (non-architectural findings warn-routed to <code>followups.jsonl</code> and consumed by /build wave 1 — the common case in permissive mode), and <code>NO_GO</code> (architectural, security, or unclassified findings halt the pipeline). The same verdict shape applies at <code>/spec-review</code> and <code>/plan</code>; <code>/check</code> remains the last gate before code.</p>
     <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 7 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
     <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">Codex (optional).</strong> If <a href="#requirements">installed</a>, an OpenAI Codex agent runs an adversarial pass at <code>/spec-review</code>, <code>/check</code>, and <code>/build</code> — independent perspective from a different model family, joining the same Judge synthesis as the in-house personas. Silent skip if not set up.</p>
   </div>
@@ -709,7 +709,7 @@ flowchart TD
 <section id="requirements">
   <div class="wrap">
     <h2>Requirements</h2>
-    <p class="lede">The pipeline ships in this repo (<code>v0.9.0</code>). Everything else is third-party — installed at latest from its source. No version pinning required for normal use.</p>
+    <p class="lede">The pipeline ships in this repo (<code>v0.9.1</code>). Everything else is third-party — installed at latest from its source. No version pinning required for normal use.</p>
 
     <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Required</p>
     <div class="table-wrap"><table>
