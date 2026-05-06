@@ -8,6 +8,8 @@ You are the check step in the pipeline: `/spec → /spec-review → /plan → /c
 
 Your job is to dispatch 5 parallel plan reviewer agents, synthesize their findings into a go/no-go verdict, and present gaps for resolution before implementation begins.
 
+**Argument parsing**: `$ARGUMENTS` may carry an optional feature-slug followed by zero or one gate-mode CLI flag — one of `--strict`, `--permissive`, or `--force-permissive="<reason>"`. Split on whitespace; the first non-flag token (if any) is the feature slug, the remaining flag token (if any) is passed verbatim to `gate_mode_resolve` at Phase 0c. If both `--strict` and `--permissive`/`--force-permissive` appear, `gate_mode_resolve` will reject with exit 2.
+
 ## Pre-flight
 
 1. **Find artifacts**: Load `docs/specs/<feature>/spec.md`, `docs/specs/<feature>/review.md`, and `docs/specs/<feature>/plan.md`.
@@ -56,6 +58,48 @@ RESOLVER_EXIT=$?
 - Resolver writes `docs/specs/<feature>/check/selection.json`.
 - No `agent_budget` in config → full roster (existing behavior).
 - Print one line: `Selected: <names> | Dropped: <names>`.
+
+## Phase 0c: Gate Mode Resolution (pipeline-gate-permissiveness)
+
+Before dispatching reviewer agents, resolve the active gate mode and re-cycle cap. This phase implements the v0.9.0+ default-flip from "halt-on-anything" to permissive (architectural/security/unclassified-only halts) — see `commands/_gate-mode.md` for the canonical truth table (24 cells), banner wording, and `.force-permissive-log` row schema. **Do not duplicate that content here** — read it once at runtime and apply.
+
+```bash
+# Source the shared helper library (declares functions; does not run set -e).
+. "<REPO_DIR>/scripts/_gate_helpers.sh"
+
+SPEC_PATH="docs/specs/<feature-slug>/spec.md"
+SPEC_DIR="docs/specs/<feature-slug>"
+
+# Resolve mode. $GATE_FLAG is the gate-mode CLI flag extracted from $ARGUMENTS
+# at the top of this command (one of: empty, --strict, --permissive,
+# --force-permissive="<reason>"). On success the helper prints "<mode>:<source>"
+# to stdout and emits banners/warnings to stderr; on conflict it exits 2.
+RESOLVE_OUT=$(gate_mode_resolve "$SPEC_PATH" "$GATE_FLAG")
+RESOLVE_EXIT=$?
+if [ "$RESOLVE_EXIT" -ne 0 ]; then
+  # gate_mode_resolve already wrote a canonical error to stderr.
+  exit 2
+fi
+GATE_MODE="${RESOLVE_OUT%%:*}"
+GATE_MODE_SOURCE="${RESOLVE_OUT#*:}"
+
+# Resolve and clamp gate_max_recycles (frontmatter integer, clamped to 1..5).
+# Helper writes a sentinel + one-time stderr warning if a clamp fired.
+GATE_MAX_RECYCLES=$(gate_max_recycles_clamp "$SPEC_PATH")
+
+export GATE_MODE GATE_MODE_SOURCE GATE_MAX_RECYCLES
+```
+
+**Banner sentinels** (per `commands/_gate-mode.md` Section 5):
+- Per-user verbose default-flip banner: `~/.claude/.gate-mode-default-flip-warned-v0.9.0` (fires once per machine on first absent-frontmatter run since v0.9.0).
+- Per-spec one-liner: `docs/specs/<feature>/.gate-mode-warned` (fires after the per-user banner has fired, on absent frontmatter).
+- Recycles-clamped sentinel: `docs/specs/<feature>/.recycles-clamped` (managed by `gate_max_recycles_clamp`).
+
+**`--force-permissive` audit**: when `$GATE_MODE_SOURCE == "cli-force"`, append a JSONL row to `<SPEC_DIR>/.force-permissive-log` via `force_permissive_audit "$SPEC_DIR" "$ITERATION" "check" "$REASON"` (helper handles JSON-escaping the reason via python3). The 4-line stderr warning is already emitted by `gate_mode_resolve`. The audit log is **not gitignored** — preserving the trail is the whole point.
+
+**Refusal in CI/autorun**: `gate_mode_resolve` rejects `--force-permissive` (exit 2) when `$CI` or `$AUTORUN_STAGE` is truthy (whitelist: `true`, `1`, `yes`, `TRUE`, `YES`). The audit trail must come from a human at the keyboard.
+
+The active mode flows downstream: Phase 2 Synthesis routes findings via the `architectural > security > unclassified > contract > tests > documentation > scope-cuts` precedence (canonical in `commands/_gate-mode.md`); the verdict sidecar (`check-verdict.json`) records `gate_mode`, `mode_source`, `gate_max_recycles_active`, `gate_max_recycles_declared`, `cap_reached`, and (iff source is `cli-force`) `force_permissive_reason`.
 
 ## Phase 1: Dispatch Plan Reviewer Agents
 
@@ -180,6 +224,30 @@ Run `commands/_prompts/findings-emit.md`. It reads `docs/specs/<feature>/check/r
 - `docs/specs/<feature>/check/run.json`
 
 Schemas + `prompt_version: "findings-emit@1.0"` recorded as in `/spec-review`.
+
+## Phase 2d: Cap-reached next-steps (pipeline-gate-permissiveness)
+
+After Synthesis writes the verdict but BEFORE Phase 3 returns to the user, evaluate the verdict + recycle counter and conditionally emit the next-steps block.
+
+**Fire condition** (both must be true):
+1. `verdict == "NO_GO"` in the synthesis sidecar.
+2. `cap_reached == true` — i.e., the gate's iteration counter has reached `$GATE_MAX_RECYCLES` (post-clamp). The iteration counter is tracked in `docs/specs/<feature>/.iteration-state.json` (per-gate). On `GO_WITH_FIXES + cap_reached`, **stay silent** — `GO_WITH_FIXES` is itself a permissive-mode resolution, not a stuck state.
+
+**On fire** — print the canonical 3-line "next steps" block to stderr (verbatim from `commands/_gate-mode.md` Section 6.6 — substitute `<gate>` with `check`, `<N>` with `$GATE_MAX_RECYCLES`, `<K>` with the remaining-blocker count, and emit one finding line per remaining blocker between the header and the blank line):
+
+```
+[gate] Re-cycle cap reached (gate_max_recycles=<N>). <K> architectural finding(s) remain:
+[gate]   <ck-id>: <persona> — <title>
+[gate]
+[gate] Next steps (pick one):
+[gate]   1. Address inline:    edit spec.md, re-run /check
+[gate]   2. Bump the cap:      gate_max_recycles: <N+1> in spec.md frontmatter, re-run
+[gate]   3. Force-permissive:  /check <feature> --force-permissive="<reason>" (audited)
+[gate]
+[gate] Recommended: option 1 — architectural findings rarely improve on iteration.
+```
+
+The recommended-option lean (option 1) is canonical — do not reword. Architectural findings rarely improve on iteration; the operator should fix or escape, not re-cycle.
 
 ## Phase 3: Present & Write
 

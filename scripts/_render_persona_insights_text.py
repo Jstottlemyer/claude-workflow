@@ -48,6 +48,49 @@ _GATE_ORDER = ["spec-review", "plan", "check"]
 _QUALIFY_MIN = 3   # "runs_in_window >= 3" per spec edge-case e1.
 _TOP_N = 3
 
+# pipeline-gate-permissiveness W3.10 — class back-fill for pre-v0.9.0 rows.
+# Pre-v0.9.0 findings.jsonl rows lack the `class` field (added in spec
+# §"Persona-metrics integration", line 339). Default to "unclassified" so
+# the field is always present, and filter per-class survival aggregation to
+# class != "unclassified" — historical rows don't pollute per-class stats.
+# Overall counts still include them. String literal (no enum import) keeps
+# us inside the AST-banlist constraints mirrored from _policy_json.py.
+_CLASS_BACKFILL_DEFAULT = "unclassified"
+_CLASS_KNOWN = (
+    "architectural", "security", "contract",
+    "documentation", "tests", "scope-cuts",
+)
+
+
+def backfill_class(row: dict) -> str:
+    """Return row's `class` field, defaulting missing/None to 'unclassified'.
+
+    Pre-v0.9.0 findings.jsonl rows lack the field entirely; v0.9.0+ rows
+    always carry it. Caller decides whether to filter (per-class
+    aggregation) or include (overall counts).
+    """
+    value = row.get("class")
+    if not isinstance(value, str) or not value:
+        return _CLASS_BACKFILL_DEFAULT
+    return value
+
+
+def aggregate_survival_by_class(rows: list) -> dict:
+    """Group rows into per-class buckets, EXCLUDING 'unclassified'.
+
+    Per spec line 339: survival joins filter to `class != 'unclassified'` so
+    historical (pre-v0.9.0) rows don't pollute per-class survival rates.
+    Returns {class_name: [row, ...]} for the 6 known v1 classes only; rows
+    that back-fill to 'unclassified' are dropped from this view.
+    """
+    out: dict = {}
+    for row in rows:
+        cls = backfill_class(row)
+        if cls == _CLASS_BACKFILL_DEFAULT:
+            continue
+        out.setdefault(cls, []).append(row)
+    return out
+
 
 def _load_rows(path: Path) -> list[dict]:
     rows: list[dict] = []

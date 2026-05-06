@@ -63,6 +63,38 @@ TESTS=(
   test-check-sh-v2-fields.sh
   # pipeline-gate-permissiveness — install.sh followups gitignore block (W1.x)
   test-install-followups-gitignore.sh
+  # pipeline-gate-permissiveness W2.1 — class-tagging template canonical content
+  test-class-tagging-template.sh
+  # pipeline-gate-permissiveness W2.2 — proof-point splice into scope.md
+  test-w2-scope-discipline-spliced.sh
+  # pipeline-gate-permissiveness W2.3 — judge.md class-aware-dedup section
+  test-judge-class-aware-dedup.sh
+  # pipeline-gate-permissiveness W2.4 — synthesis v2 (check-verdict@2.0) contract
+  test-synthesis-v2-contract.sh
+  # pipeline-gate-permissiveness W2.5 — class-tagging splice coverage dry-run
+  test-dry-run-class-coverage.sh
+  # pipeline-gate-permissiveness W3.1 — class-tagging splice script (dry-run + real)
+  test-class-tagging-spliced.sh
+  # pipeline-gate-permissiveness W3.3 — _gate-mode.md shared include canonical contents
+  test-gate-mode-include.sh
+  # pipeline-gate-permissiveness W3.4 — _gate_helpers.sh function library
+  test-gate-helpers.sh
+  # pipeline-gate-permissiveness W3.8b — build-mark-addressed.py state:addressed write-back
+  test-build-mark-addressed.sh
+  # pipeline-gate-permissiveness W3.10 — persona-insights renderer class back-fill
+  test-render-persona-insights-class-backfill.sh
+  # pipeline-gate-permissiveness W3.2b — independent post-splice structural validator
+  test-personas-post-splice.sh
+  # pipeline-gate-permissiveness W3.5 — commands/spec-review.md gate-mode Phase 0c
+  test-spec-review-gate-mode.sh
+  # pipeline-gate-permissiveness W3.6 — commands/plan.md gate-mode Phase 0c
+  test-plan-gate-mode.sh
+  # pipeline-gate-permissiveness W3.7 — commands/check.md gate-mode Phase 0c + cap-reached
+  test-check-gate-mode.sh
+  # pipeline-gate-permissiveness W3.8 — commands/build.md verdict-gated followups consumer + Phase 4
+  test-build-followups-consumer.sh
+  # pipeline-gate-permissiveness W3.9 — commands/spec.md frontmatter gate fields
+  test-spec-frontmatter-gate-fields.sh
 )
 
 # Tests whose passing condition is exit non-zero (M8 inverted-assertion contract).

@@ -32,6 +32,60 @@ If `<feature>/check/findings.jsonl` does not exist, silent no-op.
 
 **This phase never blocks the build.**
 
+## Phase 0c: Verdict-Gated Followups Consumption
+
+Before presenting the execution plan, gate `/build` on the most-recent `/check` verdict sidecar and consume any open followups it queued. This is `/build`-specific logic — it does not read CLI mode flags; it reads the verdict's own `mode` field.
+
+### Step 1 — Read the verdict sidecar (HARDCODED path)
+
+Read `docs/specs/<feature>/check-verdict.json`. `/build` does **NOT** fall through to other gate sidecars (e.g. spec-review or plan stage sidecars) — those are write-only audit artifacts in v1 and are explicitly out of scope for `/build` consumption (per Cross-cutting Decisions Pinned in plan).
+
+### Step 2 — Legacy-detection ladder (4-path)
+
+Walk these in order; the first match wins:
+
+1. **Missing sidecar** (`check-verdict.json` does not exist at the path) — pre-v0.9.0 spec. Set `FOLLOWUPS_AVAILABLE=false`. Proceed with today's behavior: no followups consumption, no banner, no error. Continue to Phase 1.
+
+2. **Malformed JSON sidecar** (file exists but `python3 -c "import json,sys; json.load(open(sys.argv[1]))" check-verdict.json` fails) — refuse with stderr error:
+   > `verdict file unreadable; re-run /check or rm <path>`
+
+   Exit non-zero. Do not dispatch any wave.
+
+3. **v1 sidecar** (file parses; `schema_version: 1`) — refuse with stderr error:
+   > `this spec uses pre-v0.9.0 verdict format; re-run /check to regenerate at v2.`
+
+   Exit non-zero. Do not dispatch any wave.
+
+4. **v2 sidecar** (file parses; `schema_version: 2`) — proceed to Step 3.
+
+### Step 3 — Verdict-gate (v2 only)
+
+Read the `verdict` field. Required: `verdict ∈ {GO, GO_WITH_FIXES}` to proceed. On `verdict: NO_GO`, refuse with stderr:
+> `/check returned NO_GO; address blocking findings before /build`
+
+Exit non-zero.
+
+### Step 4 — Read followups.jsonl
+
+When `verdict ∈ {GO, GO_WITH_FIXES}`, read `docs/specs/<feature>/followups.jsonl` and filter to rows where:
+
+- `state: "open"` (i.e. `state == "open"`) AND
+- `target_phase IN ("build-inline", "docs-only")`
+
+These are wave-1 task additions.
+
+### Step 5 — Route by `target_phase`
+
+For each open followup:
+
+- **`build-inline`** — prepend to wave-1 task list as a regular implementation task.
+- **`docs-only`** — prepend to wave-1 task list as a docs/comments-only task.
+- **`plan-revision`** — STOP wave 1. Emit:
+  > `/plan re-run required for <count> finding(s)`
+
+  Then abort `/build`. The user must re-run `/plan` to address structural findings before `/build` can proceed.
+- **`post-build`** — hold for the PR-body annotation phase. Do **NOT** add to wave 1.
+
 ## Phase 1: Present Execution Plan
 
 Parse the plan's task breakdown and present:
@@ -114,6 +168,35 @@ After all waves complete:
    - Code review: superpowers:requesting-code-review (quick) or /code-review (PR)
    - Wrap up: /wrap
    ```
+
+## Phase 4: Wave-Final Mark Addressed
+
+After all wave commits have landed and Phase 3 verification has passed, mark any consumed followups as `addressed` in `followups.jsonl` so future `/check` cycles know they were resolved.
+
+This phase fires **after** the wave-final commit lands — it uses the wave-final commit SHA, not any intermediate commit.
+
+### Pre-v0.9.0 backcompat
+
+If `docs/specs/<feature>/check-verdict.json` does not exist (legacy path established in Phase 0c — `FOLLOWUPS_AVAILABLE=false`), Phase 4 is a no-op. There are no followups to mark.
+
+### Mark addressed
+
+For each followup whose `finding_id` was addressed in this `/build`'s wave-final commit, call:
+
+```bash
+WAVE_FINAL_SHA=$(git rev-parse HEAD)
+python3 scripts/build-mark-addressed.py \
+  --feature <slug> \
+  --finding-ids <id1,id2,...> \
+  --commit-sha "$WAVE_FINAL_SHA"
+```
+
+Semantics:
+
+- The commit SHA comes from `git rev-parse HEAD` **after** the wave-final commit lands.
+- The script writes `state: addressed` back to the matching followups.jsonl rows.
+- The script **refuses** on `state: superseded` rows — those are not addressable.
+- The script is **idempotent** on `state: addressed` rows — re-running is safe.
 
 ## Key Principles
 

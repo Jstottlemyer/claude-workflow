@@ -8,6 +8,8 @@ You are the plan step in the pipeline: `/spec → /spec-review → /plan → /ch
 
 Your job is to dispatch 7 parallel design agents, synthesize their analysis into an implementation plan, and present it for approval.
 
+**Argument parsing**: `$ARGUMENTS` may carry an optional feature-slug followed by zero or one gate-mode CLI flag — one of `--strict`, `--permissive`, or `--force-permissive="<reason>"`. Split on whitespace; the first non-flag token (if any) is the feature slug, the remaining flag token (if any) is passed verbatim to `gate_mode_resolve` at Phase 0c. If both `--strict` and `--permissive`/`--force-permissive` appear, `gate_mode_resolve` will reject with exit 2.
+
 ## Pre-flight
 
 1. **Find artifacts**: Load `docs/specs/<feature>/spec.md` and `docs/specs/<feature>/review.md`.
@@ -46,6 +48,34 @@ RESOLVER_EXIT=$?
 - Resolver writes `docs/specs/<feature>/plan/selection.json`.
 - No `agent_budget` in config → full roster (existing behavior).
 - Print one line: `Selected: <names> | Dropped: <names>`.
+
+## Phase 0c: Gate Mode Resolution
+
+Resolve the active gate mode + per-gate re-cycle ceiling before dispatching design agents. Canonical reference: [`commands/_gate-mode.md`](_gate-mode.md) — read it for the 24-cell truth table, banner wording, sentinel paths, and audit-log format. Do not duplicate that content here.
+
+```bash
+# shellcheck disable=SC1091
+. <REPO_DIR>/scripts/_gate_helpers.sh
+
+SPEC="docs/specs/<feature-slug>/spec.md"
+GATE_FLAG="<--strict | --permissive | --force-permissive=\"<reason>\" | (empty)>"
+
+GATE_MODE=$(gate_mode_resolve "$SPEC" "$GATE_FLAG")
+RESOLVE_EXIT=$?
+GATE_MAX_RECYCLES=$(gate_max_recycles_clamp "$SPEC")
+```
+
+- If `RESOLVE_EXIT != 0`: refuse the gate. `gate_mode_resolve` already wrote the canonical error to stderr (ambiguity / `--permissive` against `gate_mode: strict` / `--force-permissive` without reason / `--force-permissive` while `$CI`/`$AUTORUN_STAGE` is truthy). Exit without dispatching designers.
+- Banners (per `commands/_gate-mode.md` §6) — emit to **stderr**, then `touch` the matching sentinel:
+  - `~/.claude/.gate-mode-default-flip-warned-v0.9.0` missing → emit the per-user verbose banner (§6.1) once, then touch.
+  - Per-user sentinel exists AND frontmatter absent AND `docs/specs/<feature>/.gate-mode-warned` missing → emit the per-spec one-liner (§6.2), then touch the per-spec sentinel.
+  - `mode_source == cli-force` → emit the 4-line `--force-permissive` warning (§6.3) and append the audit row described in `commands/_gate-mode.md` §7 to `docs/specs/<feature>/.force-permissive-log`.
+- Export the resolved values for downstream phases (Phase 1 dispatchers, Phase 2 synthesis, Phase 2c emit, Phase 3 verdict sidecar):
+  ```bash
+  export GATE_MODE GATE_MODE_SOURCE GATE_MAX_RECYCLES
+  ```
+  (`GATE_MODE_SOURCE` is captured from `gate_mode_resolve`'s side-channel — see helper docstring.)
+- The verdict sidecar written at Phase 3 records `gate_mode`, `mode_source`, `gate_max_recycles_active`, `gate_max_recycles_declared`, `force_permissive_reason` (iff `cli-force`), and `cap_reached` per `commands/_gate-mode.md` §8.
 
 ## Phase 1: Dispatch Design Agents
 

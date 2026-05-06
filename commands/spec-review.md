@@ -8,6 +8,8 @@ You are the review step in the pipeline: `/spec → /spec-review → /plan → /
 
 Your job is to dispatch 6 parallel PRD reviewer agents against the spec, consolidate their findings, and present them for approval.
 
+**Argument parsing**: `$ARGUMENTS` may carry an optional feature-slug followed by zero or one gate-mode CLI flag — one of `--strict`, `--permissive`, or `--force-permissive="<reason>"`. Split on whitespace; the first non-flag token (if any) is the feature slug, the remaining flag token (if any) is passed verbatim to `gate_mode_resolve` at Phase 0c. If both `--strict` and `--permissive`/`--force-permissive` appear, `gate_mode_resolve` will reject with exit 2.
+
 ## Pre-flight
 
 1. **Find the spec**: Check conversation context for a just-completed brainstorm. If not, look for the most recent spec in `docs/specs/*/spec.md`. If `$ARGUMENTS` names a feature, look in `docs/specs/<feature>/spec.md`.
@@ -48,6 +50,48 @@ RESOLVER_EXIT=$?
 - The resolver writes `docs/specs/<feature>/spec-review/selection.json` with the audit row.
 - If `~/.config/monsterflow/config.json` is absent or has no `agent_budget`, the resolver emits the full roster — existing behavior preserved.
 - Print one line to gate stdout: `Selected: <names> | Dropped: <names>` (read these from `selection.json`).
+
+## Phase 0c: Gate Mode Resolution (pipeline-gate-permissiveness)
+
+Run AFTER Phase 0b (resolver) and BEFORE Phase 1 (dispatch). Determines the active gate mode (`permissive` | `strict`) plus per-gate re-cycle ceiling, emits the migration banner if needed, and exports `GATE_MODE` / `GATE_MODE_SOURCE` / `GATE_MAX_RECYCLES` for downstream Synthesis (Pass 2) consumption.
+
+**Canonical reference:** `commands/_gate-mode.md` — the truth table (24 cells), banner wording (locked at v0.9.0), CLI flag rejection rules, and `.force-permissive-log` JSONL row format live there. Do NOT reproduce them inline — read that file once and apply.
+
+Use the Bash tool to run, in this order:
+
+```bash
+source <REPO_DIR>/scripts/_gate_helpers.sh
+
+# Resolve mode. CLI_FLAG is "" or one of --strict | --permissive | --force-permissive="<reason>"
+# (parsed from $ARGUMENTS at top of command).
+MODE_RESULT=$(gate_mode_resolve "docs/specs/<feature>/spec.md" "<CLI_FLAG>")
+RESOLVE_EXIT=$?
+if [ "$RESOLVE_EXIT" -ne 0 ]; then
+  # gate_mode_resolve already printed the rejection banner to stderr
+  # (see _gate-mode.md sections 6.4 / 6.5 / `--force-permissive` refusal).
+  # Abort the gate — do NOT dispatch reviewers.
+  exit "$RESOLVE_EXIT"
+fi
+GATE_MODE="${MODE_RESULT%%:*}"
+GATE_MODE_SOURCE="${MODE_RESULT#*:}"
+export GATE_MODE GATE_MODE_SOURCE
+
+# Clamp re-cycle ceiling (frontmatter gate_max_recycles, clamped to [1,5]).
+GATE_MAX_RECYCLES=$(gate_max_recycles_clamp "docs/specs/<feature>/spec.md")
+export GATE_MAX_RECYCLES
+```
+
+If `gate_mode_resolve` exits non-zero, surface its stderr verbatim to the user and stop — Phase 1 must not run when mode resolution failed (ambiguity, CI/AUTORUN refusal, or `--permissive` against a strict-flagged spec).
+
+**Banner emission** (per `commands/_gate-mode.md` §5 + §6):
+
+1. If `GATE_MODE_SOURCE == default-flip` (frontmatter absent → permissive default) AND `~/.claude/.gate-mode-default-flip-warned-v0.9.0` does NOT exist: emit the verbose ~5-line per-user banner from `_gate-mode.md` §6.1 to stderr, then `touch ~/.claude/.gate-mode-default-flip-warned-v0.9.0`.
+2. Else if `GATE_MODE_SOURCE == default-flip` AND the per-user sentinel exists AND `docs/specs/<feature>/.gate-mode-warned` does NOT exist: emit the per-spec one-liner from §6.2 to stderr, then `touch docs/specs/<feature>/.gate-mode-warned`.
+3. If `GATE_MODE_SOURCE == cli-force` (i.e., `--force-permissive` was honored): the helper already printed the 4-line warning. Additionally, call `force_permissive_audit "docs/specs/<feature>" "<iteration>" "spec-review" "<reason>"` to append the JSONL audit row to `docs/specs/<feature>/.force-permissive-log`. `<iteration>` is the current re-cycle counter (1-indexed; first run = 1).
+
+**Note on `is_ci_env`:** `gate_mode_resolve` already calls `is_ci_env` internally and refuses `--force-permissive` when `$CI` or `$AUTORUN_STAGE` is truthy (see `_gate-mode.md` §4 whitelist). No additional check needed here — trust the helper's exit code.
+
+**Downstream consumers** (judge / synthesis personas at Phase 2): read `commands/_gate-mode.md` for the classification precedence and verdict-sidecar field semantics. The `GATE_MODE`, `GATE_MODE_SOURCE`, and `GATE_MAX_RECYCLES` env-vars exported above flow into the synthesis call so the verdict sidecar (`verdict.json`) can record `gate_mode`, `mode_source`, `gate_max_recycles_active`, and `gate_max_recycles_declared`.
 
 ## Phase 1: Dispatch PRD Reviewer Agents
 

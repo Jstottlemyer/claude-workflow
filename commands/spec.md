@@ -259,6 +259,9 @@ The roster grows organically: additions made for one feature are available for f
 When the gate is met (manual approval or auto-run criteria — see below):
 
 1. **Draft `docs/specs/<feature-name>/spec.md`** with sections:
+
+   Pipeline gate behavior knobs — see `commands/_gate-mode.md` for the CLI flag truth table and override semantics.
+
    ```markdown
    # [Feature Name] Spec
 
@@ -266,6 +269,8 @@ When the gate is met (manual approval or auto-run criteria — see below):
    **Constitution:** [version, if exists, else "none — session roster only"]
    **Confidence:** [final scores]
    **Session Roster:** [agent list from Phase 0.25, if no constitution. Omit this line if a constitution exists.]
+   **gate_mode:** [permissive | strict; default `permissive`. Permissive routes contract / documentation / tests / scope-cuts findings to `followups.jsonl` (warn route); strict halts on any non-architectural / non-security finding (legacy halt-on-anything behavior).]
+   **gate_max_recycles:** [integer; default `2`; clamped to [1, 5]; per-gate, not pipeline-global. After cap, non-blocking findings auto-promote to `followups.jsonl` and `GO_WITH_FIXES` emits.]
 
    ## Summary
    [2-3 sentence recap]
