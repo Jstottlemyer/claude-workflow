@@ -10,12 +10,19 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
 
 ## Pipeline + install discipline (from 2026-05-05 autorun-overnight-policy session)
 
-- **`pipeline-gate-rightsizing` (NEW spec candidate — sibling to permissiveness)** — match gate weight to work class. `/spec` already picks bug-fix / small-change / feature / V2 at Phase 2; downstream gates don't honor that. A 3-line bug fix should not dispatch 6 PRD reviewers + 7 designers + 5 validators (28+ persona invocations). Five levers in scope:
-  1. **Work-class → gate-intensity mapping.** Bug-fix: skip /spec-review + /plan + /check (go straight to /build). Small-change: 2-reviewer /spec-review, no /plan, 2-validator /check. Feature: full default roster. V2: full + Codex required.
-  2. **Per-gate skip rules** (declared at spec.md frontmatter; honored by gate scripts).
-  3. **Reviewer count scaling** by work-class (separate from `account-type-agent-scaling`'s token-budget cap; that's cost-driven, this is fit-for-purpose).
-  4. **Adaptive iteration cap by domain.** Hard cap at 2 (from permissiveness) too rigid for security-flavored work; too loose for typo fixes. Cap of `min(work_class_max, persona_budget_max, 5)`.
-  5. **Cost-aware self-skip.** Gates know their token cost (per `holistic-token-cost-instrumentation` instrumentation); a small change shouldn't burn $20 in /check synthesis.
+- **`pipeline-gate-rightsizing` (NEW spec candidate — sibling to permissiveness)** — match gate weight to work class. `/spec` already picks bug-fix / small-change / feature / V2 at Phase 2; downstream gates don't honor that. A 3-line bug fix should not dispatch 6 PRD reviewers + 7 designers + 5 validators (28+ persona invocations). **Six levers in scope:**
+  1. **Work-class → gate-intensity mapping.** Bug-fix: skip /spec-review + /plan + /check (go straight to /build). Small-change: 2-reviewer /spec-review, no /plan, 2-validator /check. Feature: full default roster. V2: full + Codex mandatory.
+  2. **Which agents per gate per work-class** (not just count — selection). The persona roster has different fitness-for-purpose:
+     - Security-flavored work → security-architect + Codex must run; ux/ambiguity/stakeholders skippable
+     - UX-polish small change → ux + ambiguity sufficient; security-architect + Codex skippable
+     - Architectural feature → completeness + sequencing + scope-discipline + Codex; specialists optional
+     - Bug fix → none, OR just one targeted reviewer matching the bug class
+
+     This subsumes part of `account-type-agent-scaling`'s resolver (which today is budget-driven only) — work-class becomes a second resolver input alongside `agent_budget`.
+  3. **Codex inclusion per gate is a first-class decision, not "always-on if installed."** Codex is high-cost, high-signal — should run on architectural specs, security work, V2 revisions; should NOT run on docs-only or trivial work. The 4-iteration autorun-overnight-policy session was Codex-load-bearing (caught H2 nonce trust-boundary failure). Future architectural specs (autorun-verdict-deterministic XL, this rightsizing spec L) should mandate Codex; install-sh-backup-uninstall (M, mostly plumbing) does not need it.
+  4. **Per-gate skip rules** declared at spec.md frontmatter; honored by gate scripts.
+  5. **Adaptive iteration cap by domain.** Hard cap at 2 (from permissiveness) too rigid for security; too loose for typo fixes. Cap of `min(work_class_max, persona_budget_max, 5)`.
+  6. **Cost-aware self-skip.** Gates know their token cost (per `holistic-token-cost-instrumentation` instrumentation); a small change shouldn't burn $20 in /check synthesis.
   - **Why:** the autorun-overnight-policy session ran the FULL pipeline 4× over 2 days for what was ultimately ~2,300 LoC of policy framework. About half of the gate cycles were structurally wasted because the work didn't need that much review. ^[inferred] Combined with `pipeline-gate-permissiveness`, rightsizing closes the "stop overweight gating" problem from the other direction (don't over-dispatch in the first place; don't over-halt on what was dispatched).
   - **Entry points:** `commands/{spec,spec-review,check,plan,build}.md` (work-class read + gate-skip honors); spec.md frontmatter schema (`work_class:` field); resolver integration (work-class as another input alongside `agent_budget`); test fixtures for each work-class flow.
   - **Sequencing:** start AFTER `pipeline-gate-permissiveness` lands (rightsizing decides _whether_ to dispatch; permissiveness decides _what to do with findings_ — permissiveness is the unblocked half). Or run them in parallel if the spec authors are different agents.
@@ -27,6 +34,7 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
   - **Entry points:** `commands/{spec-review,check,plan,build}.md` (verdict logic + routing); `personas/{review,check}/judge.md` + synthesis (classification: architectural / contract / docs / tests / scope / polish); new schema for finding `class` field; possibly a `PIPELINE_DEGRADED` sticky bit promoted from autorun's `RUN_DEGRADED`.
   - **Sequencing:** can start any time; benefits from the autorun-overnight-policy infrastructure landing first (PR #6) so the structural pattern is in code to reference. Pairs naturally with `autorun-verdict-deterministic` (also from this session) — they're sibling concerns about what synthesis output is trustworthy and what gates should halt on.
   - **Size:** L (touches 4 command skills + persona docs + finding schema + tests; conceptually similar to autorun-overnight-policy's per-axis framework).
+  - **Codex review mandatory at /check.** This spec defines what halts the user vs what becomes a build-time follow-up — wrong call here cascades to every future pipeline run. Adversarial review needed.
   - See memory `feedback_pipeline_gate_permissiveness.md` for the design rationale and concrete evidence from this session.
 
 - **`install-sh-backup-uninstall` (NEW spec candidate)** — install.sh currently modifies adopter defaults (CLAUDE.md, .claude/settings.json, .claude/agents/, commands/, hooks, doctor.sh, queue scaffolding) without backups or a revert path. Add (a) pre-flight banner with explicit consent gate explaining we're making opinionated changes, (b) backup every modified file to `.monsterflow-backups/<timestamp>/manifest.json` BEFORE modification, (c) ship `scripts/uninstall.sh` that reads the manifest and reverts (idempotent; supports `--restore-from <timestamp>`), (d) document revert path in README + CHANGELOG as a trust signal.
@@ -34,6 +42,7 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
   - **Entry points:** `install.sh` (banner + backup machinery); new `scripts/uninstall.sh`; `README.md` + `CHANGELOG.md` updates; smoke test `tests/test-install-uninstall-roundtrip.sh`.
   - **Sequencing:** independent of other backlog items. Can start any time.
   - **Size:** M (mostly file enumeration + JSON manifest + reverter; ~200-400 LoC + tests).
+  - **Codex review optional** — mostly plumbing (file enumeration + JSON manifest + reverter). Standard /check roster is sufficient; Codex would be belt-and-suspenders on a low-architectural-risk spec.
   - See memory `project_install_sh_backup_uninstall.md` for the file-surface enumeration and design notes.
 
 ---
@@ -51,6 +60,7 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
   - **Sequencing:** *do not start* until autorun-overnight-policy v6 ships. This spec inherits its `_policy_json.py` + `_policy.sh` infrastructure.
   - **Entry points:** `commands/check.md` synthesis section (rewrite to "prose only"); `personas/check/*.md` (each persona output structured-emission schema); `scripts/autorun/check.sh` (aggregator); `schemas/reviewer-output.schema.json` (NEW); `schemas/check-verdict.schema.json` (becomes aggregator-output, not synthesis-output).
   - **Size:** **XL** (changes the trust model + reviewer output contract + synthesis role + aggregation rules + schema semantics + tests + migration/back-compat + manual `/check` behavior — substantially more than a local refactor).
+  - **Codex review mandatory at /spec-review and /check.** This spec replaces a security mechanism (the v4 nonce) that Codex H2 already proved unsound — same caliber of adversarial review must validate the deterministic-aggregation design before code lands.
 
 - **Stage-boundary STOP-check inside `run.sh`** — current `autorun-batch.sh` honors STOP only at iteration boundaries (an in-flight `run.sh` finishes its slug after STOP is touched). Adding a STOP-check inside `run.sh` between stages would cut overnight halt latency from "next slug" to "next stage."
   - **Why:** R15 documented at autorun-overnight-policy/plan.md v4 — iteration-boundary semantics are correct but coarse. Adopters expecting STOP to halt mid-slug will be surprised.
