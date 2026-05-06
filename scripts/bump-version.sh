@@ -97,7 +97,34 @@ fi
 echo "$NEW" > "$VERSION_FILE"
 echo "✓ VERSION updated"
 
+# Sync hardcoded version pins in docs/index.html (eyebrow + Requirements)
+# so the GitHub Pages site doesn't drift behind VERSION (was at v0.3.0 while
+# VERSION had been bumped through 0.5/0.7 — caught during 0.8 cut).
+INDEX_HTML="$REPO_DIR/docs/index.html"
+if [ -f "$INDEX_HTML" ]; then
+  if grep -qE "v${CURRENT//./\\.}\\b" "$INDEX_HTML"; then
+    sed -i.bak -E "s/v${CURRENT//./\\.}([^[:digit:]]|\$)/v${NEW}\\1/g" "$INDEX_HTML"
+    rm -f "$INDEX_HTML.bak"
+    echo "✓ docs/index.html version pins updated"
+  else
+    echo "⚠ docs/index.html does not contain v${CURRENT} — manual review recommended"
+  fi
+fi
+
+# Reminder: CHANGELOG.md is editorial — not auto-updated. The skill expects
+# the operator to convert [Unreleased] → [<NEW>] before bumping. Warn if
+# [Unreleased] still has content (likely forgot to cut the release header).
+CHANGELOG="$REPO_DIR/CHANGELOG.md"
+if [ -f "$CHANGELOG" ] && grep -qE "^## \\[Unreleased\\]" "$CHANGELOG"; then
+  # Check if Unreleased section has any content (>= 1 non-empty non-header line after it before next ##)
+  UNRELEASED_BODY="$(awk '/^## \[Unreleased\]/{flag=1; next} /^## /{flag=0} flag' "$CHANGELOG" | grep -cE '^[^[:space:]]')"
+  if [ "$UNRELEASED_BODY" -gt 0 ]; then
+    echo "⚠ CHANGELOG.md [Unreleased] section has content — convert to ## [$NEW] before tagging"
+  fi
+fi
+
 git -C "$REPO_DIR" add VERSION
+[ -f "$INDEX_HTML" ] && git -C "$REPO_DIR" add docs/index.html 2>/dev/null || true
 git -C "$REPO_DIR" commit -q -m "chore: bump version to $NEW"
 COMMIT_SHA="$(git -C "$REPO_DIR" rev-parse --short HEAD)"
 echo "✓ commit created: $COMMIT_SHA chore: bump version to $NEW"

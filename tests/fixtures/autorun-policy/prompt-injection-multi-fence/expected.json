@@ -1,0 +1,26 @@
+{
+  "fixture": "prompt-injection-multi-fence",
+  "final_state": "halted-at-stage",
+  "halted_at_stage": "check",
+  "run_degraded": false,
+  "merge_capable": false,
+  "verdict": null,
+  "warnings_count": 0,
+  "blocks_count": 1,
+  "security_findings_count": 0,
+  "pr_url": null,
+  "extractor_path": "multi_fence_rejected",
+  "fence_count_pre_nfkc": 1,
+  "fence_count_post_nfkc": 2,
+  "auto_merge_fired": false,
+  "verify_invoked": false,
+  "pr_create_invoked": false,
+  "expected_blocks": [
+    {
+      "stage": "check",
+      "axis": "integrity",
+      "reason_substring": "multiple check-verdict fences"
+    }
+  ],
+  "notes": "Pre-NFKC the file has 1 fence (legitimate); after the post-processor runs NFKC normalize+zero-width-strip the homoglyph fence is canonicalized and count==2 → integrity block. If a future implementation reorders normalize-after-scan, this fixture will silently regress to count==1 and a forged NO_GO would extract."
+}

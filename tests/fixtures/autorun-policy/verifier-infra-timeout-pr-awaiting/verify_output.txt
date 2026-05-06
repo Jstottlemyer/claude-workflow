@@ -1,0 +1,2 @@
+timeout: sending signal TERM after 600s
+verify.sh aborted: stage exceeded TIMEOUT_STAGE

@@ -55,6 +55,46 @@ Files under `scripts/autorun/` (run.sh, build.sh, verify.sh, defaults.sh, spec-r
 ### 13. Quoting / unset — **Low**
 - Standard shellcheck-class issues: unquoted `$VAR` where word-splitting could happen, `${VAR}` vs `$VAR` consistency, `set -u` violations.
 
+### 14. Sourced helper × `set -e` × ERR trap — **High**
+- When `_policy.sh` is sourced into a script with `set -e` + an ERR trap, a non-zero return inside the helper still propagates and trips the trap before the caller can react.
+- Inside helpers, never use `command; check_status` — use `if ! command; then ...; fi` or `command || policy_warn ...`. Caller-visible failures must be surfaced via explicit return codes, not raw `set -e` propagation.
+- Flag any sourced-helper pattern that lets a bare command failure escape into the caller's ERR trap.
+
+### 15. Sticky `RUN_DEGRADED` file derivation — **High**
+- `RUN_DEGRADED` MUST be derived from `len(run-state.json::warnings) > 0`, never from a separately-written file or env var.
+- Any helper that writes a sticky env var (`export RUN_DEGRADED=1`) risks subshell leakage where `&`-backgrounded children mutate a copy and the parent never sees the flip. Reading the canonical `run-state.json` is sticky-by-design and atomic-append-safe.
+- Flag any reference to a side-channel `RUN_DEGRADED` file, env var, or marker; the only legal source is `_policy_json.py count-warnings run-state.json`.
+
+### 16. `if ! policy_act` guard pattern (D37) — **High**
+- Every call site that uses `policy_block` or its routed `policy_act` cousin MUST guard with `if ! policy_act <axis> "<reason>"; then render_morning_report; exit 1; fi`.
+- Without the guard, `set -e` kills the run on the first non-zero return from `policy_act` BEFORE `render_morning_report` runs — adopter wakes up to no report.
+- Mandatory pattern; reviewable via `grep -n 'policy_act' scripts/autorun/*.sh` — every match must be inside an `if !` (or equivalent `||`) construct that calls `render_morning_report` before `exit 1`.
+
+### 17. `flock` file-form + mkdir-fallback + cleanup trap — **High**
+- **File-form is mandatory on macOS.** Use `flock -nx "$LOCKFILE" -c CMD` (file-form). The fd-form `flock -nx 9 ... 9>"$LOCKFILE"` does NOT enforce mutual exclusion on macOS — both contenders acquire fd-9 against the same inode and both succeed (confirmed in spike probe 01).
+- **Mkdir fallback when `flock` is absent:** `mkdir "$LOCKDIR" 2>/dev/null || exit 1; trap 'rmdir "$LOCKDIR"' EXIT`. Without the cleanup trap, a crashed writer wedges the run permanently.
+- **Atomic symlink rotation:** never use `ln -sfn` (non-atomic) and never use plain `mv -f` (interprets dir-symlink target as "move into directory"). Runtime-detect: BSD `mv -fh tmp link`, GNU `mv -fT tmp link`. (Spike probe 12.)
+- **Stock macOS has no `timeout`:** `doctor.sh` must detect both `gtimeout` and `timeout` absent and emit a doctor block instructing `brew install coreutils`; otherwise `TIMEOUT_PERSONA` is silently a no-op. (Spike probe 02.)
+- **Expected-failure tests under `set -e`:** in tests that exercise lock contention, use `if cmd; then RC=0; else RC=$?; fi` — NOT `set +e ... RC=$? ... set -e`. The toggle form is racy with the ERR trap and can fire mid-line. (Spike lessons-learned.)
+- Flag any fd-form `flock`, any `ln -sfn`, any plain `mv -f` for symlink rotation, any mkdir-lock without an `EXIT` trap, and any `set +e/set -e` sandwich around expected-failure assertions.
+
+### 18. `_json_escape` Python-pinning + AST ban list — **High**
+- Never escape JSON via bash/sed (`tr -d '"'`, `sed 's/"/\\"/g'`, etc.) — quoting edge cases (embedded newlines, surrogates, NUL) silently corrupt `run-state.json`. Always route through `_policy_json.py escape`.
+- The Python helper itself MUST stay AST-clean per `API_FREEZE.md`: banned imports/calls include `subprocess`, `eval`, `exec`, `__import__`, `os.system`, `os.exec*`, `os.fork*`, `os.spawn*`, `os.popen`, and any `os.environ` mutators. Stdlib `json` + `sys` only.
+- Reviewer test `tests/test-policy-json.sh::test_policy_json_no_shell_out` enforces via AST audit.
+- Flag any inline shell JSON escaper, any `jq` invocation in `_policy_json.py`, and any newly-introduced `import` in the Python helper that isn't on the allowlist.
+
+### 19. Fenced-block extraction single-fence rule (D33 v6) — **High**
+- D33 dictates **EXACTLY ONE** ` ```check-verdict ` fence per check-synthesis output. Behaviour matrix:
+  - count == 1 + parses → use it.
+  - count > 1 → `integrity_block` (multi-fence ambiguity).
+  - count == 0 with documented marker present → `integrity_block`.
+  - count == 0 without marker → legacy grep fallback (one-release back-compat only).
+- **Normalize before scanning:** the extractor must NFKC-normalize and strip zero-width characters (Codex M4) BEFORE counting fences — otherwise a `&#8203;`-poisoned fence header silently slips past.
+- Other-language fences (` ```json `, unlabeled triple-backtick blocks) are unconstrained — only `check-verdict`-labeled fences are counted.
+- **No nonce mechanism in v6** — D42/AC#27/pitfall #20 were dropped per the v6 plan delta. Do not flag missing nonces; flag any newly-reintroduced nonce field in `check-verdict` or `run-state.json`.
+- Flag any extractor that scans before normalization, any path that accepts >1 fence, and any code reintroducing the dropped nonce primitive.
+
 ## Output Format
 
 ```

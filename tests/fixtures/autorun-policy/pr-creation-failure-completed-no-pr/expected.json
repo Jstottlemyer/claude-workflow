@@ -1,0 +1,25 @@
+{
+  "fixture": "pr-creation-failure-completed-no-pr",
+  "final_state": "completed-no-pr",
+  "halted_at_stage": null,
+  "run_degraded": false,
+  "merge_capable": false,
+  "verdict": "GO",
+  "warnings_count": 0,
+  "blocks_count": 0,
+  "security_findings_count": 0,
+  "pr_url": null,
+  "extractor_path": "fence_extracted",
+  "fence_count": 1,
+  "auto_merge_fired": false,
+  "verify_invoked": true,
+  "pr_create_invoked": true,
+  "pr_create_exit": 1,
+  "pr_create_retry_attempted": false,
+  "token_redaction_assertions": {
+    "morning_report_json_must_not_match": ["Bearer ", "ghp_", "gho_", "github_pat_"],
+    "run_log_must_not_match": ["Bearer ", "ghp_", "gho_", "github_pat_"],
+    "fixture_stub_uses_only_placeholders": true
+  },
+  "notes": "Pipeline does NOT retry on PR creation failure (spec line 400). Artifacts (run-state.json, morning-report.json, branch_owned) are present on disk but pr_url is null. Token-redaction wrapper is verified by absence: this fixture's stub deliberately uses <REDACTED_TOKEN_PLACEHOLDER> only, so any token-shaped string in the run log would have leaked from somewhere else (regression)."
+}

@@ -1,6 +1,7 @@
 # autorun queue — transient artifacts, never commit
 autorun.config.json
 */
+runs/
 STOP
 run.log
 .current-stage

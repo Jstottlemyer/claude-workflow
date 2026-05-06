@@ -294,28 +294,61 @@ Full reference + schema + reset paths: [`docs/budget.md`](docs/budget.md).
 
 Write a spec, then let `/autorun` drive the rest while you sleep — no interactive session needed.
 
+**v0.7+:** `run.sh` processes exactly ONE slug per invocation. For multi-spec queues, use the `autorun-batch.sh` wrapper. Per-axis warn/block policy framework (`verdict` / `branch` / `codex_probe` / `verify_infra`) lets overnight runs ship a degraded PR rather than halt at 3am — security/integrity findings still hardcoded-block.
+
 ```bash
 # From any project:
 cd ~/Projects/myproject
 
-# Queue the spec you already wrote
-cp docs/specs/myfeature/spec.md queue/myfeature.spec.md
+# Queue one or more specs
+cp docs/specs/feature-a/spec.md queue/feature-a.spec.md
+cp docs/specs/feature-b/spec.md queue/feature-b.spec.md
 
-# Start headless in a detached tmux window
-tmux new-window -n autorun 'autorun start; echo "[autorun] done — press enter"; read'
+# Single slug — overnight semantics (warn-eligible axes warn rather than halt)
+scripts/autorun/run.sh --mode=overnight feature-a
 
-# Check progress
-autorun status
+# Multi-slug queue (replaces the legacy queue-loop; cron-friendly)
+scripts/autorun/autorun-batch.sh --mode=overnight
+
+# Or detached via tmux for unattended runs
+tmux new-window -n autorun 'scripts/autorun/autorun-batch.sh --mode=overnight; echo "[autorun] done — press enter"; read'
 
 # Morning check
-cat queue/index.md
+cat queue/runs/index.md
+ls queue/runs/<run-id>/morning-report.md
 ```
+
+**Per-axis policy** (set in `queue/autorun.config.json` or via env vars `AUTORUN_VERDICT_POLICY=warn`, etc.):
+
+```json
+{
+  "policies": {
+    "verdict": "warn",
+    "branch": "warn",
+    "codex_probe": "warn",
+    "verify_infra": "warn"
+  }
+}
+```
+
+`integrity` and `security_findings` axes are NOT config-controllable — hardcoded `block`. `verdict=NO_GO` always blocks; only `GO_WITH_FIXES` is warn-eligible.
+
+**Cron migration (≤ v0.6 → v0.7+):**
+```
+# Before:
+0 22 * * * cd /path/to/repo && scripts/autorun/run.sh
+# After:
+0 22 * * * cd /path/to/repo && scripts/autorun/autorun-batch.sh --mode=overnight
+```
+
+**Known v1 limitation (v0.7):** D33 multi-fence rejection blocks the easy prompt-injection class but does NOT authenticate a single fence quoted from reviewed content. Mitigation is **detection-hardening, not prevention**. For repos processing untrusted spec sources (third-party PRs, externally-authored queue items), set `verdict_policy=block` and disable unattended auto-merge until the architectural fix lands. See `BACKLOG.md` → `autorun-verdict-deterministic`.
 
 **How it works:** `autorun` is a thin CLI wrapper installed at `~/.local/bin/autorun` by `install.sh`. It resolves back to `MonsterFlow/scripts/autorun/run.sh` regardless of where it's called from. The engine (stage scripts, personas) always lives in `MonsterFlow`; the target (git, docs/, queue/) is always `$PWD` of the project you called it from.
 
 **Kill-switch:**
 ```bash
-touch queue/STOP    # halts cleanly after the current build wave
+touch queue/STOP    # honored at iteration boundaries by autorun-batch.sh
+                    # (in-flight run.sh completes its current slug)
 ```
 
 See `commands/autorun.md` for the full reference (config options, failure handling, dry-run mode, notification channels).

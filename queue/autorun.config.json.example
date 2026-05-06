@@ -6,5 +6,14 @@
   "test_cmd": "",
   "timeout_stage": 1800,
   "timeout_codex": 120,
-  "timeout_verify": 600
+  "timeout_verify": 600,
+  "TIMEOUT_PERSONA": "600s",
+  "TIMEOUT_STAGE": "1800s",
+  "policies": {
+    "verdict": "block",
+    "branch": "block",
+    "codex_probe": "block",
+    "verify_infra": "block"
+  },
+  "untracked_capture_max_bytes": 104857600
 }

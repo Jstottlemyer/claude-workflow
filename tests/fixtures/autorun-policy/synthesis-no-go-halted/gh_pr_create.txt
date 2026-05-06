@@ -1,0 +1,2 @@
+0
+(should not be invoked: pipeline halts before PR creation)

@@ -1,0 +1,3 @@
+PASS tests/test-pr-failure.sh
+PASS tests/run-tests.sh (1/1 green)
+Verifier completed in 3.8s. All assertions hold.

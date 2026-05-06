@@ -1,0 +1,29 @@
+# Renderer permutations fixture (D38 — 4 final_state x 2 recovery)
+#
+# Format: one row per line, fields separated by '|':
+#   row_id | final_state | recovery_state | expect_subject_substr | expect_line_substr | expect_recovery_hint_substr
+#
+# recovery_state values:
+#   none       — pre_reset_recovery.occurred=false (no reset fired)
+#   ref-set    — occurred=true, recovery_ref="refs/autorun-recovery/<run-id>" (stash created)
+#   ref-null-untracked — occurred=true, recovery_ref=null, untracked_archive set (clean WT, untracked only)
+#   ref-null-clean     — occurred=true, recovery_ref=null, untracked_archive=null (fully clean — degenerate)
+#
+# Strings are taken from notify.sh case-block (final_state branches) and
+# _policy_json.py::cmd_render_recovery_hint (recovery hints). They are
+# substring matches (not full equality) so cosmetic prose changes don't break
+# the test, but the load-bearing tokens must remain.
+#
+# Subject and line strings are checked against notify.sh's BODY_FILE / SUBJECT.
+# Recovery-hint strings are checked against `_policy_json.py render-recovery-hint`.
+#
+# row 1-4: final_state with no reset (recovery=none) — recovery hint is empty.
+1|merged|none|Merged: |Merged to main:|
+2|pr-awaiting-review|none|PR awaiting review:|PR awaiting review:|
+3|halted-at-stage|none|Halted at|Halted at|
+4|completed-no-pr|none|Completed (no PR):|Run completed but PR creation failed:|
+# row 5-8: reset DID fire — final_state still varies but the recovery hint is the focus.
+5|halted-at-stage|ref-set|Halted at|Halted at|Recovery ref:
+6|halted-at-stage|ref-null-untracked|Halted at|Halted at|Untracked archive:
+7|halted-at-stage|ref-null-clean|Halted at|Halted at|Pre-reset recovery available:
+8|halted-at-stage|none|Halted at|Halted at|

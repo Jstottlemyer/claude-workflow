@@ -1,0 +1,22 @@
+OVERALL_VERDICT: NO_GO
+
+# Synthesis — NO_GO fixture
+
+Reviewer consensus: a load-bearing assumption in the plan does not hold against the current codebase. Recommend revising the plan before any implementation.
+
+```check-verdict
+{
+  "schema_version": 1,
+  "prompt_version": "check-verdict@1.0",
+  "verdict": "NO_GO",
+  "blocking_findings": [
+    {
+      "finding_id": "MF-NO-GO-01",
+      "severity": "high",
+      "summary": "Plan assumes function X exists but it was renamed in commit abc123."
+    }
+  ],
+  "security_findings": [],
+  "summary": "Plan-vs-reality drift; NO_GO."
+}
+```

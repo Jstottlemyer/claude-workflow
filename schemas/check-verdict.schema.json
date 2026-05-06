@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/check-verdict.schema.json",
+  "title": "Check verdict — check-verdict.json",
+  "description": "Machine-readable verdict sidecar emitted by /check synthesis. Written to docs/specs/<slug>/check-verdict.json by the deterministic post-processor in check.sh after extracting the sole ```check-verdict fenced JSON block from the synthesis stdout stream. Drives autorun's GO/GO_WITH_FIXES/NO_GO branching and security-finding integrity gates. v6 of autorun-overnight-policy intentionally omits any nonce mechanism (see check v3 NO-GO).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "prompt_version",
+    "verdict",
+    "blocking_findings",
+    "security_findings",
+    "generated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Bumped on any breaking schema change. Old verdicts remain readable; consumers branch on version."
+    },
+    "prompt_version": {
+      "type": "string",
+      "const": "check-verdict@1.0",
+      "description": "Identifier of the check-verdict synthesis prompt revision that produced this sidecar. Bumped when the synthesis contract or schema changes."
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["GO", "GO_WITH_FIXES", "NO_GO"],
+      "description": "Overall gate verdict. GO = ship as-is; GO_WITH_FIXES = ship after addressing non-blocking findings; NO_GO = blocking findings present, do not proceed to /build."
+    },
+    "blocking_findings": {
+      "type": "array",
+      "description": "Findings that block the gate. Empty array iff verdict is GO. May overlap with security_findings (a security blocker appears in both).",
+      "items": {
+        "type": "object",
+        "required": ["persona", "finding_id", "summary"],
+        "properties": {
+          "persona": {
+            "type": "string",
+            "description": "Persona name that surfaced this finding (e.g. 'security', 'codex-adversary')."
+          },
+          "finding_id": {
+            "type": "string",
+            "pattern": "^ck-[0-9a-f]{10}$",
+            "description": "ck-<first 10 hex chars of sha256(normalized_signature)>. Stage prefix 'ck' = check. Matches the persona-metrics convention in schemas/findings.schema.json."
+          },
+          "summary": {
+            "type": "string",
+            "description": "Short headline of the finding for autorun fix-attempt routing and PR body summarization."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "security_findings": {
+      "type": "array",
+      "description": "Findings tagged 'sev:security'. Hardcoded as blocking by autorun integrity policy regardless of policies.security_findings config. Empty array if none.",
+      "items": {
+        "type": "object",
+        "required": ["persona", "finding_id", "summary", "tag"],
+        "properties": {
+          "persona": {
+            "type": "string",
+            "description": "Persona name that surfaced this finding."
+          },
+          "finding_id": {
+            "type": "string",
+            "pattern": "^ck-[0-9a-f]{10}$",
+            "description": "ck-<first 10 hex chars of sha256(normalized_signature)>. Same derivation as blocking_findings.finding_id."
+          },
+          "summary": {
+            "type": "string",
+            "description": "Short headline of the security concern."
+          },
+          "tag": {
+            "type": "string",
+            "const": "sev:security",
+            "description": "Literal tag identifying this row as security-class. Pinned const so the integrity post-processor can match without ambiguity."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp when synthesis emitted the verdict (e.g. '2026-05-05T18:42:11Z'). Used for staleness checks and audit trail."
+    }
+  },
+  "additionalProperties": false
+}

@@ -432,6 +432,7 @@
       <a href="#pipeline">Pipeline</a>
       <a href="#self-learning" class="hide-mobile">Self-learning</a>
       <a href="#commands">Commands</a>
+      <a href="#overnight" class="hide-mobile">Overnight</a>
       <a href="#install">Install</a>
       <a href="https://github.com/Jstottlemyer/MonsterFlow">GitHub ↗</a>
     </div>
@@ -441,7 +442,7 @@
 <header class="hero">
   <div class="wrap">
     <img src="social-image.png" alt="The MonsterFlow mascot — a friendly six-armed coding monster wearing a leather harness, each arm typing on a different floating terminal window." class="hero-image">
-    <span class="eyebrow">8-command pipeline · Claude Code · v0.3.0</span>
+    <span class="eyebrow">8-command pipeline · Claude Code · v0.8.0</span>
     <h1>You say WHAT.<br>Claude handles HOW.</h1>
     <p class="hero-hook">Multi-agent review at every gate. And then the system measures whether those reviews are worth anything.</p>
     <p class="tagline">
@@ -652,7 +653,7 @@ flowchart TD
         <tr><td><code>/plan</code></td><td>Architecture + implementation design (incl. wave-sequencer for data-contract precedence)</td><td>7 designers</td></tr>
         <tr><td><code>/check</code></td><td>Last gate before code — validates the plan; + Codex adversarial pass (optional)</td><td>5 validators</td></tr>
         <tr><td><code>/build</code></td><td>Parallel execution with verification discipline; + Codex implementation review (optional)</td><td>Superpowers</td></tr>
-        <tr><td><code>/autorun</code></td><td>Headless overnight pipeline — queues a spec and drives all 8 stages unattended via <code>autorun start</code>. Works cross-project: engine scripts stay in <code>claude-workflow</code>, target git/docs/queue live in <code>$PWD</code>.</td><td>Shell</td></tr>
+        <tr><td><code>/autorun</code></td><td>Headless overnight pipeline — queues a spec and drives all 8 stages unattended. <strong>Single-slug per invocation</strong> (per AC#24); multi-spec queues use <code>autorun-batch.sh --mode=overnight</code>. Per-axis warn/block policy framework (<code>verdict</code>, <code>branch</code>, <code>codex_probe</code>, <code>verify_infra</code>) lets you say <em>"warn overnight, block in supervised mode"</em>; security and integrity findings are hardcoded blocks regardless. Works cross-project: engine scripts stay in MonsterFlow, target git/docs/queue live in <code>$PWD</code>.</td><td>Shell</td></tr>
         <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
         <tr><td><code>/wrap</code></td><td>Session wrap-up — three automatic insight phases feed one triage gate (CLAUDE.md · Memory · hooks · skills), then git loose ends. Variants: <code>quick</code> (fast, skips insights) · <code>full</code> (forces soft-skip phases)</td><td>—</td></tr>
       </tbody>
@@ -660,10 +661,44 @@ flowchart TD
   </div>
 </section>
 
+<section id="overnight" class="narrative">
+  <div class="wrap">
+    <h2>Overnight policy framework <span style="color:var(--muted);font-weight:400">(v0.7+)</span></h2>
+    <p class="lede">Unattended overnight runs need a sharper question than "should we halt?". The autorun-overnight-policy spec (26 ACs, shipped via PR #6) replaced the old halt-on-anything behavior with a per-axis warn/block framework. The principle: <strong>more permissive overnight, except for security gaps</strong>. Testing in the morning with warnings beats a halted pipeline at 3am.</p>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Per-axis policy</p>
+    <p>Four overrideable axes — <code>verdict</code>, <code>branch</code>, <code>codex_probe</code>, <code>verify_infra</code> — each independently set to <code>warn</code> or <code>block</code>. <code>--mode=overnight</code> warns on everything; <code>--mode=supervised</code> blocks on everything. Per-axis env vars override the mode preset. Three classes are <em>hardcoded blocks</em> regardless of mode:</p>
+    <ul>
+      <li><strong>Security findings</strong> — anything tagged <code>sev:security</code> by reviewers</li>
+      <li><strong>Integrity issues</strong> — malformed sidecar JSON, schema mismatch, missing required fields</li>
+      <li><strong>Verdict NO_GO</strong> — synthesis's deliberate "this is broken" signal</li>
+    </ul>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Sticky run-degraded gate</p>
+    <p>Any single warn during a run sets <code>RUN_DEGRADED=1</code> (sticky). Auto-merge fires only when <code>RUN_DEGRADED=0 AND CODEX_HIGH_COUNT=0</code>. Non-clean runs ship as a PR awaiting review — you wake to artifacts + a PR, not a halted pipeline.</p>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Single-slug invocation + queue-loop wrapper</p>
+    <p><code>run.sh &lt;slug&gt;</code> processes exactly one slug per invocation. Multi-spec queues call the new <code>autorun-batch.sh</code> wrapper, which iterates <code>queue/*.spec.md</code> and honors <code>queue/STOP</code> at iteration boundaries. <strong>Cron migration:</strong></p>
+    <pre style="background:var(--bg-code);padding:14px 16px;border-radius:8px;overflow-x:auto"><code># Before (≤ v0.6):
+0 22 * * * cd /path/to/repo && scripts/autorun/run.sh
+
+# After (v0.7+):
+0 22 * * * cd /path/to/repo && scripts/autorun/autorun-batch.sh --mode=overnight</code></pre>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Single-fence verdict extractor (D33)</p>
+    <p>Synthesis emits a fenced <code>check-verdict</code> block at the end of its output; a deterministic shell+Python post-processor (<code>_policy_json.py extract-fence</code>) extracts it to <code>check-verdict.json</code>. Multi-fence detection — more than one <code>check-verdict</code> fence — blocks as a possible prompt-injection attempt. NFKC-normalize + zero-width-strip happens <em>before</em> scanning, so disguised-character fences (homoglyph attacks) get caught.</p>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600;color:#d93">Known v1 limitation</p>
+    <p style="border-left:3px solid #d93;padding-left:14px;color:var(--fg)">D33 multi-fence rejection blocks the easy attack class but does <strong>not</strong> authenticate a single fence quoted from reviewed content. If synthesis omits its own fence and reviewed content quotes a single fake one, count==1 passes and a forged GO ships. Mitigation is <strong>detection-hardening, not prevention</strong>. <strong>For repos processing untrusted spec sources</strong> (third-party PRs, externally-authored queue items), set <code>verdict_policy=block</code> and disable unattended auto-merge until the architectural fix lands. The fix is carved into the <code>autorun-verdict-deterministic</code> follow-up spec — deterministic verdict aggregation from structured reviewer outputs (drops the synthesis-emits-sidecar pattern entirely).</p>
+
+    <p class="lede" style="margin-top:24px">Full design + 26 acceptance criteria: <a href="https://github.com/Jstottlemyer/MonsterFlow/blob/main/docs/specs/autorun-overnight-policy/spec.md"><code>docs/specs/autorun-overnight-policy/</code></a>.</p>
+  </div>
+</section>
+
 <section id="requirements">
   <div class="wrap">
     <h2>Requirements</h2>
-    <p class="lede">The pipeline ships in this repo (<code>v0.3.0</code>). Everything else is third-party — installed at latest from its source. No version pinning required for normal use.</p>
+    <p class="lede">The pipeline ships in this repo (<code>v0.8.0</code>). Everything else is third-party — installed at latest from its source. No version pinning required for normal use.</p>
 
     <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Required</p>
     <div class="table-wrap"><table>
