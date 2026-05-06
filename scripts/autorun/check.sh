@@ -250,16 +250,27 @@ print(len(arr) if isinstance(arr,list) else 0)
   # spec). v1 sidecars lack iteration/iteration_max/cap_reached; we default
   # them so v1 fixtures continue to round-trip unchanged through this path.
   local schema_version iteration iteration_max cap_reached
-  schema_version="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /schema_version --default 1 2>/dev/null || echo 1)"
-  iteration="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /iteration --default 1 2>/dev/null || echo 1)"
-  iteration_max="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /iteration_max --default 2 2>/dev/null || echo 2)"
-  cap_reached="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /cap_reached --default false 2>/dev/null || echo false)"
+  local _iter_rest _iter_ok _iter_max_rest _iter_max_ok
+  # `_policy_json.py get --default <fallback>` covers missing-key. The bare
+  # `|| echo <default>` was redundant defense that masked real failures
+  # (malformed JSON, validator traceback). Drop it; let non-zero rc propagate
+  # via `set -euo pipefail`. The `--default` flag handles the only legitimate
+  # not-present case.
+  schema_version="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /schema_version --default 1)"
+  iteration="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /iteration --default 1)"
+  iteration_max="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /iteration_max --default 2)"
+  cap_reached="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /cap_reached --default false)"
 
-  # Defensively coerce blank → defaults (in case `get` ever returns an empty line).
+  # Defensively coerce blank → defaults AND lowercase booleans (defense in
+  # depth: _policy_json.py uses json.dumps which already emits lowercase
+  # `true`/`false`, but a future codepath change shouldn't silently break
+  # the `[ "$cap_reached" = "true" ]` compare below — fail loudly via a
+  # normalized comparison instead).
   schema_version="${schema_version:-1}"
   iteration="${iteration:-1}"
   iteration_max="${iteration_max:-2}"
   cap_reached="${cap_reached:-false}"
+  cap_reached="$(printf '%s' "$cap_reached" | tr '[:upper:]' '[:lower:]')"
 
   # Bound-check iteration only when v2 (v1 has no semantic for the field).
   # Allowed range: 1 <= iteration <= iteration_max + 1. The "+1" is intentional:
