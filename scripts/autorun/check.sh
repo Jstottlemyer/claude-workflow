@@ -14,8 +14,9 @@
 #       count > 1 → policy_block check integrity (multi-fence injection)
 #       count == 0 + first-line marker present → policy_block check integrity
 #                                                (synthesis omitted)
-#       count == 0 + first-line marker absent → legacy grep fallback
-#                                              (one-release back-compat AC#19)
+#       count == 0 + first-line marker absent → policy_block check integrity
+#                                              (legacy grep fallback removed
+#                                              in v0.9.0 per OQ3 "ride together")
 #       count == 1 → extract sidecar to check-verdict.json
 #                  → strip fence from stream → write check.md
 #                  → validate sidecar via _policy_json.py validate
@@ -146,19 +147,15 @@ extract_and_decide() {
   fi
 
   if [ "$fence_count" -eq 0 ] && [ "$marker_present" -eq 0 ]; then
-    # Legacy grep fallback (one-release back-compat per AC#19).
-    echo "[autorun] check: WARN — no check-verdict fence; using legacy grep fallback (DEPRECATED, removed in v0.9.0)" >&2
+    # v0.9.0: legacy grep fallback REMOVED (per CHANGELOG.md "Notes on bundling"
+    # and OQ3 "ride together"). The v2 check-verdict contract requires every
+    # Synthesis call to emit a fence; absence is now a hard integrity error.
+    echo "[autorun] check: D33 — synthesis emitted no check-verdict fence and no fallback marker; blocking" >&2
     cp "$stdout_log" "$CHECK_CANONICAL"
     cp "$stdout_log" "$ARTIFACT_DIR/check.md"
-    # Normalize NO-GO and NO GO → NO_GO; whole-file scan.
-    if grep -Eqi '\bNO[- _]GO\b' "$stdout_log"; then
-      echo "[autorun] check: legacy fallback parsed verdict=NO_GO; blocking" >&2
-      policy_block check verdict "synthesis emitted NO_GO (legacy fallback)" || true
-      render_morning_report
-      exit 1
-    fi
-    echo "[autorun] check: legacy fallback parsed verdict=GO/GO_WITH_FIXES; continuing"
-    return 0
+    policy_block check integrity "synthesis emitted no check-verdict fence (legacy grep fallback removed in v0.9.0)" || true
+    render_morning_report
+    exit 1
   fi
 
   # ---- count == 1: extract sidecar + strip fence from stream ----

@@ -1452,7 +1452,10 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# test_check_count0_marker_absent  (legacy grep fallback)
+# test_check_count0_marker_absent  (legacy grep fallback REMOVED in v0.9.0)
+# Pre-v0.9.0 this was a "deprecated grep fallback parses verdict from prose"
+# path. The v2 contract makes the fallback structurally unreachable for any
+# conforming Synthesis; the path now hard-blocks on integrity.
 # ---------------------------------------------------------------------------
 case_ "test_check_count0_marker_absent"
 CC_DIR="$TMPROOT/check-c3"; mkdir -p "$CC_DIR"
@@ -1473,12 +1476,13 @@ set +e
 set -e
 RC="$(cat "$CC_DIR/rc" 2>/dev/null || echo 99)"
 BLOCK_AXIS="$(state_get "$CC_DIR" "(d.get('blocks') or [{}])[0].get('axis','')")"
-DEPRECATION_OK=0
-grep -q "DEPRECATED" "$CC_DIR/err" 2>/dev/null && DEPRECATION_OK=1
-if [ "$RC" -eq 1 ] && [ "$BLOCK_AXIS" = "verdict" ] && [ "$DEPRECATION_OK" -eq 1 ]; then
+# Post-v0.9.0: synthesis emitting no fence + no marker is now an integrity
+# block (not a verdict block), and there is no DEPRECATION warning (the
+# fallback is gone, not deprecated).
+if [ "$RC" -eq 1 ] && [ "$BLOCK_AXIS" = "integrity" ]; then
   ok test_check_count0_marker_absent
 else
-  fail test_check_count0_marker_absent "rc=$RC axis='$BLOCK_AXIS' deprecation=$DEPRECATION_OK"
+  fail test_check_count0_marker_absent "rc=$RC axis='$BLOCK_AXIS' (expected: rc=1, axis=integrity)"
 fi
 
 # ---------------------------------------------------------------------------
