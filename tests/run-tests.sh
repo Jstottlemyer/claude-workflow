@@ -95,6 +95,16 @@ TESTS=(
   test-build-followups-consumer.sh
   # pipeline-gate-permissiveness W3.9 — commands/spec.md frontmatter gate fields
   test-spec-frontmatter-gate-fields.sh
+  # pipeline-gate-permissiveness W4.1 — docs/index.html three-tier verdict mermaid
+  test-docs-index-three-tier-verdict.sh
+  # pipeline-gate-permissiveness W4.2 — CHANGELOG.md v0.9.0 entry
+  test-changelog-v0.9.0-entry.sh
+  # pipeline-gate-permissiveness W4.3 — install.sh v0.9.0 upgrade banner
+  test-install-upgrade-banner.sh
+  # pipeline-gate-permissiveness W5.1+5.2 — (mode × class) matrix fixture suite
+  test-permissiveness.sh
+  # pipeline-gate-permissiveness W5.5 — Edge Case 16 spec.md additions
+  test-spec-edge-case-16.sh
 )
 
 # Tests whose passing condition is exit non-zero (M8 inverted-assertion contract).

@@ -1,0 +1,31 @@
+{
+  "schema_version": 2,
+  "prompt_version": "check-verdict@2.0",
+  "verdict": "NO_GO",
+  "blocking_findings": [
+    {
+      "persona": "scope-discipline",
+      "finding_id": "ck-bbbbbbbbbb",
+      "summary": "architectural finding blocks regardless of mode"
+    }
+  ],
+  "security_findings": [],
+  "generated_at": "2026-05-05T18:00:01Z",
+  "iteration": 1,
+  "iteration_max": 2,
+  "mode": "strict",
+  "mode_source": "frontmatter",
+  "class_breakdown": {
+    "architectural": 1,
+    "security": 0,
+    "contract": 0,
+    "documentation": 0,
+    "tests": 0,
+    "scope-cuts": 0,
+    "unclassified": 0
+  },
+  "class_inferred_count": 0,
+  "followups_file": "docs/specs/fixture/followups.jsonl",
+  "cap_reached": false,
+  "stage": "check"
+}

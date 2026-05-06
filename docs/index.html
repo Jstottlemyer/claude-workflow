@@ -490,10 +490,17 @@ flowchart TD
     P["/plan\napi · data-model · ux · scalability\nsecurity · integration · wave-sequencer"]:::plan
     JS2["Judge · Dedupe · Synth → plan.md"]:::synth
     C["/check\ncompleteness · sequencing · risk\nscope-discipline · testability"]:::gate
-    JS3["Judge · Dedupe · Synth → check.md"]:::synth
-    B["/build\nparallel execute"]:::execute
+    JS3["Judge · Dedupe · Synth → check.md\nthree-tier verdict (v0.9.0+)"]:::synth
+    V1["GO\nclean pass"]:::verdictGo
+    V2["GO_WITH_FIXES\nwarn → followups.jsonl\n(common case in permissive mode)"]:::verdictWarn
+    V3["NO_GO\narchitectural · security · unclassified\nhalt"]:::verdictBlock
+    B["/build\nparallel execute\n(consumes followups wave 1)"]:::execute
     W["/wrap"]:::wrap
-    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3 --> B --> W
+    K --> S --> SR --> JS1 --> P --> JS2 --> C --> JS3
+    JS3 --> V1 --> B
+    JS3 --> V2 --> B
+    JS3 --> V3
+    B --> W
 
     SP["Superpowers\nTDD · verification"]:::side
     CX["Codex\nadversarial review"]:::accent
@@ -528,8 +535,12 @@ flowchart TD
     classDef side    fill:#1e293b,stroke:#64748b,color:#94a3b8,stroke-width:2px,stroke-dasharray:4 3
     classDef accent  fill:#451a03,stroke:#fde68a,color:#fde68a,stroke-width:2px,stroke-dasharray:4 3
     classDef metrics fill:#2d1b69,stroke:#a78bfa,color:#e9d5ff,stroke-width:3px
+    classDef verdictGo    fill:#14532d,stroke:#86efac,color:#bbf7d0,stroke-width:2px
+    classDef verdictWarn  fill:#713f12,stroke:#fde047,color:#fef9c3,stroke-width:2px
+    classDef verdictBlock fill:#7f1d1d,stroke:#fca5a5,color:#fee2e2,stroke-width:2px
       </pre>
     </div>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Three-tier verdict at /check (v0.9.0+).</strong> The pipeline-gate-permissiveness change replaces the old binary halt-or-pass behavior with three verdicts: <code>GO</code> (clean pass), <code>GO_WITH_FIXES</code> (non-architectural findings warn-routed to <code>followups.jsonl</code> and consumed by /build wave 1 — the common case in permissive mode), and <code>NO_GO</code> (architectural, security, or unclassified findings halt the pipeline). The same verdict shape applies at <code>/spec-review</code> and <code>/plan</code>; <code>/check</code> remains the last gate before code.</p>
     <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 7 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
     <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">Codex (optional).</strong> If <a href="#requirements">installed</a>, an OpenAI Codex agent runs an adversarial pass at <code>/spec-review</code>, <code>/check</code>, and <code>/build</code> — independent perspective from a different model family, joining the same Judge synthesis as the in-house personas. Silent skip if not set up.</p>
   </div>

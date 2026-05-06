@@ -2,6 +2,42 @@
 
 All notable changes to `MonsterFlow` are documented here.
 
+## [0.9.0] - 2026-05-05
+
+Pipeline-gate permissiveness — applies the autorun overnight policy framework's per-axis warn/block model to the pipeline gates (`/spec-review`, `/plan`, `/check`). Default flips from de-facto strict (halt-on-anything) to **permissive** with a 7-class finding taxonomy that routes contract / documentation / tests / scope-cuts findings to a `followups.jsonl` artifact instead of blocking. Architectural and security findings continue to halt. Spec / plan / check artifacts: `docs/specs/pipeline-gate-permissiveness/`.
+
+### Added
+
+- Per-axis pipeline-gate policy: `gate_mode: permissive | strict` (default `permissive`) declared in spec frontmatter.
+- 7-class finding taxonomy (`architectural`, `security`, `contract`, `documentation`, `tests`, `scope-cuts`, `unclassified`) with per-class warn/block routing.
+- `followups.jsonl` artifact at `docs/specs/<feature>/followups.jsonl` — the authoritative store for warn-routed findings; rendered to `followups.md` deterministically.
+- `--strict`, `--permissive`, `--force-permissive="<reason>"` CLI flags on `/spec-review`, `/plan`, `/check`.
+- `--force-permissive` audit log at `docs/specs/<feature>/.force-permissive-log` (JSONL; NOT gitignored — the audit trail is the auditable artifact).
+- `cap_reached + NO_GO` next-steps stderr block (3 options + opinionated lean).
+- Migration banners: per-user once-ever (`~/.claude/.gate-mode-default-flip-warned-v0.9.0`) + per-spec one-liner (`docs/specs/<feature>/.gate-mode-warned`).
+- New scripts: `_followups_lock.py`, `render-followups.py`, `_gate_helpers.sh`, `build-mark-addressed.py`, `apply-class-tagging-template.sh`, `dry-run-class-coverage.sh`.
+- New schemas: `followups.schema.json`.
+
+### Changed
+
+- **DEFAULT FLIP:** pipeline gates default to `permissive` (was: de-facto strict / halt-on-anything in v0.8.x). Specs without an explicit `gate_mode` frontmatter field will route contract / documentation / tests / scope-cuts findings to `followups.jsonl` instead of halting.
+- `/check`'s verdict sidecar (`docs/specs/<feature>/check-verdict.json`) bumped to `schema_version: 2`, `prompt_version: "check-verdict@2.0"`. New required fields: `iteration`, `iteration_max`, `mode`, `mode_source`, `class_breakdown`, `class_inferred_count`, `followups_file`, `cap_reached`, `stage` (9 new). Existing fields unchanged.
+- `findings.jsonl` rows bumped to `schema_version: 2`, `prompt_version: "findings-emit@2.0"`. New required fields: `class`, `class_inferred`, `source_finding_ids`. Optional `tags` array (open-ended; reserved for `sev:security` parity).
+- `/build` wave 1 now reads `followups.jsonl` (filtered to `state: open AND target_phase IN {build-inline, docs-only}`) AFTER verifying the latest `/check` verdict is `GO` or `GO_WITH_FIXES`. Pre-v0.9.0 specs (no sidecar) behave as today.
+
+### Migration
+
+- **To preserve v0.8.x halt-on-anything behavior** on a specific spec: add `gate_mode: strict` to that spec's frontmatter.
+- **To opt back into permissive on a strict-flagged spec for one run:** `/check spec-name --force-permissive="<reason>"`. Rejected if `$CI` or `$AUTORUN_STAGE` env vars are truthy (interactive escape-hatch only).
+- **Existing in-flight specs without `gate_mode`:** silently default to permissive on first gate run after upgrade. A one-time per-user banner at `~/.claude/.gate-mode-default-flip-warned-v0.9.0` explains the change. A one-line per-spec hint at `docs/specs/<feature>/.gate-mode-warned` is touched on first gate run per spec.
+- **`install.sh` upgrade path:** prints a one-time migration note on first run after v0.9.0 install (gated on `~/.claude/.gate-permissiveness-migration-shown` sentinel).
+- **Persona-metrics:** historical `findings.jsonl` rows (lacking `class`) are read-defaulted to `unclassified` in `/wrap-insights` Phase 1c and excluded from per-class survival joins.
+- **Autorun:** `scripts/autorun/check.sh` now reads `iteration` / `iteration_max` / `cap_reached` from the v2 sidecar; bound-checks the iteration counter; treats `cap_reached: true + NO_GO` as terminal (no further re-cycles). Schema bump + validator update + check.sh handler shipped lockstep in this release.
+
+### Notes on bundling
+
+- v0.9.0 ALSO removes the legacy `grep` fallback in autorun's check-verdict extractor (one-release back-compat per CHANGELOG; see prior `[0.8.0]` entry). The two changes ride v0.9.0 together — clean cut. (OQ3 resolved per /plan: "ride together.")
+
 ## [0.5.0] — install.sh rewrite (opinionated, idempotent, owner/adopter-aware) — 2026-05-04
 
 Migration bullets below are the source of truth surfaced by `install.sh`'s upgrade-detect banner (`print_upgrade_message`); diff-clean across both surfaces.

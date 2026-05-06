@@ -379,6 +379,18 @@ Generated deterministically from `followups.jsonl` by a Python helper (`scripts/
 
 15. **`render-followups.py` produces stale output if `followups.jsonl` was hand-edited.** The rendered `followups.md` carries a `<!-- generated; do not edit -->` sentinel; pre-commit hook (separate spec, optional) can validate the sentinel. v1 ships render-on-Synthesis only; manual re-render is `python3 scripts/render-followups.py docs/specs/<feature>/`.
 
+16. **Late-cycle clarifications (deferred from /check + /plan):**
+
+    16a. **Reworded-finding dedup-key drift.** If a reviewer rewords a finding across iterations, the `finding_id` hash changes. Iteration N-1's row gets `state: superseded`; iteration N writes a new `state: open` row. `/build` is unaffected (it filters to `state: open` regardless of source-rewording history). Persona-metrics survival joins MAY undercount survival rate for reworded findings — this is acceptable v1 behavior; semantic dedup is deferred to v2 (e.g., body-shingle fingerprinting).
+
+    16b. **Renderer-failure recovery path.** If `scripts/render-followups.py` fails AFTER `followups.jsonl` is atomically written (e.g., disk full, transient I/O error), the gate does NOT block. The verdict is still emitted (Synthesis owns that path); `followups.md` may be stale or absent. The next gate run regenerates. No silent data loss — `followups.jsonl` is the authoritative store.
+
+    16c. **`iteration > iteration_max` semantics.** The iteration counter in `.iteration-state.json` is 1-indexed. It increments past `iteration_max` only ONCE — the cap-reached terminal write at iteration `iteration_max + 1`. Anything above that is malformed; autorun's `check.sh` bound-check (W1.7) rejects it. Manual re-runs reset the counter to 1 unless `--no-reset-iteration` is passed (or the operator manually preserves the sidecar).
+
+    16d. **Per-spec banner once-per-session-per-spec semantics.** The per-spec sentinel `docs/specs/<feature>/.gate-mode-warned` is touched on first gate run after the per-user verbose banner has fired. It persists ACROSS sessions on disk (not session-scoped; the user can `rm` it to re-trigger). Multi-spec workflows: a user with N specs without `gate_mode` will see N per-spec one-line nudges (one per spec, but each only once across sessions per spec). The per-user verbose banner still fires once-ever per machine-version.
+
+    16e. **Codex review at `/check` is mandatory** (per BACKLOG `codex-review-per-spec`): pipeline-gate-permissiveness's `/check` MUST include a Codex adversarial review. This was confirmed at /check-time and is locked at v0.9.0 ship. Future architectural specs follow the same convention.
+
 ## Acceptance Criteria
 
 A1. `/check` on a spec with `gate_mode: permissive` (default) and 3 documentation findings emits `verdict: GO_WITH_FIXES`, regenerates `followups.jsonl` with 3 rows (`state: open`, `target_phase: docs-only`), renders `followups.md` from it, exits 0.
