@@ -104,15 +104,36 @@ EOF
 }
 
 mk_check_verdict() {
+  # v2 shape (pipeline-gate-permissiveness W1.1 schema bump).
+  # Required: schema_version=2, prompt_version=check-verdict@2.0, +9 new fields:
+  # iteration, iteration_max, mode, mode_source, class_breakdown,
+  # class_inferred_count, followups_file, cap_reached, stage.
   local f="$1"
   cat >"$f" <<'EOF'
 {
-  "schema_version": 1,
-  "prompt_version": "check-verdict@1.0",
+  "schema_version": 2,
+  "prompt_version": "check-verdict@2.0",
   "verdict": "GO",
   "blocking_findings": [],
   "security_findings": [],
-  "generated_at": "2026-05-05T12:30:00Z"
+  "generated_at": "2026-05-05T12:30:00Z",
+  "iteration": 1,
+  "iteration_max": 2,
+  "mode": "permissive",
+  "mode_source": "default",
+  "class_breakdown": {
+    "architectural": 0,
+    "security": 0,
+    "contract": 0,
+    "documentation": 0,
+    "tests": 0,
+    "scope-cuts": 0,
+    "unclassified": 0
+  },
+  "class_inferred_count": 0,
+  "followups_file": null,
+  "cap_reached": false,
+  "stage": "check"
 }
 EOF
 }
@@ -300,15 +321,28 @@ test_validate_unknown_schema() {
 }
 
 test_validate_invalid_instance() {
+  # v2-shape verdict with deliberately invalid `verdict` enum to trigger rc=1.
   local f="$TMPROOT/cv-bad.json"
   cat >"$f" <<'EOF'
 {
-  "schema_version": 1,
-  "prompt_version": "check-verdict@1.0",
+  "schema_version": 2,
+  "prompt_version": "check-verdict@2.0",
   "verdict": "TOTALLY_INVALID",
   "blocking_findings": [],
   "security_findings": [],
-  "generated_at": "2026-05-05T12:30:00Z"
+  "generated_at": "2026-05-05T12:30:00Z",
+  "iteration": 1,
+  "iteration_max": 2,
+  "mode": "permissive",
+  "mode_source": "default",
+  "class_breakdown": {
+    "architectural": 0, "security": 0, "contract": 0, "documentation": 0,
+    "tests": 0, "scope-cuts": 0, "unclassified": 0
+  },
+  "class_inferred_count": 0,
+  "followups_file": null,
+  "cap_reached": false,
+  "stage": "check"
 }
 EOF
   out="$(python3 "$PJ" validate "$f" "check-verdict" 2>&1)"; rc=$?

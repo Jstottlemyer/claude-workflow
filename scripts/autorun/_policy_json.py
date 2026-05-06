@@ -248,7 +248,10 @@ def cmd_append_block(args):
 
 # ----- Subcommand: validate ---------------------------------------------------
 
-KNOWN_SCHEMAS = ("morning-report", "check-verdict", "run-state")
+KNOWN_SCHEMAS = ("morning-report", "check-verdict", "run-state", "findings", "followups")
+
+# JSONL schemas: one JSON object per line. Other schemas are single-document.
+JSONL_SCHEMAS = ("findings", "followups")
 
 
 def _resolve_schema_path(schema_name):
@@ -367,20 +370,98 @@ def _validate_node(instance, schema, root, path, errors):
                 _validate_node(it, items_schema, root, "%s[%d]" % (path, i), errors)
 
 
+def _enforce_class_sev_parity(row):
+    """Per spec A28 + security S1: enforce class:security <-> tags:["sev:security"] parity.
+
+    One-way upgrade direction (does NOT coerce class to unclassified — that would
+    erase the security signal in class_breakdown.security and downstream dashboards):
+      * class == "security" and "sev:security" not in tags  -> ADD missing tag
+      * "sev:security" in tags and class != "security"      -> UPGRADE class to "security"
+      * neither side is "security"                          -> no-op
+      * both sides agree                                    -> no-op
+
+    Returns (consistent: bool, repair_description: str or None). The row dict is
+    mutated in-place when a repair is applied.
+    """
+    class_field = row.get("class")
+    tags = row.get("tags") or []
+    has_sec_tag = "sev:security" in tags
+
+    if class_field == "security" and not has_sec_tag:
+        if "tags" not in row or not isinstance(row.get("tags"), list):
+            row["tags"] = []
+        row["tags"].append("sev:security")
+        return True, "added missing sev:security tag (class was security)"
+    if has_sec_tag and class_field != "security":
+        row["class"] = "security"
+        return True, "upgraded class %r to security (sev:security tag present)" % class_field
+    return True, None
+
+
+def _read_jsonl(path):
+    """Read a JSONL file. Returns (rows, exit_code, err_msg).
+
+    On success: (list_of_dicts, 0, None). On missing-file: (None, 2, msg).
+    On any malformed line: (None, 4, msg).
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            text = f.read()
+    except FileNotFoundError:
+        return None, 2, "file not found: %s" % path
+    except (OSError, IOError) as e:
+        return None, 2, "cannot read file %s: %s" % (path, e)
+    rows = []
+    for lineno, raw in enumerate(text.splitlines(), start=1):
+        if raw.strip() == "":
+            continue
+        try:
+            rows.append(json.loads(raw))
+        except json.JSONDecodeError as e:
+            return None, 4, "malformed json at %s:%d: %s" % (path, lineno, e)
+    return rows, 0, None
+
+
 def cmd_validate(args):
     if args.schema_name not in KNOWN_SCHEMAS:
         sys.stderr.write("unknown schema: %s (known: %s)\n" % (
             args.schema_name, ", ".join(KNOWN_SCHEMAS)))
         return 3
-    instance, rc, err = _read_json(args.file)
-    if rc != 0:
-        sys.stderr.write(err + "\n")
-        return rc
     schema_path = _resolve_schema_path(args.schema_name)
     schema, src, serr = _read_json(schema_path)
     if src != 0:
         sys.stderr.write("cannot load schema %s: %s\n" % (schema_path, serr))
         return src
+
+    if args.schema_name in JSONL_SCHEMAS:
+        rows, rc, err = _read_jsonl(args.file)
+        if rc != 0:
+            sys.stderr.write(err + "\n")
+            return rc
+        errors = []
+        for i, row in enumerate(rows):
+            row_path = "$[%d]" % i
+            _validate_node(row, schema, schema, row_path, errors)
+            # Parity enforcement only applies to findings (followups never carry
+            # security/architectural by schema enum).
+            if args.schema_name == "findings":
+                row_id = row.get("finding_id", row_path)
+                _, repair = _enforce_class_sev_parity(row)
+                if repair is not None:
+                    sys.stderr.write(
+                        "[_policy_json] parity-repair on %s: %s\n" % (row_id, repair))
+        if errors:
+            sys.stderr.write("(ok=False, errors=[\n")
+            for e in errors:
+                sys.stderr.write("  %s\n" % e)
+            sys.stderr.write("])\n")
+            return 1
+        return 0
+
+    instance, rc, err = _read_json(args.file)
+    if rc != 0:
+        sys.stderr.write(err + "\n")
+        return rc
     errors = []
     _validate_node(instance, schema, schema, "$", errors)
     if errors:

@@ -46,14 +46,23 @@ TESTS=(
   test-codex-probe.sh
   # autorun-overnight-policy — _policy_json.py stdlib backend (Task 2.1b)
   test-policy-json.sh
+  # pipeline-gate-permissiveness — _policy_json.py v2 schema additions (W1.4)
+  test-policy-json-v2.sh
   # autorun-overnight-policy — _policy.sh shell helper API (Task 2.1)
   test-policy-sh.sh
   # autorun-overnight-policy — verify.sh infra-error classifier (Task 3.4)
+  # pipeline-gate-permissiveness W1.8 — autorun lockstep CI guard appended below
   test-autorun-policy.sh
   # autorun-overnight-policy — integration smoke (Task 3.10)
   test-autorun-smoke.sh
   # autorun-overnight-policy — doctor.sh diagnostic surface (Task 5.4)
   test-doctor.sh
+  # pipeline-gate-permissiveness — render-followups.py JSONL→MD renderer (W1.6)
+  test-render-followups.sh
+  # pipeline-gate-permissiveness — check.sh v2 verdict field handling (W1.x)
+  test-check-sh-v2-fields.sh
+  # pipeline-gate-permissiveness — install.sh followups gitignore block (W1.x)
+  test-install-followups-gitignore.sh
 )
 
 # Tests whose passing condition is exit non-zero (M8 inverted-assertion contract).

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/tests/fixtures/permissiveness/partial-landing/schema-v1-stub.json",
+  "title": "check-verdict v1 stub (pre-permissiveness lockstep guard)",
+  "description": "v1-shape stub used by tests/test-autorun-policy.sh::test_partial_landing_rejection. The live validator (which now requires schema_version const=2 + 9 v2 fields) MUST reject any verdict matching this v1 schema. Conversely, this v1 stub MUST reject any v2-shape verdict (because schema_version const=1 + missing required v2 fields). Together this proves bidirectional lockstep: shipping a schema bump without a validator update fails CI, and shipping a verdict bump without a schema update fails CI.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "prompt_version",
+    "verdict",
+    "blocking_findings",
+    "security_findings",
+    "generated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "prompt_version": {
+      "type": "string",
+      "const": "check-verdict@1.0"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["GO", "GO_WITH_FIXES", "NO_GO"]
+    },
+    "blocking_findings": {
+      "type": "array"
+    },
+    "security_findings": {
+      "type": "array"
+    },
+    "generated_at": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

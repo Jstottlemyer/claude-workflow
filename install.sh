@@ -630,6 +630,8 @@ if [[ "$PERSONA_METRICS_GITIGNORE" == "1" && -n "$ADOPTER_ROOT" ]]; then
             echo "docs/specs/*/check/raw/"
             echo "docs/specs/*/check/source.plan.md"
             echo "docs/specs/*/.persona-metrics-warned"
+            # Added in v0.9.0 for pipeline-gate-permissiveness spec — per-spec followups authoritative store.
+            echo "docs/specs/*/followups.jsonl"
             echo "$BLOCK_END"
         } >> "$GITIGNORE"
     fi
