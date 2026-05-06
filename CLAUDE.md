@@ -23,7 +23,7 @@ Two focused Claude Code subagents ship with this repo. Neither is auto-scheduled
 
 Tests for both subagents' frontmatter live at `tests/test-agents.sh`. Run `bash tests/run-tests.sh agents` to validate.
 
-## Autorun Stage Architecture (as of v0.7.x)
+## Autorun Stage Architecture (as of v0.8.x)
 
 - **`spec-review.sh`** and **`check.sh`**: N parallel `claude -p` calls (one per persona, disk-discovered from `personas/<gate>/`). No `--add-dir` — spec/plan content passed inline. `TIMEOUT_PERSONA=600s` per persona; merge step concatenates raw outputs.
 - **`check.sh`**: two-phase — Phase 1 is parallel reviewers, Phase 2 is one synthesis call that reads all reviewer outputs and produces the GO/NO-GO verdict.
