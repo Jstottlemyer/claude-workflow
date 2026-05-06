@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/findings.schema.json",
   "title": "Persona Metrics — findings.jsonl row",
-  "description": "One row per finding cluster emitted at the end of synthesis at /spec-review, /plan, and /check. The full findings.jsonl is a JSONL stream — one such row per line.",
+  "description": "One row per finding cluster emitted at the end of synthesis at /spec-review, /plan, and /check. The full findings.jsonl is a JSONL stream — one such row per line. v2 (pipeline-gate-permissiveness) adds the 6-class taxonomy via the required `class` field, the `class_inferred` fail-closed marker, the `source_finding_ids` provenance array, and the optional `tags` list (used by the Judge to emit `sev:security` parity tag whenever class is `security`). Pre-v0.9.0 rows on disk lack these new required fields and will fail v2 write-time validation by design; readers default missing class to `unclassified` in their consumer code.",
   "type": "object",
   "required": [
     "schema_version",
@@ -16,18 +16,21 @@
     "unique_to_persona",
     "model_per_persona",
     "normalized_signature",
-    "mode"
+    "mode",
+    "class",
+    "class_inferred",
+    "source_finding_ids"
   ],
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 1,
-      "description": "Bumped on any breaking schema change. Old rows remain readable; rollup branches on version."
+      "const": 2,
+      "description": "Bumped on any breaking schema change. Old rows remain readable; rollup branches on version. v2 adds class/class_inferred/source_finding_ids (required) and tags (optional)."
     },
     "prompt_version": {
       "type": "string",
       "pattern": "^findings-emit@[0-9]+\\.[0-9]+$",
-      "description": "Identifier of the findings-emit.md prompt revision that produced this row. Bumped when clustering rules or schema change."
+      "description": "Identifier of the findings-emit.md prompt revision that produced this row. Bumped when clustering rules or schema change. v2 rows use findings-emit@2.0 or higher."
     },
     "finding_id": {
       "type": "string",
@@ -76,6 +79,31 @@
       "type": "string",
       "enum": ["live", "probe"],
       "description": "Reserved: 'live' today; 'probe' when probe sampling ships in persona-tiering follow-up. Superseded iterative-re-review rounds are marked by filename rename, not by mutating this field."
+    },
+    "class": {
+      "type": "string",
+      "enum": ["architectural", "security", "contract", "documentation", "tests", "scope-cuts", "unclassified"],
+      "description": "6-class taxonomy + unclassified fail-closed fallback. unclassified blocks in both modes."
+    },
+    "class_inferred": {
+      "type": "boolean",
+      "default": false,
+      "description": "True iff Judge coerced this row to unclassified due to missing/invalid class field on input."
+    },
+    "source_finding_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(sr|pl|ck)-[0-9a-f]{10,}$"
+      },
+      "minItems": 1,
+      "description": "Contributing reviewer-row IDs after dedup; equals [finding_id] when no merge occurred."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "description": "Open-ended tag list. Judge MUST emit \"sev:security\" in tags when class is \"security\" (parity rule enforced at runtime in _policy_json.py)."
     }
   },
   "additionalProperties": false

@@ -14,8 +14,9 @@
 #       count > 1 → policy_block check integrity (multi-fence injection)
 #       count == 0 + first-line marker present → policy_block check integrity
 #                                                (synthesis omitted)
-#       count == 0 + first-line marker absent → legacy grep fallback
-#                                              (one-release back-compat AC#19)
+#       count == 0 + first-line marker absent → policy_block check integrity
+#                                              (legacy grep fallback removed
+#                                              in v0.9.0 per OQ3 "ride together")
 #       count == 1 → extract sidecar to check-verdict.json
 #                  → strip fence from stream → write check.md
 #                  → validate sidecar via _policy_json.py validate
@@ -93,7 +94,7 @@ OVERALL_VERDICT: GO
 **Note:** Dry-run stub. No real reviewer dispatch occurred.
 
 \`\`\`check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"$STUB_TS"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"$STUB_TS","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":0,"security":0,"contract":0,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 \`\`\`
 EOF
   exit 0
@@ -146,19 +147,15 @@ extract_and_decide() {
   fi
 
   if [ "$fence_count" -eq 0 ] && [ "$marker_present" -eq 0 ]; then
-    # Legacy grep fallback (one-release back-compat per AC#19).
-    echo "[autorun] check: WARN — no check-verdict fence; using legacy grep fallback (DEPRECATED, removed in v0.9.0)" >&2
+    # v0.9.0: legacy grep fallback REMOVED (per CHANGELOG.md "Notes on bundling"
+    # and OQ3 "ride together"). The v2 check-verdict contract requires every
+    # Synthesis call to emit a fence; absence is now a hard integrity error.
+    echo "[autorun] check: D33 — synthesis emitted no check-verdict fence and no fallback marker; blocking" >&2
     cp "$stdout_log" "$CHECK_CANONICAL"
     cp "$stdout_log" "$ARTIFACT_DIR/check.md"
-    # Normalize NO-GO and NO GO → NO_GO; whole-file scan.
-    if grep -Eqi '\bNO[- _]GO\b' "$stdout_log"; then
-      echo "[autorun] check: legacy fallback parsed verdict=NO_GO; blocking" >&2
-      policy_block check verdict "synthesis emitted NO_GO (legacy fallback)" || true
-      render_morning_report
-      exit 1
-    fi
-    echo "[autorun] check: legacy fallback parsed verdict=GO/GO_WITH_FIXES; continuing"
-    return 0
+    policy_block check integrity "synthesis emitted no check-verdict fence (legacy grep fallback removed in v0.9.0)" || true
+    render_morning_report
+    exit 1
   fi
 
   # ---- count == 1: extract sidecar + strip fence from stream ----
@@ -238,6 +235,9 @@ print(len(arr) if isinstance(arr,list) else 0)
   sec_count="${sec_count:-0}"
 
   # Hardcoded security carve-out (AC#4) — checked even on GO verdict.
+  # LOAD-BEARING: this block preserves class:security <-> sev:security parity
+  # via `security_findings[]` being populated by parity-repair in
+  # _policy_json.py. Do NOT move or merge with the v2 class_breakdown read.
   if [ "$sec_count" -gt 0 ]; then
     echo "[autorun] check: $sec_count security finding(s) — hardcoded block (AC#4)" >&2
     policy_block check security "$sec_count security findings" || true
@@ -245,11 +245,97 @@ print(len(arr) if isinstance(arr,list) else 0)
     exit 1
   fi
 
+  # ---- v2 field handling (pipeline-gate-permissiveness W1.7) ----
+  # schema_version discriminates v1 (autorun-overnight-policy) from v2 (this
+  # spec). v1 sidecars lack iteration/iteration_max/cap_reached; we default
+  # them so v1 fixtures continue to round-trip unchanged through this path.
+  local schema_version iteration iteration_max cap_reached
+  local _iter_rest _iter_ok _iter_max_rest _iter_max_ok
+  # `_policy_json.py get --default <fallback>` covers missing-key. The bare
+  # `|| echo <default>` was redundant defense that masked real failures
+  # (malformed JSON, validator traceback). Drop it; let non-zero rc propagate
+  # via `set -euo pipefail`. The `--default` flag handles the only legitimate
+  # not-present case.
+  schema_version="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /schema_version --default 1)"
+  iteration="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /iteration --default 1)"
+  iteration_max="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /iteration_max --default 2)"
+  cap_reached="$(python3 "$POLICY_JSON_PY" get "$SIDECAR_PATH" /cap_reached --default false)"
+
+  # Defensively coerce blank → defaults AND lowercase booleans (defense in
+  # depth: _policy_json.py uses json.dumps which already emits lowercase
+  # `true`/`false`, but a future codepath change shouldn't silently break
+  # the `[ "$cap_reached" = "true" ]` compare below — fail loudly via a
+  # normalized comparison instead).
+  schema_version="${schema_version:-1}"
+  iteration="${iteration:-1}"
+  iteration_max="${iteration_max:-2}"
+  cap_reached="${cap_reached:-false}"
+  cap_reached="$(printf '%s' "$cap_reached" | tr '[:upper:]' '[:lower:]')"
+
+  # Bound-check iteration only when v2 (v1 has no semantic for the field).
+  # Allowed range: 1 <= iteration <= iteration_max + 1. The "+1" is intentional:
+  # cap_reached writes a verdict with iteration == iteration_max + 1 (Edge Case 3).
+  # Anything outside [1, iteration_max+1] is malformed → integrity block.
+  if [ "$schema_version" = "2" ]; then
+    # Validate iteration + iteration_max parse as decimal integers before
+    # arithmetic — guards against a stray non-numeric string slipping
+    # through (defense-in-depth; schema validate already enforced /minimum/).
+    # Approach: strip optional leading "-", then assert remainder is ≥1 digit
+    # with no non-digit chars. Rejects empty, bare "-", "1.5", "1e2", etc.
+    # NOTE: bash glob `*[!0-9]*` matches strings whose leading "-" itself
+    # qualifies as a non-digit, so we strip it first rather than baking it
+    # into the case pattern.
+    _iter_rest="${iteration#-}"
+    _iter_ok=0
+    if [ -n "$_iter_rest" ]; then
+      case "$_iter_rest" in
+        *[!0-9]*) _iter_ok=0 ;;
+        *)        _iter_ok=1 ;;
+      esac
+    fi
+    if [ "$_iter_ok" -ne 1 ]; then
+      echo "[autorun] check: ERROR — iteration field not an integer: '$iteration'" >&2
+      policy_block check integrity "verdict iteration field not an integer: $iteration" || true
+      render_morning_report
+      exit 1
+    fi
+    _iter_max_rest="${iteration_max#-}"
+    _iter_max_ok=0
+    if [ -n "$_iter_max_rest" ]; then
+      case "$_iter_max_rest" in
+        *[!0-9]*) _iter_max_ok=0 ;;
+        *)        _iter_max_ok=1 ;;
+      esac
+    fi
+    if [ "$_iter_max_ok" -ne 1 ]; then
+      echo "[autorun] check: ERROR — iteration_max field not an integer: '$iteration_max'" >&2
+      policy_block check integrity "verdict iteration_max field not an integer: $iteration_max" || true
+      render_morning_report
+      exit 1
+    fi
+    local iter_upper
+    iter_upper=$((iteration_max + 1))
+    if [ "$iteration" -lt 1 ] || [ "$iteration" -gt "$iter_upper" ]; then
+      echo "[autorun] check: ERROR — verdict iteration out of range: $iteration (allowed: 1..$iter_upper)" >&2
+      policy_block check integrity "verdict iteration field out of range: $iteration (max $iteration_max)" || true
+      render_morning_report
+      exit 1
+    fi
+  fi
+
   # Verdict gate.
   case "$verdict" in
     NO_GO)
-      echo "[autorun] check: verdict=NO_GO — hardcoded block (AC#5)" >&2
-      policy_block check verdict "synthesis emitted NO_GO" || true
+      # cap_reached + NO_GO is terminal — the iteration loop in the gate
+      # command must not re-cycle (cap fired; further iterations wasted).
+      # Emit a distinct reason so commands/check.md can detect it.
+      if [ "$cap_reached" = "true" ]; then
+        echo "[autorun] check: verdict=NO_GO + cap_reached=true — terminal block (no re-cycle)" >&2
+        policy_block check verdict "synthesis emitted NO_GO with cap_reached (terminal; do not re-cycle)" || true
+      else
+        echo "[autorun] check: verdict=NO_GO — hardcoded block (AC#5)" >&2
+        policy_block check verdict "synthesis emitted NO_GO" || true
+      fi
       render_morning_report
       exit 1
       ;;
@@ -259,7 +345,9 @@ print(len(arr) if isinstance(arr,list) else 0)
         render_morning_report
         exit 1
       fi
-      # warn path: continue (RUN_DEGRADED set sticky in run-state).
+      # warn path: terminate iteration loop (GO_WITH_FIXES means "stop, but
+      # emit followups for /build" — not a re-cycle trigger). The function
+      # returns 0; gate command sees success and stops re-cycling.
       ;;
     GO)
       echo "[autorun] check: verdict=GO — clean"
@@ -434,12 +522,21 @@ SYNTHESIS_PROMPT="You are the synthesis step of a plan checkpoint review. You ha
 
 \`\`\`check-verdict
 {
-  \"schema_version\": 1,
-  \"prompt_version\": \"check-verdict@1.0\",
+  \"schema_version\": 2,
+  \"prompt_version\": \"check-verdict@2.0\",
   \"verdict\": \"GO|GO_WITH_FIXES|NO_GO\",
   \"blocking_findings\": [{\"persona\": \"<name>\", \"finding_id\": \"ck-<10hex>\", \"summary\": \"<short>\"}],
   \"security_findings\": [{\"persona\": \"<name>\", \"finding_id\": \"ck-<10hex>\", \"summary\": \"<short>\", \"tag\": \"sev:security\"}],
-  \"generated_at\": \"<ISO-8601 UTC>\"
+  \"generated_at\": \"<ISO-8601 UTC>\",
+  \"iteration\": <int 1+>,
+  \"iteration_max\": <int from spec frontmatter gate_max_recycles, default 2>,
+  \"mode\": \"<permissive|strict>\",
+  \"mode_source\": \"<frontmatter|cli|cli-force|default>\",
+  \"class_breakdown\": {\"architectural\": 0, \"security\": 0, \"contract\": 0, \"documentation\": 0, \"tests\": 0, \"scope-cuts\": 0, \"unclassified\": 0},
+  \"class_inferred_count\": 0,
+  \"followups_file\": \"<path-to-followups.jsonl-or-null>\",
+  \"cap_reached\": false,
+  \"stage\": \"check\"
 }
 \`\`\`
 

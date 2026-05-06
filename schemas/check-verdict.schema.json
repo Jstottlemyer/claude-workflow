@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/check-verdict.schema.json",
-  "title": "Check verdict — check-verdict.json",
-  "description": "Machine-readable verdict sidecar emitted by /check synthesis. Written to docs/specs/<slug>/check-verdict.json by the deterministic post-processor in check.sh after extracting the sole ```check-verdict fenced JSON block from the synthesis stdout stream. Drives autorun's GO/GO_WITH_FIXES/NO_GO branching and security-finding integrity gates. v6 of autorun-overnight-policy intentionally omits any nonce mechanism (see check v3 NO-GO).",
+  "title": "Check verdict — check-verdict.json (v2)",
+  "description": "Machine-readable verdict sidecar emitted by /check synthesis (and, in v2, by /spec-review and /plan synthesis with the same shape). Written to docs/specs/<slug>/check-verdict.json (or spec-review-verdict.json / plan-verdict.json — discriminated by the `stage` field) by the deterministic post-processor in check.sh after extracting the sole ```check-verdict fenced JSON block from the synthesis stdout stream. Drives autorun's GO/GO_WITH_FIXES/NO_GO branching and security-finding integrity gates. v6 of autorun-overnight-policy intentionally omits any nonce mechanism (see check v3 NO-GO). v2 (pipeline-gate-permissiveness) adds per-axis policy fields: iteration counter, mode + mode_source for permissive/strict resolution, class_breakdown for post-Judge classification stats, class_inferred_count for coerced-to-unclassified findings, followups_file pointer, cap_reached flag, and stage discriminator. Consumers reading historical v1 verdicts must branch on schema_version.",
   "type": "object",
   "required": [
     "schema_version",
@@ -10,17 +10,26 @@
     "verdict",
     "blocking_findings",
     "security_findings",
-    "generated_at"
+    "generated_at",
+    "iteration",
+    "iteration_max",
+    "mode",
+    "mode_source",
+    "class_breakdown",
+    "class_inferred_count",
+    "followups_file",
+    "cap_reached",
+    "stage"
   ],
   "properties": {
     "schema_version": {
       "type": "integer",
-      "const": 1,
-      "description": "Bumped on any breaking schema change. Old verdicts remain readable; consumers branch on version."
+      "const": 2,
+      "description": "Bumped on any breaking schema change. v2 adds per-axis policy fields for pipeline-gate-permissiveness; consumers reading historical v1 verdicts must branch on schema_version."
     },
     "prompt_version": {
       "type": "string",
-      "const": "check-verdict@1.0",
+      "const": "check-verdict@2.0",
       "description": "Identifier of the check-verdict synthesis prompt revision that produced this sidecar. Bumped when the synthesis contract or schema changes."
     },
     "verdict": {
@@ -85,6 +94,65 @@
       "type": "string",
       "format": "date-time",
       "description": "ISO-8601 UTC timestamp when synthesis emitted the verdict (e.g. '2026-05-05T18:42:11Z'). Used for staleness checks and audit trail."
+    },
+    "iteration": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "1-indexed iteration counter; increments past iteration_max only when cap reached"
+    },
+    "iteration_max": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "= gate_max_recycles from spec frontmatter; clamped to 5"
+    },
+    "mode": {
+      "type": "string",
+      "enum": ["permissive", "strict"]
+    },
+    "mode_source": {
+      "type": "string",
+      "enum": ["frontmatter", "cli", "cli-force", "default"]
+    },
+    "class_breakdown": {
+      "type": "object",
+      "description": "Counts of post-Judge findings by class. All 7 class keys required even when zero — fixed-shape contract simplifies consumers.",
+      "required": [
+        "architectural",
+        "security",
+        "contract",
+        "documentation",
+        "tests",
+        "scope-cuts",
+        "unclassified"
+      ],
+      "properties": {
+        "architectural": {"type": "integer", "minimum": 0},
+        "security": {"type": "integer", "minimum": 0},
+        "contract": {"type": "integer", "minimum": 0},
+        "documentation": {"type": "integer", "minimum": 0},
+        "tests": {"type": "integer", "minimum": 0},
+        "scope-cuts": {"type": "integer", "minimum": 0},
+        "unclassified": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    },
+    "class_inferred_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Findings coerced to unclassified at Judge step due to missing/invalid class field"
+    },
+    "followups_file": {
+      "type": ["string", "null"],
+      "description": "Path to docs/specs/<feature>/followups.jsonl; null iff that file does not exist on disk"
+    },
+    "cap_reached": {
+      "type": "boolean",
+      "description": "True iff iteration > iteration_max — auto-promotion fired this gate run"
+    },
+    "stage": {
+      "type": "string",
+      "enum": ["spec-review", "plan", "check"]
     }
   },
   "additionalProperties": false

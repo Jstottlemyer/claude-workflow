@@ -186,7 +186,7 @@ OVERALL_VERDICT: GO
 Reviewer Verdicts: all PASS.
 
 \`\`\`check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"$STUB_TS"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"$STUB_TS","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":0,"security":0,"contract":0,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 \`\`\`
 EOF
 

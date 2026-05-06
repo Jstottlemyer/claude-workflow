@@ -201,8 +201,29 @@ if [ -f "$DRYRUN_CHECK_STUB" ]; then
   if [ "$FENCE_COUNT" = "1" ]; then
     printf '%s\n' "$EXTRACT_OUT" | sed '1d' > "$SIDECAR_TMP"
     if [ -s "$SIDECAR_TMP" ]; then
-      assert_schema_valid "$SIDECAR_TMP" check-verdict \
-        "extracted check-verdict payload validates against schemas/check-verdict.schema.json"
+      # The dry-run stub in check.sh emits a v2-shape verdict (post-W6 + code-review C2 fix).
+      # Round-trip integrity = "extractor produced a JSON payload that parses + matches
+      # the live v2 schema". This validates the smoke-test path produces real v2 artifacts
+      # per memory `feedback_dryrun_full_graph.md` (stub for stage N must produce all
+      # artifacts stage N+1 reads). The v1-stub validator is now used as the negative
+      # control (proves schema discriminates by version).
+      V1_STUB="$ENGINE_DIR/tests/fixtures/permissiveness/partial-landing/v1-stub-validate.py"
+      if python3 "$POLICY_JSON_PY" validate "$SIDECAR_TMP" check-verdict >/dev/null 2>&1; then
+        echo "✓ extracted check-verdict payload validates against live v2 schema (dry-run stub at v2)"
+        PASS=$(( PASS + 1 ))
+      else
+        echo "✗ extracted check-verdict payload failed v2 validation (dry-run stub may have drifted)"
+        FAIL=$(( FAIL + 1 ))
+      fi
+      # Sanity: the v1-stub validator MUST reject the v2 stub payload (proves schema
+      # discrimination works in reverse — schema_version: const 1 vs 2).
+      if python3 "$V1_STUB" "$SIDECAR_TMP" >/dev/null 2>&1; then
+        echo "✗ v1-stub schema unexpectedly accepted v2-shape payload (const-check broken)"
+        FAIL=$(( FAIL + 1 ))
+      else
+        echo "✓ v1-stub schema rejects v2-shape payload (schema discriminates by version)"
+        PASS=$(( PASS + 1 ))
+      fi
     else
       echo "✗ extracted check-verdict payload empty"
       FAIL=$(( FAIL + 1 ))

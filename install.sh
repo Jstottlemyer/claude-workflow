@@ -297,6 +297,18 @@ if [ "$PRIOR_INSTALL" = "1" ]; then
     - cmux added to RECOMMENDED; tmux moved to OPTIONAL
     - macOS-only (Linux guard added)
 UPGRADE
+    # v0.9.0 one-time migration banner — pipeline-gate-permissiveness default-flip.
+    # Sentinel filename includes the version so future flips reuse a NEW sentinel.
+    # Per feedback_tilde_expansion_in_bash_config_reads.md: tilde-expand before write.
+    GATE_PERMISSIVENESS_SENTINEL="~/.claude/.gate-permissiveness-migration-shown"
+    GATE_PERMISSIVENESS_SENTINEL="${GATE_PERMISSIVENESS_SENTINEL/#\~/$HOME}"
+    if [ ! -f "$GATE_PERMISSIVENESS_SENTINEL" ]; then
+        cat <<'GATE_PERMISSIVENESS_BANNER'
+    - Pipeline gates default to permissive (was: strict). Pin gate_mode: strict in any spec frontmatter to preserve old halt-on-anything behavior. See docs/CHANGELOG.md#v090 for migration details.
+GATE_PERMISSIVENESS_BANNER
+        mkdir -p "$(dirname "$GATE_PERMISSIVENESS_SENTINEL")"
+        touch "$GATE_PERMISSIVENESS_SENTINEL"
+    fi
     if [ "$NON_INTERACTIVE" = "0" ]; then
         read -rp "Proceed with upgrade? [Y/n]: " UPGRADE_CONFIRM
         [[ "$UPGRADE_CONFIRM" =~ ^[Nn]$ ]] && exit 0
@@ -630,6 +642,8 @@ if [[ "$PERSONA_METRICS_GITIGNORE" == "1" && -n "$ADOPTER_ROOT" ]]; then
             echo "docs/specs/*/check/raw/"
             echo "docs/specs/*/check/source.plan.md"
             echo "docs/specs/*/.persona-metrics-warned"
+            # Added in v0.9.0 for pipeline-gate-permissiveness spec — per-spec followups authoritative store.
+            echo "docs/specs/*/followups.jsonl"
             echo "$BLOCK_END"
         } >> "$GITIGNORE"
     fi

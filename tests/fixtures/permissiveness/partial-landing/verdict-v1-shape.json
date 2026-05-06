@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "prompt_version": "check-verdict@1.0",
+  "verdict": "GO",
+  "blocking_findings": [],
+  "security_findings": [],
+  "generated_at": "2026-05-05T12:30:00Z"
+}

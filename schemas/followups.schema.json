@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Jstottlemyer/MonsterFlow/schemas/followups.schema.json",
+  "title": "Followups — followups.jsonl row",
+  "description": "One row per active warn-routed finding. JSONL file at docs/specs/<feature>/followups.jsonl. Authoritative store; followups.md is a deterministic render. Lifecycle: open <-> addressed; open -> superseded; addressed -> open with regression. Lifecycle reconciliation is scoped to source_gate == current_gate (cross-gate isolation).",
+  "type": "object",
+  "required": [
+    "schema_version", "prompt_version", "finding_id", "source_gate",
+    "source_iteration", "class", "title", "body", "suggested_fix",
+    "target_phase", "state", "addressed_by", "previously_addressed_by",
+    "regression", "superseded_by", "created_at", "updated_at"
+  ],
+  "properties": {
+    "schema_version":     {"type": "integer", "const": 1},
+    "prompt_version":     {"type": "string", "const": "followups-emit@1.0"},
+    "finding_id":         {"type": "string", "pattern": "^(sr|pl|ck)-[0-9a-f]{10,}$", "description": "Same shape as findings.jsonl finding_id. Stage prefix discriminates source gate."},
+    "source_gate":        {"type": "string", "enum": ["spec-review", "plan", "check"], "description": "Gate that emitted this row. Lifecycle reconciliation is scoped to source_gate == current_gate."},
+    "source_iteration":   {"type": "integer", "minimum": 1},
+    "class":              {"type": "string", "enum": ["contract", "documentation", "tests", "scope-cuts"], "description": "Followups never carry architectural/security/unclassified — those classes always block and never reach followups by construction."},
+    "title":              {"type": "string", "maxLength": 80},
+    "body":               {"type": "string"},
+    "suggested_fix":      {"type": "string"},
+    "target_phase":       {"type": "string", "enum": ["build-inline", "plan-revision", "docs-only", "post-build"]},
+    "state":              {"type": "string", "enum": ["open", "addressed", "superseded"]},
+    "addressed_by":       {"type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$|^PR#[0-9]+$", "description": "Commit SHA (7-40 hex) or PR ref. Set when state=addressed; null while open. Written by /build wave-final via scripts/build-mark-addressed.py."},
+    "previously_addressed_by": {"type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$|^PR#[0-9]+$", "description": "When state transitions addressed→open (regression), the prior addressed_by SHA is preserved here."},
+    "regression":         {"type": "boolean", "description": "True iff this row is a regression — was previously state:addressed and re-surfaced."},
+    "superseded_by":      {"type": ["string", "null"], "pattern": "^(sr|pl|ck)-[0-9a-f]{10,}$", "description": "finding_id of the row that replaced this one; null for pure removal (regenerate-active)."},
+    "created_at":         {"type": "string", "format": "date-time"},
+    "updated_at":         {"type": "string", "format": "date-time"}
+  },
+  "additionalProperties": false
+}

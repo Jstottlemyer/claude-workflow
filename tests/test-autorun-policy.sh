@@ -853,7 +853,7 @@ src = open(sys.argv[1]).read()
 m = re.search(r'^```check-verdict\n(.*?)\n```$', src, re.DOTALL | re.MULTILINE)
 assert m, "no fenced block"
 data = json.loads(m.group(1))
-assert data.get("schema_version") == 1
+assert data.get("schema_version") == 2
 assert data.get("verdict") in ("GO", "GO_WITH_FIXES", "NO_GO")
 PY
     then
@@ -1390,7 +1390,7 @@ OVERALL_VERDICT: GO
 Some prose. All looks good. No blockers.
 
 ```check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":0,"security":0,"contract":0,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 ```
 
 More prose after the fence.
@@ -1452,7 +1452,10 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# test_check_count0_marker_absent  (legacy grep fallback)
+# test_check_count0_marker_absent  (legacy grep fallback REMOVED in v0.9.0)
+# Pre-v0.9.0 this was a "deprecated grep fallback parses verdict from prose"
+# path. The v2 contract makes the fallback structurally unreachable for any
+# conforming Synthesis; the path now hard-blocks on integrity.
 # ---------------------------------------------------------------------------
 case_ "test_check_count0_marker_absent"
 CC_DIR="$TMPROOT/check-c3"; mkdir -p "$CC_DIR"
@@ -1473,12 +1476,13 @@ set +e
 set -e
 RC="$(cat "$CC_DIR/rc" 2>/dev/null || echo 99)"
 BLOCK_AXIS="$(state_get "$CC_DIR" "(d.get('blocks') or [{}])[0].get('axis','')")"
-DEPRECATION_OK=0
-grep -q "DEPRECATED" "$CC_DIR/err" 2>/dev/null && DEPRECATION_OK=1
-if [ "$RC" -eq 1 ] && [ "$BLOCK_AXIS" = "verdict" ] && [ "$DEPRECATION_OK" -eq 1 ]; then
+# Post-v0.9.0: synthesis emitting no fence + no marker is now an integrity
+# block (not a verdict block), and there is no DEPRECATION warning (the
+# fallback is gone, not deprecated).
+if [ "$RC" -eq 1 ] && [ "$BLOCK_AXIS" = "integrity" ]; then
   ok test_check_count0_marker_absent
 else
-  fail test_check_count0_marker_absent "rc=$RC axis='$BLOCK_AXIS' deprecation=$DEPRECATION_OK"
+  fail test_check_count0_marker_absent "rc=$RC axis='$BLOCK_AXIS' (expected: rc=1, axis=integrity)"
 fi
 
 # ---------------------------------------------------------------------------
@@ -1579,7 +1583,7 @@ OVERALL_VERDICT: NO_GO
 Architecture is wrong.
 
 ```check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"NO_GO","blocking_findings":[{"persona":"sequencing","finding_id":"ck-0123456789","summary":"Wave 3 deps inverted"}],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"NO_GO","blocking_findings":[{"persona":"sequencing","finding_id":"ck-0123456789","summary":"Wave 3 deps inverted"}],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":1,"security":0,"contract":0,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 ```
 EOF
 set +e
@@ -1611,7 +1615,7 @@ OVERALL_VERDICT: GO_WITH_FIXES
 Surgical fixes needed.
 
 ```check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"GO_WITH_FIXES","blocking_findings":[{"persona":"completeness","finding_id":"ck-abcdef0123","summary":"AC#3 needs amendment"}],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"GO_WITH_FIXES","blocking_findings":[{"persona":"completeness","finding_id":"ck-abcdef0123","summary":"AC#3 needs amendment"}],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":0,"security":0,"contract":1,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 ```
 EOF
 set +e
@@ -1644,7 +1648,7 @@ OVERALL_VERDICT: GO_WITH_FIXES
 Surgical fixes needed.
 
 ```check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"GO_WITH_FIXES","blocking_findings":[{"persona":"completeness","finding_id":"ck-abcdef0123","summary":"AC#3 needs amendment"}],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"GO_WITH_FIXES","blocking_findings":[{"persona":"completeness","finding_id":"ck-abcdef0123","summary":"AC#3 needs amendment"}],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":0,"security":0,"contract":1,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 ```
 EOF
 set +e
@@ -1676,7 +1680,7 @@ OVERALL_VERDICT: GO
 Almost clean — but one security carve-out exists.
 
 ```check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"GO","blocking_findings":[],"security_findings":[{"persona":"security-architect","finding_id":"ck-aaaaaaaaaa","summary":"shell injection in policy_act","tag":"sev:security"}],"generated_at":"2026-05-05T12:00:00Z"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"GO","blocking_findings":[],"security_findings":[{"persona":"security-architect","finding_id":"ck-aaaaaaaaaa","summary":"shell injection in policy_act","tag":"sev:security"}],"generated_at":"2026-05-05T12:00:00Z","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":0,"security":1,"contract":0,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 ```
 EOF
 set +e
@@ -2092,7 +2096,7 @@ cat > "$FIX_A3" <<'EOF'
 OVERALL_VERDICT: GO
 
 ```check-verdict
-{"schema_version":1,"prompt_version":"check-verdict@1.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z"}
+{"schema_version":2,"prompt_version":"check-verdict@2.0","verdict":"GO","blocking_findings":[],"security_findings":[],"generated_at":"2026-05-05T12:00:00Z","iteration":1,"iteration_max":2,"mode":"permissive","mode_source":"default","class_breakdown":{"architectural":0,"security":0,"contract":0,"documentation":0,"tests":0,"scope-cuts":0,"unclassified":0},"class_inferred_count":0,"followups_file":null,"cap_reached":false,"stage":"check"}
 ```
 EOF
 set +e
@@ -2303,6 +2307,168 @@ else
   else
     fail test_fixture_e_prompt_injection "rc=$FX_RC axis='$FX_AXIS' reason='$FX_REASON' (after NFKC normalization the homoglyph fence should count → integrity block)"
   fi
+fi
+
+# ---------------------------------------------------------------------------
+# pipeline-gate-permissiveness W1.8 — autorun lockstep CI guard (AC A8 + A8b)
+#
+# Three guards (per docs/specs/pipeline-gate-permissiveness/plan.md task 1.8):
+#   (1) v2 field-list parity — schema.required + schema.properties cover all
+#       15 v2 fields, and additionalProperties is exactly false.
+#   (2) partial-PR-landing rejection — bidirectional proof that schema and
+#       validator must ship in lockstep:
+#         a. live validator REJECTS v1-shape verdict (missing v2 fields).
+#         b. v1-stub validator REJECTS v2-shape verdict (unknown extras).
+#   (3) negative fixture sweep — every missing-v2-field fixture (one per
+#       field) plus the unknown-extra-field fixture must fail validation.
+# ---------------------------------------------------------------------------
+
+PJ="$REPO_ROOT/scripts/autorun/_policy_json.py"
+SCHEMA_CV="$REPO_ROOT/schemas/check-verdict.schema.json"
+PARITY_HELPER="$REPO_ROOT/tests/_check_verdict_field_parity.py"
+FIX_DIR="$REPO_ROOT/tests/fixtures/permissiveness"
+PARTIAL_DIR="$FIX_DIR/partial-landing"
+V1_STUB_VALIDATOR="$PARTIAL_DIR/v1-stub-validate.py"
+
+# ---------------------------------------------------------------------------
+# test_v2_field_list_parity (AC A8 / completeness MF1 / testability SF2)
+#   Checks the live check-verdict schema declares all 15 v2 fields in both
+#   required[] and properties{}, with additionalProperties: false.
+# ---------------------------------------------------------------------------
+case_ "test_v2_field_list_parity"
+set +e
+PARITY_OUT="$(python3 "$PARITY_HELPER" "$SCHEMA_CV" 2>&1)"
+PARITY_RC=$?
+set -e
+if [ "$PARITY_RC" -eq 0 ] && \
+   printf '%s' "$PARITY_OUT" | grep -q "parity OK (15/15 fields)"; then
+  ok test_v2_field_list_parity
+else
+  fail test_v2_field_list_parity "rc=$PARITY_RC out=$PARITY_OUT"
+fi
+
+# ---------------------------------------------------------------------------
+# test_v2_field_parity_helper_self_check
+#   Synthetic round-trip: drop a required field from a copy of the live
+#   schema and confirm the helper exits non-zero with the missing-field name
+#   in the diagnostic. Proves the helper is not a no-op.
+# ---------------------------------------------------------------------------
+case_ "test_v2_field_parity_helper_self_check"
+PARITY_TMP="$TMPROOT/schema-without-iteration.json"
+python3 - "$SCHEMA_CV" "$PARITY_TMP" <<'PY'
+import json, sys
+schema = json.load(open(sys.argv[1]))
+schema["required"] = [r for r in schema["required"] if r != "iteration"]
+json.dump(schema, open(sys.argv[2], "w"))
+PY
+set +e
+PARITY_NEG_OUT="$(python3 "$PARITY_HELPER" "$PARITY_TMP" 2>&1)"
+PARITY_NEG_RC=$?
+set -e
+if [ "$PARITY_NEG_RC" -eq 1 ] && \
+   printf '%s' "$PARITY_NEG_OUT" | grep -q "missing expected field: 'iteration'"; then
+  ok test_v2_field_parity_helper_self_check
+else
+  fail test_v2_field_parity_helper_self_check "rc=$PARITY_NEG_RC out=$PARITY_NEG_OUT"
+fi
+
+# ---------------------------------------------------------------------------
+# test_partial_landing_rejection (AC A8b / testability MF4)
+#   File-pair stubs (NOT git history mocks) prove bidirectional lockstep:
+#     A. live validator rejects v1-shape verdict.
+#     B. v1-stub validator rejects v2-shape verdict.
+#   Together: shipping a schema bump without validator update fails CI, AND
+#   shipping a verdict format bump without schema update fails CI.
+# ---------------------------------------------------------------------------
+case_ "test_partial_landing_rejection"
+
+# Direction A: live validator + v1-shape verdict → REJECT
+set +e
+PL_A_OUT="$(python3 "$PJ" validate "$PARTIAL_DIR/verdict-v1-shape.json" check-verdict 2>&1)"
+PL_A_RC=$?
+set -e
+
+# Direction B: v1-stub validator + v2-shape verdict → REJECT
+set +e
+PL_B_OUT="$(python3 "$V1_STUB_VALIDATOR" "$PARTIAL_DIR/verdict-v2-attempt.json" 2>&1)"
+PL_B_RC=$?
+set -e
+
+# Sanity controls: each validator should ACCEPT its matching verdict.
+set +e
+PL_C_OUT="$(python3 "$PJ" validate "$FIX_DIR/v2-verdict-valid.json" check-verdict 2>&1)"
+PL_C_RC=$?
+PL_D_OUT="$(python3 "$V1_STUB_VALIDATOR" "$PARTIAL_DIR/verdict-v1-shape.json" 2>&1)"
+PL_D_RC=$?
+set -e
+
+if [ "$PL_A_RC" -ne 0 ] && [ "$PL_B_RC" -ne 0 ] && \
+   [ "$PL_C_RC" -eq 0 ] && [ "$PL_D_RC" -eq 0 ]; then
+  ok test_partial_landing_rejection
+else
+  fail test_partial_landing_rejection \
+    "live-vs-v1=$PL_A_RC (want!=0) v1stub-vs-v2=$PL_B_RC (want!=0) live-vs-v2=$PL_C_RC (want=0) v1stub-vs-v1=$PL_D_RC (want=0)"
+fi
+
+# ---------------------------------------------------------------------------
+# test_v2_negative_fixture_sweep (testability SF2)
+#   Fixture-table loop. 9 missing-field fixtures + 1 unknown-extra-field
+#   fixture. Each MUST be rejected by the live validator (rc != 0).
+# ---------------------------------------------------------------------------
+case_ "test_v2_negative_fixture_sweep"
+NEG_FIXTURES="\
+v2-verdict-missing-iteration.json
+v2-verdict-missing-iteration_max.json
+v2-verdict-missing-mode.json
+v2-verdict-missing-mode_source.json
+v2-verdict-missing-class_breakdown.json
+v2-verdict-missing-class_inferred_count.json
+v2-verdict-missing-followups_file.json
+v2-verdict-missing-cap_reached.json
+v2-verdict-missing-stage.json
+v2-verdict-unknown-extra-field.json"
+
+NEG_FAILED=0
+NEG_FAILED_NAMES=""
+for fx in $NEG_FIXTURES; do
+  fpath="$FIX_DIR/$fx"
+  if [ ! -f "$fpath" ]; then
+    NEG_FAILED=$(( NEG_FAILED + 1 ))
+    NEG_FAILED_NAMES="$NEG_FAILED_NAMES $fx[missing-fixture]"
+    continue
+  fi
+  set +e
+  NEG_OUT="$(python3 "$PJ" validate "$fpath" check-verdict 2>&1)"
+  NEG_RC=$?
+  set -e
+  if [ "$NEG_RC" -eq 0 ]; then
+    NEG_FAILED=$(( NEG_FAILED + 1 ))
+    NEG_FAILED_NAMES="$NEG_FAILED_NAMES $fx[unexpectedly-passed]"
+    continue
+  fi
+  # Verify the diagnostic mentions the right error class.
+  case "$fx" in
+    v2-verdict-unknown-extra-field.json)
+      if ! printf '%s' "$NEG_OUT" | grep -q "additional property not allowed"; then
+        NEG_FAILED=$(( NEG_FAILED + 1 ))
+        NEG_FAILED_NAMES="$NEG_FAILED_NAMES $fx[wrong-error]"
+      fi
+      ;;
+    v2-verdict-missing-*)
+      # Expect "missing required key 'XXX'" naming the field in the fixture name.
+      field_name="$(printf '%s' "$fx" | sed 's/^v2-verdict-missing-//; s/\.json$//')"
+      if ! printf '%s' "$NEG_OUT" | grep -q "missing required key '$field_name'"; then
+        NEG_FAILED=$(( NEG_FAILED + 1 ))
+        NEG_FAILED_NAMES="$NEG_FAILED_NAMES $fx[expected-missing-$field_name]"
+      fi
+      ;;
+  esac
+done
+
+if [ "$NEG_FAILED" -eq 0 ]; then
+  ok test_v2_negative_fixture_sweep
+else
+  fail test_v2_negative_fixture_sweep "$NEG_FAILED fixture(s) wrong:$NEG_FAILED_NAMES"
 fi
 
 # ---------------------------------------------------------------------------
