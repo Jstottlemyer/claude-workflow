@@ -52,3 +52,10 @@ docs/specs/*/spec-review/selection.json
 docs/specs/*/plan/selection.json
 docs/specs/*/check/selection.json
 # END agent-budget
+
+# Claude Code auto-memory directory (per-user; never committed)
+.claude/projects/
+
+# autorun runtime queue artifacts (regenerated each run)
+queue/index.md
+queue/run-summary.md
