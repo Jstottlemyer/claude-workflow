@@ -10,6 +10,59 @@ Move an item to a `docs/specs/<feature>/spec.md` (via `/spec`) when you're ready
 
 ## Pipeline + install discipline (from 2026-05-05 autorun-overnight-policy session)
 
+## Carved from `dynamic-roster-per-gate` MVP scope (2026-05-06; per scope-discipline run #6 recommendation)
+
+- **`pipeline-autorun-run-archive` (NEW spec candidate — quick-fix wrapper already shipped)** — formal autorun-side per-run artifact archiving. Today the `queue/<slug>/{plan.md,check.md,review-findings.md,risk-findings.md,...}` files are overwritten on every run; per-run history is lost. Inline patch (2026-05-06): `scripts/autorun-rotate-artifacts.sh <slug> [<run_id>]` — manual rotate script, moves prior cycle's queue/<slug>/ artifacts to queue/<slug>/runs/<run_id>/ before re-queuing. Spec needs to wire this rotation INTO `autorun-batch.sh`'s queue iteration so it happens automatically (not as a manual step), plus document retention policy (how long to keep /runs/<run_id>/, GC strategy, cap on total dir size), `gh-pages` upload of latest summary, and integration with morning-report.json index.
+  - **Why:** during dynamic-roster-per-gate session (2026-05-06), 6 autorun cycles surfaced progressively-deeper findings; lost all per-run prose narrative when re-queuing each cycle. Only `queue/run.log` JSON-lines (timestamps + exit codes) survived. Forensic value when debugging "why did run N differ from run N+1" was zero.
+  - **Already shipped (inline patch):** `scripts/autorun-rotate-artifacts.sh` (manual invocation; ~50 LoC).
+  - **Spec needs to add:** integration with `autorun-batch.sh` iteration loop (auto-invoke before each slug), retention/GC design (e.g., keep last 10 runs per slug, archive older to tar.gz), `runs/index.md` per slug summarizing each run's verdict + key findings, optional integration with dashboard.
+  - **Sequencing:** unblocked. Wrapper script is in production via this session.
+  - **Size:** S–M (mostly autorun-batch.sh integration + retention design + index render).
+  - **Codex review optional** — small surface, mostly file ops.
+
+
+
+These five items were removed from `dynamic-roster-per-gate` v1 to keep the MVP focused on content-aware persona selection + tier-mixing rule. Each is independently shippable; collectively they restore the "full" feature surface the original spec drafted.
+
+- **`pipeline-iterative-resolution-loops` (NEW spec candidate — supersedes `pipeline-security-n-attempts` below — broader scope per 2026-05-06 user direction)** — generalize the security-axis 3-attempt counter (already shipped inline in check.sh) to ALL blocking finding-axes: AC#5 NO_GO verdict, class:architectural blocks, any future class-axis blocks. **User-selectable count** via `tier_policy.max_fix_attempts` (per-axis if needed) at constitution → spec.md → CLI precedence. **Highlight as feature:** "self-healing pipeline — 3-attempt automatic resolution loops per blocking axis, audit-logged, configurable." Integrity-class blocks (malformed sidecar, fence detection, bound-check failures) are EXEMPT — those indicate synthesizer/parser drift, not work-in-progress, and iterating on them just burns tokens.
+  - **Why:** v0.9.0's hardcoded-block invariants (AC#4 security, AC#5 NO_GO) caused 6 wasted autorun cycles in the dynamic-roster-per-gate session before security counter was added inline. AC#5 still hardcoded → run #6 halted on NO_GO despite the security counter working correctly.
+  - **Already shipped (inline patch):** `scripts/autorun/check.sh` 3-attempt counter for class:security only (AC#4 path).
+  - **Spec needs:** generalized counter at every block site (AC#5 verdict gate, future architectural blocks); `tier_policy.max_fix_attempts` schema in `pipeline-config.md` and spec.md frontmatter; CLI flag (`--max-fix-attempts N`); per-axis counter files (e.g., `.verdict-attempts`, `.architectural-attempts`); test fixtures for each axis; CHANGELOG; version bump (v0.10.0 likely).
+  - **Sequencing:** unblocked. Security-counter inline patch demonstrates the pattern.
+  - **Size:** M (mostly mechanical extension of the existing pattern; main complexity is per-axis counter file design + frontmatter override).
+  - **Codex review optional** — small code surface; standard /check sufficient.
+
+- **`monsterflow-pipeline-config-rename` (NEW spec candidate)** — rename `docs/specs/constitution.md` → `docs/specs/pipeline-config.md` everywhere (commands/, scripts/autorun/, docs/, tests/, install.sh banner). Symlink at old path for one release. Tightened description: *"project-wide pipeline configuration — agent roster, auto-run thresholds, tier policy, gate defaults"*.
+  - **Why:** "constitution" suggests a code-of-conduct; the file is actually project-wide pipeline config (agent roster, auto_threshold/floor, tier policy). Rename improves discoverability for adopters.
+  - **Sequencing:** unblocked, but coordinate with `dynamic-roster-per-gate` (which references the renamed file). Land EITHER before OR after dynamic-roster — both work; dynamic-roster spec uses old name pending this rename.
+  - **Entry points:** find/replace via `grep -lr "constitution.md"` + symlink + install.sh banner update + CHANGELOG.
+  - **Size:** S (mostly find/replace + symlink + tests).
+
+- **`pipeline-security-escape-hatches` (NEW spec candidate)** — add two interactive-only audit-logged escape hatches deferred from `dynamic-roster-per-gate` MVP:
+  1. `--allow-security-downgrade <reason>` — permits spec.md `tier_pins` to downgrade `fit_tags:[security]` personas below constitution floor with mandatory reason. Refused in `$CI`/`$AUTORUN_STAGE` truthy env (mirrors v0.9.0 `--force-permissive`). Emits `class:security state:open tags:[security-downgrade-acknowledged]` row to followups.jsonl + audit line at `.security-downgrade-log`.
+  2. `--acknowledge-baseline-mismatch <reason>` — permits `/spec` Phase 3 to remove a baseline-detected `tags:` entry (false-positive case). Same env-refusal, same audit shape (`tags:[baseline-mismatch-acknowledged]` + `.baseline-mismatch-log`).
+  - **Why:** in v1 dynamic-roster, baseline floor + spec_overridable_keys are HARD walls. False-positive cases (e.g., spec uses `auth` only in passing) force users to edit spec content, which may distort intent. Hatches give an audit-logged opt-out for known-safe cases.
+  - **Sequencing:** depends on `dynamic-roster-per-gate` shipping (these extend its mechanisms).
+  - **Size:** M (both hatches share the followups-row + audit-log + env-refusal pattern; ~150-300 LoC + tests).
+
+- **`pipeline-resolver-debugging` (NEW spec candidate)** — `resolve-personas.sh --explain` flag — read-only stdout pretty-printer over `selection.json` (or dry-mode resolver output if no selection.json exists). No-side-effects by construction (no write capability in code path). Sections: eligibility / scores / tier-assignment / dropped-with-reason / override-chain. tmpdir-mutation-zero test fixture pins HOME/XDG_*/TMPDIR before find -newer assertion.
+  - **Why:** debuggability of resolver decisions. Today users have `selection.json` but no human-readable formatter. Helps with "why did persona X get dropped?" investigations.
+  - **Sequencing:** depends on `dynamic-roster-per-gate` (extends its `selection.json` schema).
+  - **Size:** S (read-only formatter; ~50-100 LoC + 1 test fixture).
+
+- **`pipeline-rate-limit-resilience` (NEW spec candidate)** — design + implement HTTP 429 fallback for orchestrator + workers when `tier_policy.orchestrator=opus`. Today: no documented degradation path. Ask: when Opus rate-limits, do we (a) fall back to Sonnet for orchestrator, (b) backoff + retry, (c) queue + halt, (d) per-axis configurable.
+  - **Why:** surfaced by risk persona in `dynamic-roster-per-gate` /check run #6. Without a rate-limit fallback, Pro-tier users will hit 429 mid-gate and the autorun aborts with no recovery.
+  - **Sequencing:** depends on `dynamic-roster-per-gate` (rate-limit on the new tier-mixing path is the trigger).
+  - **Size:** M (design-heavy; need to choose strategy, instrument retries, decide whether to silently degrade tier or surface to user).
+
+- **`pipeline-security-n-attempts` (NEW spec candidate — formal documentation of patch already in production)** — formal spec for the policy framework change applied inline during 2026-05-06 dynamic-roster-per-gate session: class:security findings get N=3 logged resolution attempts before hardcoded block, instead of v0.9.0 AC#4's first-cycle hardcoded block. Counter at `$SIDECAR_DIR/.security-attempts`, log at `.security-attempts.log` (JSONL). Reset semantics: clean check (0 sec findings) resets to 0 + logs reset event; integrity blocks intentionally do NOT reset.
+  - **Why:** v0.9.0 AC#4 caused costly iteration loops (5 autorun cycles in dynamic-roster-per-gate session, each catching deeper-but-real security findings, with no opportunity for /build to attempt fixes between cycles). The "security findings are blockers" intent is preserved — they ARE blockers if unresolved after N attempts — but first-cycle halt was the wrong default.
+  - **Already shipped (inline patch):** `scripts/autorun/check.sh` lines 237-310 (counter logic + audit log + JSON-escape via python json.dumps + write-failure handling). Memory: `feedback_security_n_attempts_before_block.md`.
+  - **Spec needs to add:** test fixtures (3-attempt happy path, cap-exhausted block, counter-reset on clean check, counter-persists-on-integrity-block, env override `SECURITY_MAX_FIX_ATTEMPTS`), schema for `.security-attempts` + `.security-attempts.log`, frontmatter override (`security_max_fix_attempts:` per spec), interactive-mode parity (commands/check.md should honor same counter), CHANGELOG entry, version bump (likely v0.10.0).
+  - **Sequencing:** unblocked. Patch is in production via dynamic-roster-per-gate session; spec formalizes + tests + documents.
+  - **Size:** S–M (mostly tests + docs; the code is shipped).
+  - **Codex review optional** — small code surface; standard /check sufficient.
+
 - **`pipeline-gate-rightsizing` (NEW spec candidate — sibling to permissiveness)** — match gate weight to work class. `/spec` already picks bug-fix / small-change / feature / V2 at Phase 2; downstream gates don't honor that. A 3-line bug fix should not dispatch 6 PRD reviewers + 7 designers + 5 validators (28+ persona invocations). **Six levers in scope:**
   1. **Work-class → gate-intensity mapping.** Bug-fix: skip /spec-review + /plan + /check (go straight to /build). Small-change: 2-reviewer /spec-review, no /plan, 2-validator /check. Feature: full default roster. V2: full + Codex mandatory.
   2. **Which agents per gate per work-class** (not just count — selection). The persona roster has different fitness-for-purpose:
