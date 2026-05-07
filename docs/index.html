@@ -432,7 +432,7 @@
       <a href="#pipeline">Pipeline</a>
       <a href="#self-learning" class="hide-mobile">Self-learning</a>
       <a href="#commands">Commands</a>
-      <a href="#overnight" class="hide-mobile">Overnight</a>
+      <a href="#autorun" class="hide-mobile">Autorun</a>
       <a href="#install">Install</a>
       <a href="https://github.com/Jstottlemyer/MonsterFlow">GitHub ↗</a>
     </div>
@@ -444,11 +444,11 @@
     <img src="social-image.png" alt="The MonsterFlow mascot — a friendly six-armed coding monster wearing a leather harness, each arm typing on a different floating terminal window." class="hero-image">
     <span class="eyebrow">8-command pipeline · Claude Code · v0.9.1</span>
     <h1>You say WHAT.<br>Claude handles HOW.</h1>
-    <p class="hero-hook">Multi-agent review at every gate. And then the system measures whether those reviews are worth anything.</p>
+    <p class="hero-hook">Multi-agent review at every review gate. And then the system measures whether those reviews are worth anything.</p>
     <p class="tagline">
       A structured planning, multi-agent review, and execution-discipline pipeline for
       <a href="https://claude.com/claude-code">Claude Code</a>.
-      Ships <strong>40 reviewers</strong> — 29 always-available pipeline personas, 9 domain personas, plus 2 focused Claude Code subagents.
+      Ships <strong>41 reviewers</strong> — 30 always-available pipeline personas, 9 domain personas, plus 2 focused Claude Code subagents.
       Each phase calls only the slice it needs. One <code>/wrap</code> at the end compiles what you learned into durable memory.
     </p>
     <div class="cta">
@@ -483,14 +483,14 @@
     <div class="mermaid-frame">
       <pre class="mermaid">
 flowchart TD
-    K["/kickoff\nconstruction + agent roster"]:::setup
+    K["/kickoff\nconstitution + agent roster"]:::setup
     S["/spec\nQ&A · confidence-tracked"]:::define
     SR["/spec-review\nrequirements · gaps · ambiguity\nfeasibility · scope · stakeholders"]:::review
     JS1["Judge · Dedupe · Synth\ncluster · attribute · compose → review.md"]:::synth
     P["/plan\napi · data-model · ux · scalability\nsecurity · integration · wave-sequencer"]:::plan
     JS2["Judge · Dedupe · Synth → plan.md"]:::synth
     C["/check\ncompleteness · sequencing · risk\nscope-discipline · testability"]:::gate
-    JS3["Judge · Dedupe · Synth → check.md\nthree-tier verdict (v0.9.1+)"]:::synth
+    JS3["Judge · Dedupe · Synth → check.md\nthree-tier verdict (v0.9+)"]:::synth
     V1["GO\nclean pass"]:::verdictGo
     V2["GO_WITH_FIXES\nwarn → followups.jsonl\n(common case in permissive mode)"]:::verdictWarn
     V3["NO_GO\narchitectural · security · unclassified\nhalt"]:::verdictBlock
@@ -540,7 +540,7 @@ flowchart TD
     classDef verdictBlock fill:#7f1d1d,stroke:#fca5a5,color:#fee2e2,stroke-width:2px
       </pre>
     </div>
-    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Three-tier verdict at /check (v0.9.1+).</strong> The pipeline-gate-permissiveness change replaces the old binary halt-or-pass behavior with three verdicts: <code>GO</code> (clean pass), <code>GO_WITH_FIXES</code> (non-architectural findings warn-routed to <code>followups.jsonl</code> and consumed by /build wave 1 — the common case in permissive mode), and <code>NO_GO</code> (architectural, security, or unclassified findings halt the pipeline). The same verdict shape applies at <code>/spec-review</code> and <code>/plan</code>; <code>/check</code> remains the last gate before code.</p>
+    <p class="lede" style="margin-top:24px"><strong style="color:var(--fg)">Three-tier verdict at /check (v0.9.0+).</strong> The pipeline-gate-permissiveness change replaces the old binary halt-or-pass behavior with three verdicts: <code>GO</code> (clean pass), <code>GO_WITH_FIXES</code> (non-architectural findings warn-routed to <code>followups.jsonl</code> and consumed by /build wave 1 — the common case in permissive mode), and <code>NO_GO</code> (architectural, security, or unclassified findings halt the pipeline). The same verdict shape applies at <code>/spec-review</code> and <code>/plan</code>; <code>/check</code> remains the last gate before code.</p>
     <p class="lede" style="margin-top:24px">Each gate runs specialist agents in parallel; a <strong style="color:var(--fg)">Judge</strong> then clusters their raw output, attributes each finding to its source, and composes the synthesized artifact that drives the next phase. <code>spec.md</code> captures intent through Q&amp;A, then feeds 6 PRD reviewers → Judge → <code>review.md</code>; that feeds 7 design agents → Judge → <code>plan.md</code>; that feeds 5 plan validators → Judge → <code>check.md</code>. <code>/build</code> executes against the plan with TDD and verification discipline. <code>/wrap</code> distills what changed back into memory and the wiki. Small work skips the gates it doesn't need — <strong style="color:var(--fg)">same flow scales from a typo fix to a V2</strong>.</p>
     <p class="lede" style="margin-top:16px"><strong style="color:var(--fg)">Codex (optional).</strong> If <a href="#requirements">installed</a>, an OpenAI Codex agent runs an adversarial pass at <code>/spec-review</code>, <code>/check</code>, and <code>/build</code> — independent perspective from a different model family, joining the same Judge synthesis as the in-house personas. Silent skip if not set up.</p>
   </div>
@@ -664,7 +664,7 @@ flowchart TD
         <tr><td><code>/plan</code></td><td>Architecture + implementation design (incl. wave-sequencer for data-contract precedence)</td><td>7 designers</td></tr>
         <tr><td><code>/check</code></td><td>Last gate before code — validates the plan; + Codex adversarial pass (optional)</td><td>5 validators</td></tr>
         <tr><td><code>/build</code></td><td>Parallel execution with verification discipline; + Codex implementation review (optional)</td><td>Superpowers</td></tr>
-        <tr><td><code>/autorun</code></td><td>Headless overnight pipeline — queues a spec and drives all 8 stages unattended. <strong>Single-slug per invocation</strong> (per AC#24); multi-spec queues use <code>autorun-batch.sh --mode=overnight</code>. Per-axis warn/block policy framework (<code>verdict</code>, <code>branch</code>, <code>codex_probe</code>, <code>verify_infra</code>) lets you say <em>"warn overnight, block in supervised mode"</em>; security and integrity findings are hardcoded blocks regardless. Works cross-project: engine scripts stay in MonsterFlow, target git/docs/queue live in <code>$PWD</code>.</td><td>Shell</td></tr>
+        <tr><td><code>/autorun</code></td><td>Headless autorun pipeline — queues a spec and drives all 8 stages unattended. <strong>Single-slug per invocation</strong> (per AC#24); multi-spec queues use <code>autorun-batch.sh --mode=overnight</code> (the flag name preserved). Per-axis warn/block policy framework (<code>verdict</code>, <code>branch</code>, <code>codex_probe</code>, <code>verify_infra</code>) lets you say <em>"warn overnight, block in supervised mode"</em>. <strong>Security findings now route through a 3-attempt iterative resolution loop</strong> (default cap, env-overridable) instead of halting on the first cycle — integrity issues + verdict NO_GO remain hardcoded blocks. Works cross-project: engine scripts stay in MonsterFlow, target git/docs/queue live in <code>$PWD</code>.</td><td>Shell</td></tr>
         <tr><td><code>/flow</code></td><td>Displays the workflow reference card</td><td>—</td></tr>
         <tr><td><code>/wrap</code></td><td>Session wrap-up — three automatic insight phases feed one triage gate (CLAUDE.md · Memory · hooks · skills), then git loose ends. Variants: <code>quick</code> (fast, skips insights) · <code>full</code> (forces soft-skip phases)</td><td>—</td></tr>
       </tbody>
@@ -672,15 +672,17 @@ flowchart TD
   </div>
 </section>
 
-<section id="overnight" class="narrative">
+<section id="autorun" class="narrative">
   <div class="wrap">
-    <h2>Overnight policy framework <span style="color:var(--muted);font-weight:400">(v0.7+)</span></h2>
-    <p class="lede">Unattended overnight runs need a sharper question than "should we halt?". The autorun-overnight-policy spec (26 ACs, shipped via PR #6) replaced the old halt-on-anything behavior with a per-axis warn/block framework. The principle: <strong>more permissive overnight, except for security gaps</strong>. Testing in the morning with warnings beats a halted pipeline at 3am.</p>
+    <h2>Autorun — the overnight loop, with self-healing iteration <span style="color:var(--muted);font-weight:400">(v0.7+ policy framework, v0.9+ resolution loops)</span></h2>
+    <p class="lede">When I'm asleep or buried in my day job at Intuit, I want the pipeline to keep moving, but not blindly. Autorun runs the same gates I'd step through manually, except when something fails it gets up to three swings at fixing itself before it halts and hands me a PR or a failure report in the morning. The principle is more permissive overnight than supervised, except where security really shouldn't bend, and even there we now give it three logged attempts to converge — because the v0.9.0 sessions taught me that one blocking finding on cycle 1 with no chance to apply a fix and re-check is a faustian deal you're paying for in tokens, sleep, and momentum.</p>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Iterative resolution loops <span style="color:var(--muted);font-weight:400">(new in v0.9.x)</span></p>
+    <p>The friction in long autorun sessions wasn't gates being too strict — it was the first finding halting the run with no chance to apply a fix, re-check, and converge. So now every blocking security finding gets up to three logged attempts: the pipeline routes the finding through, /build takes a swing, /check re-runs, and the counter ticks up only when the same axis still trips. After three attempts on the same axis it halts and surfaces — that's the cap, not the first cycle. Audit trail at <code>docs/specs/&lt;slug&gt;/.security-attempts.log</code> (JSONL per attempt, with run_id and finding_ids), counter resets to zero on a clean check, and the cap is configurable via <code>SECURITY_MAX_FIX_ATTEMPTS</code> (default 3) — set it higher when you're pushing through a messy long-running spec, lower for paranoid environments. Integrity blocks (malformed sidecar JSON, schema mismatch) are exempt from the loop because they signal the synthesizer is broken, not that work is in-progress, and iterating on a broken parser just burns tokens. Broader generalization to NO_GO verdicts and architectural-class blocks (with per-axis user-selectable counts) is the next slice — see <code>pipeline-iterative-resolution-loops</code> in the backlog.</p>
 
     <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">Per-axis policy</p>
-    <p>Four overrideable axes — <code>verdict</code>, <code>branch</code>, <code>codex_probe</code>, <code>verify_infra</code> — each independently set to <code>warn</code> or <code>block</code>. <code>--mode=overnight</code> warns on everything; <code>--mode=supervised</code> blocks on everything. Per-axis env vars override the mode preset. Three classes are <em>hardcoded blocks</em> regardless of mode:</p>
+    <p>Four overrideable axes — <code>verdict</code>, <code>branch</code>, <code>codex_probe</code>, <code>verify_infra</code> — each independently set to <code>warn</code> or <code>block</code>. <code>--mode=overnight</code> warns on everything; <code>--mode=supervised</code> blocks on everything. Per-axis env vars override the mode preset. Two classes remain <em>hardcoded blocks</em> regardless of mode (security used to be a third — now flows through the iterative loop above):</p>
     <ul>
-      <li><strong>Security findings</strong> — anything tagged <code>sev:security</code> by reviewers</li>
       <li><strong>Integrity issues</strong> — malformed sidecar JSON, schema mismatch, missing required fields</li>
       <li><strong>Verdict NO_GO</strong> — synthesis's deliberate "this is broken" signal</li>
     </ul>
@@ -702,7 +704,10 @@ flowchart TD
     <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600;color:#d93">Known v1 limitation</p>
     <p style="border-left:3px solid #d93;padding-left:14px;color:var(--fg)">D33 multi-fence rejection blocks the easy attack class but does <strong>not</strong> authenticate a single fence quoted from reviewed content. If synthesis omits its own fence and reviewed content quotes a single fake one, count==1 passes and a forged GO ships. Mitigation is <strong>detection-hardening, not prevention</strong>. <strong>For repos processing untrusted spec sources</strong> (third-party PRs, externally-authored queue items), set <code>verdict_policy=block</code> and disable unattended auto-merge until the architectural fix lands. The fix is carved into the <code>autorun-verdict-deterministic</code> follow-up spec — deterministic verdict aggregation from structured reviewer outputs (drops the synthesis-emits-sidecar pattern entirely).</p>
 
-    <p class="lede" style="margin-top:24px">Full design + 26 acceptance criteria: <a href="https://github.com/Jstottlemyer/MonsterFlow/blob/main/docs/specs/autorun-overnight-policy/spec.md"><code>docs/specs/autorun-overnight-policy/</code></a>.</p>
+    <p class="lede" style="margin-top:24px">Full design + 26 acceptance criteria for the policy framework: <a href="https://github.com/Jstottlemyer/MonsterFlow/blob/main/docs/specs/autorun-overnight-policy/spec.md"><code>docs/specs/autorun-overnight-policy/</code></a>. The 3-attempt iterative-resolution loop is shipped today for the security axis (audit trail at <code>.security-attempts.log</code>); broader per-axis user-selectable counts are next, tracked in <a href="https://github.com/Jstottlemyer/MonsterFlow/blob/main/BACKLOG.md"><code>BACKLOG.md</code></a> as <code>pipeline-iterative-resolution-loops</code>.</p>
+
+    <p class="lede" style="margin-top:24px;color:var(--fg);font-weight:600">In flight</p>
+    <p><code>dynamic-roster-per-gate</code> — content-aware best-fit persona selection per gate. The resolver intersects spec.md <code>tags:</code> with each persona's <code>fit_tags:</code>, ranks by <code>(fit_score × load_bearing_rate)</code>, and dispatches up to <code>agent_budget</code> with a tier rule (≥1 Opus + remaining Sonnet workers, Codex additive). Three-tier override matches the v0.9.0 <code>gate_mode</code> pattern: constitution → spec.md → CLI. <strong>Currently iterating via autorun against itself</strong> (the spec dogfoods its own framework). Spec source: <a href="https://github.com/Jstottlemyer/MonsterFlow/blob/main/docs/specs/dynamic-roster-per-gate/spec.md"><code>docs/specs/dynamic-roster-per-gate/spec.md</code></a>. Five sibling specs carved from this MVP — constitution rename, escape hatches, debugging affordances, rate-limit fallback, broader iterative-resolution — all tracked in BACKLOG.</p>
   </div>
 </section>
 
@@ -774,20 +779,20 @@ cd ~/Projects/MonsterFlow &amp;&amp; ./install.sh">Copy</button><pre class="inst
 
 <section id="agents">
   <div class="wrap">
-    <h2>Agent roster <span style="color:var(--muted);font-weight:400">— 40 total (38 personas + 2 subagents)</span></h2>
-    <p class="lede">29 always-available pipeline personas + 9 domain personas + 2 focused Claude Code subagents (<code>autorun-shell-reviewer</code>, <code>persona-metrics-validator</code>). A session calls only the slice for the current phase — never all 40 at once.</p>
+    <h2>Agent roster <span style="color:var(--muted);font-weight:400">— 41 total (39 personas + 2 subagents)</span></h2>
+    <p class="lede">30 always-available pipeline personas + 9 domain personas + 2 focused Claude Code subagents (<code>autorun-shell-reviewer</code>, <code>persona-metrics-validator</code>). A session calls only the slice for the current phase — never all 41 at once.</p>
     <div class="grid">
       <div class="card">
         <h3>Review · <code>/spec-review</code> <span class="count">6</span></h3>
         <p>Requirements · Gaps · Ambiguity · Feasibility · Scope · Stakeholders</p>
       </div>
       <div class="card">
-        <h3>Plan · <code>/plan</code> <span class="count">6</span></h3>
+        <h3>Plan · <code>/plan</code> <span class="count">7</span></h3>
         <p>API · Data Model · UX · Scalability · Security · Integration · Wave Sequencer</p>
       </div>
       <div class="card">
-        <h3>Check · <code>/check</code> <span class="count">5</span></h3>
-        <p>Completeness · Sequencing · Risk · Scope Discipline · Testability</p>
+        <h3>Check · <code>/check</code> <span class="count">6</span></h3>
+        <p>Completeness · Sequencing · Risk · Scope Discipline · Security Architect · Testability</p>
       </div>
       <div class="card">
         <h3>Code review · full mode <span class="count">9</span></h3>
